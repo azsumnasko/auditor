@@ -42,6 +42,18 @@ def main():
     unassigned_wip = data.get("unassigned_wip_count", 0)
     flow_eff = data.get("flow_efficiency") or {}
 
+    wip_assignees = data.get("wip_assignees") or {}
+    avg_wip_pp = data.get("avg_wip_per_assignee", 0)
+    sp_trend = data.get("sp_trend") or {}
+    created_by_week = data.get("created_by_week") or {}
+    bug_creation_by_week = data.get("bug_creation_by_week") or {}
+    assignee_change = data.get("assignee_change_near_resolution") or {}
+    comment_timing = data.get("comment_timing") or {}
+    worklog_analysis = data.get("worklog_analysis") or {}
+    epic_health = data.get("epic_health") or []
+    releases = data.get("releases") or []
+    releases_per_month = data.get("releases_per_month") or {}
+
     projects = data.get("projects", [])
     all_components = sorted(set(wip_comp.keys()) | set(
         c for p in (data.get("by_project") or {}).values()
@@ -68,6 +80,8 @@ def main():
         removed = s.get("removed_during_sprint")
         last24 = s.get("resolved_last_24h_pct")
         last24_str = f"{last24}%" if last24 is not None else "\u2014"
+        a_d = s.get("added_and_done_count")
+        a_d_str = str(a_d) if a_d is not None else "\u2014"
         sprint_rows.append(
             f'<tr data-project="{html.escape(s.get("project", ""))}">'
             f'<td>{html.escape(s.get("project", ""))}</td>'
@@ -77,11 +91,12 @@ def main():
             f'<td>{s.get("assignee_count", "")}</td>'
             f'<td>{ratio_str}</td>'
             f'<td>{added if added is not None else "\u2014"}</td>'
+            f'<td>{a_d_str}</td>'
             f'<td>{removed if removed is not None else "\u2014"}</td>'
             f'<td>{last24_str}</td>'
             f'</tr>'
         )
-    sprint_rows_str = "".join(sprint_rows) if sprint_rows else "<tr><td colspan=\"9\">No sprint data</td></tr>"
+    sprint_rows_str = "".join(sprint_rows) if sprint_rows else "<tr><td colspan=\"10\">No sprint data</td></tr>"
 
     kanban_rows = "".join(
         f'<tr data-project="{html.escape(k.get("project", ""))}"><td>{html.escape(k.get("project", ""))}</td><td>{html.escape(k.get("board_name", ""))}</td><td>{k.get("issue_count", 0)}</td><td>{k.get("done_count", 0)}</td><td>{html.escape(json.dumps(k.get("status_breakdown", {})))}</td></tr>'
@@ -263,6 +278,50 @@ def main():
   </section>
 
   <section>
+    <h2>Created vs Resolved trend (by week)</h2>
+    <p class="summary-desc">Net positive (created > resolved) means backlog is growing.</p>
+    <div class="chart-wrap" style="max-width: 900px; height: 260px;"><canvas id="chartCreatedResolved"></canvas></div>
+  </section>
+
+  <div class="grid2">
+    <section>
+      <h2>WIP by assignee (top 20)</h2>
+      <p class="summary-desc">Avg WIP per person: <strong id="avgWipPP">{avg_wip_pp}</strong></p>
+      <div class="chart-wrap"><canvas id="chartWipAssignees"></canvas></div>
+    </section>
+    <section>
+      <h2>Bug creation rate (by week)</h2>
+      <div class="chart-wrap"><canvas id="chartBugCreation"></canvas></div>
+    </section>
+  </div>
+
+  <div class="grid2">
+    <section>
+      <h2>Defect density by component</h2>
+      <p class="summary-desc">Open bugs / WIP count per component. Higher = more bugs relative to active work.</p>
+      <div class="chart-wrap"><canvas id="chartDefectDensity"></canvas></div>
+    </section>
+    <section>
+      <h2>Focus factor (WIP per assignee distribution)</h2>
+      <p class="summary-desc">Low focus = person juggling many issues. Avg WIP/person: <strong id="avgWipPP2">{avg_wip_pp}</strong></p>
+      <div class="chart-wrap"><canvas id="chartFocusFactor"></canvas></div>
+    </section>
+  </div>
+
+  <div class="grid2">
+    <section>
+      <h2>Story point trend (avg SP/issue by month)</h2>
+      <p class="summary-desc">Rising average may signal point inflation for velocity padding.</p>
+      <div class="chart-wrap"><canvas id="chartSpTrend"></canvas></div>
+    </section>
+    <section>
+      <h2>Worklog by day of week</h2>
+      <p class="summary-desc">Weekend %: <strong id="weekendPct">{worklog_analysis.get('weekend_pct', 0)}%</strong>, SP-worklog correlation: <strong id="spCorr">{worklog_analysis.get('sp_worklog_correlation', 'N/A')}</strong></p>
+      <div class="chart-wrap"><canvas id="chartWorklogDow"></canvas></div>
+    </section>
+  </div>
+
+  <section>
     <h2>Resolutions per day (bulk closure detection)</h2>
     <p class="summary-desc">Spikes indicate batch closure. Horizontal line = 10 issues/day threshold.</p>
     <div class="chart-wrap" style="max-width: 900px; height: 220px;"><canvas id="chartBulkClosure"></canvas></div>
@@ -336,7 +395,7 @@ def main():
     <div class="filter"><input type="text" id="filterSprints" placeholder="Filter by project\u2026" /></div>
     <div class="table-wrap">
       <table id="tableSprints">
-        <thead><tr><th data-sort="project">Project</th><th data-sort="sprint_name">Sprint</th><th data-sort="throughput_issues">Done</th><th data-sort="total_issues">Total</th><th data-sort="assignee_count">People</th><th>Commit ratio</th><th data-sort="added_after_sprint_start">Added late</th><th>Removed</th><th>Last-day %</th></tr></thead>
+        <thead><tr><th data-sort="project">Project</th><th data-sort="sprint_name">Sprint</th><th data-sort="throughput_issues">Done</th><th data-sort="total_issues">Total</th><th data-sort="assignee_count">People</th><th>Commit ratio</th><th data-sort="added_after_sprint_start">Added late</th><th>Added+Done</th><th>Removed</th><th>Last-day %</th></tr></thead>
         <tbody>{sprint_rows_str}</tbody>
       </table>
     </div>
@@ -348,6 +407,24 @@ def main():
       <table id="tableKanban">
         <thead><tr><th>Project</th><th>Board</th><th>Issues</th><th>Done</th><th>Status breakdown</th></tr></thead>
         <tbody>{kanban_rows}</tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Epic health (open epics)</h2>
+    <p class="summary-desc" id="epicHealthSummary">Open: {data.get('open_epics_count', 0)} | Stale (>6mo, <20% done): <strong style="color:var(--red)">{data.get('stale_epics_count', 0)}</strong> | Avg completion: {data.get('avg_epic_completion_pct', 0)}%</p>
+    <div class="table-wrap">
+      <table id="tableEpics">
+        <thead><tr><th data-sort="project">Project</th><th data-sort="key">Key</th><th>Summary</th><th data-sort="age_days">Age (d)</th><th data-sort="total_children">Children</th><th data-sort="done_children">Done</th><th data-sort="completion_pct">%</th><th>Stale</th></tr></thead>
+        <tbody>{''.join(
+            f'<tr data-project="{html.escape(e.get("project",""))}" style="{"color:var(--red)" if e.get("stale") else ""}">'
+            f'<td>{html.escape(e.get("project",""))}</td><td>{html.escape(e.get("key",""))}</td>'
+            f'<td>{html.escape((e.get("summary",""))[:50])}</td><td>{e.get("age_days",0)}</td>'
+            f'<td>{e.get("total_children",0)}</td><td>{e.get("done_children",0)}</td>'
+            f'<td>{e.get("completion_pct",0)}%</td><td>{"Yes" if e.get("stale") else ""}</td></tr>'
+            for e in sorted(epic_health, key=lambda x: (-1 if x.get("stale") else 0, -(x.get("age_days") or 0)))
+        ) if epic_health else "<tr><td colspan='8'>No epic data</td></tr>"}</tbody>
       </table>
     </div>
   </section>
@@ -412,6 +489,14 @@ def main():
         sprint_metrics: (DATA.sprint_metrics||[]).filter(s => selectedProjects.includes(s.project)),
         velocity_cv_by_project: Object.fromEntries(selectedProjects.map(pk => [pk, (DATA.velocity_cv_by_project||{{}})[pk]]).filter(([,v]) => v != null)),
         oldest_open_bugs: (DATA.oldest_open_bugs||[]).filter(b => selectedProjects.includes(b.project)),
+        wip_assignees: m.wip_assignees || {{}},
+        assignee_change_near_resolution: m.assignee_change_near_resolution || {{}},
+        comment_timing: m.comment_timing || {{}},
+        worklog_analysis: m.worklog_analysis || {{}},
+        created_by_week: m.created_by_week || {{}},
+        sp_trend: m.sp_trend || DATA.sp_trend || {{}},
+        bug_creation_by_week: m.bug_creation_by_week || DATA.bug_creation_by_week || {{}},
+        stale_epics_count: DATA.stale_epics_count || 0,
       }});
     }}
 
@@ -563,6 +648,113 @@ def main():
     const chartAddedLate = new Chart(document.getElementById('chartAddedLate'), {{
       type: 'bar',
       data: {{ labels: sprintLabels, datasets: [{{ label: 'Added after sprint start', data: addedLateValues, backgroundColor: 'rgba(248,81,73,0.6)' }}] }},
+      options: {{ responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
+    }});
+
+    // Created vs Resolved trend (5a)
+    const createdWeek = DATA.created_by_week || {{}};
+    const resolvedWeek = DATA.throughput_by_week || {{}};
+    const allWeeks = [...new Set([...Object.keys(createdWeek), ...Object.keys(resolvedWeek)])].sort().slice(-16);
+    const chartCreatedResolved = new Chart(document.getElementById('chartCreatedResolved'), {{
+      type: 'bar',
+      data: {{
+        labels: allWeeks,
+        datasets: [
+          {{ label: 'Created', data: allWeeks.map(w => createdWeek[w]||0), backgroundColor: 'rgba(248,81,73,0.5)' }},
+          {{ label: 'Resolved', data: allWeeks.map(w => resolvedWeek[w]||0), backgroundColor: 'rgba(63,185,80,0.5)' }}
+        ]
+      }},
+      options: {{ responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ position: 'top' }} }} }}
+    }});
+
+    // WIP by assignee (6a)
+    const wipAss = DATA.wip_assignees || {{}};
+    const wipAssItems = Object.entries(wipAss).sort((a,b)=>b[1]-a[1]).slice(0,20);
+    const chartWipAssignees = new Chart(document.getElementById('chartWipAssignees'), {{
+      type: 'bar',
+      data: {{
+        labels: wipAssItems.map(a => a[0]),
+        datasets: [{{ label: 'WIP issues', data: wipAssItems.map(a => a[1]), backgroundColor: wipAssItems.map(([,v]) => v > 20 ? 'rgba(248,81,73,0.7)' : v > 10 ? 'rgba(210,153,34,0.6)' : 'rgba(88,166,255,0.6)') }}]
+      }},
+      options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
+    }});
+
+    // Bug creation rate (5b)
+    const bugWeek = DATA.bug_creation_by_week || {{}};
+    const bugWeeks = Object.keys(bugWeek).sort().slice(-16);
+    const chartBugCreation = new Chart(document.getElementById('chartBugCreation'), {{
+      type: 'bar',
+      data: {{
+        labels: bugWeeks,
+        datasets: [{{ label: 'Bugs created', data: bugWeeks.map(w => bugWeek[w]||0), backgroundColor: 'rgba(248,81,73,0.6)' }}]
+      }},
+      options: {{ responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
+    }});
+
+    // Defect density by component (5c)
+    const bc = DATA.by_component || {{}};
+    const ddItems = Object.entries(bc)
+      .filter(([,m]) => (m.wip_count||0) > 0)
+      .map(([name, m]) => [name, Math.round((m.open_bugs_count||0) / (m.wip_count||1) * 1000) / 10])
+      .sort((a,b) => b[1] - a[1])
+      .slice(0, 15);
+    const chartDefectDensity = new Chart(document.getElementById('chartDefectDensity'), {{
+      type: 'bar',
+      data: {{
+        labels: ddItems.map(d => d[0]),
+        datasets: [{{ label: 'Bugs / WIP %', data: ddItems.map(d => d[1]), backgroundColor: ddItems.map(([,v]) => v > 30 ? 'rgba(248,81,73,0.7)' : v > 10 ? 'rgba(210,153,34,0.6)' : 'rgba(88,166,255,0.6)') }}]
+      }},
+      options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
+    }});
+
+    // Focus factor — histogram of WIP per assignee (6c)
+    const wipAssObj = DATA.wip_assignees || {{}};
+    const wipCounts = Object.entries(wipAssObj).filter(([k]) => k !== '(unassigned)').map(([,v]) => v);
+    const ffBuckets = {{'1': 0, '2-3': 0, '4-5': 0, '6-10': 0, '11-20': 0, '20+': 0}};
+    for (const c of wipCounts) {{
+      if (c <= 1) ffBuckets['1']++;
+      else if (c <= 3) ffBuckets['2-3']++;
+      else if (c <= 5) ffBuckets['4-5']++;
+      else if (c <= 10) ffBuckets['6-10']++;
+      else if (c <= 20) ffBuckets['11-20']++;
+      else ffBuckets['20+']++;
+    }}
+    const ffLabels = Object.keys(ffBuckets);
+    const chartFocusFactor = new Chart(document.getElementById('chartFocusFactor'), {{
+      type: 'bar',
+      data: {{
+        labels: ffLabels,
+        datasets: [{{ label: 'People', data: ffLabels.map(l => ffBuckets[l]), backgroundColor: ['rgba(63,185,80,0.7)','rgba(63,185,80,0.6)','rgba(88,166,255,0.6)','rgba(210,153,34,0.6)','rgba(248,81,73,0.6)','rgba(248,81,73,0.8)'] }}]
+      }},
+      options: {{ responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }}, scales: {{ x: {{ title: {{ display: true, text: 'WIP issues per person' }} }}, y: {{ title: {{ display: true, text: 'People count' }} }} }} }}
+    }});
+
+    // SP trend (4a)
+    const spTrend = (DATA.sp_trend || {{}}).by_month || {{}};
+    const spMonths = Object.keys(spTrend).sort();
+    const chartSpTrend = new Chart(document.getElementById('chartSpTrend'), {{
+      type: 'line',
+      data: {{
+        labels: spMonths,
+        datasets: [{{
+          label: 'Avg SP/issue',
+          data: spMonths.map(m => spTrend[m]?.avg_sp || 0),
+          borderColor: '#58a6ff', backgroundColor: 'rgba(88,166,255,0.15)',
+          fill: true, tension: 0.3
+        }}]
+      }},
+      options: {{ responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
+    }});
+
+    // Worklog by day of week (6b)
+    const wlDow = (DATA.worklog_analysis || {{}}).by_dow || {{}};
+    const wlDowLabels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const chartWorklogDow = new Chart(document.getElementById('chartWorklogDow'), {{
+      type: 'bar',
+      data: {{
+        labels: wlDowLabels,
+        datasets: [{{ label: 'Hours', data: wlDowLabels.map(d => wlDow[d]||0), backgroundColor: wlDowLabels.map(d => (d==='Sat'||d==='Sun') ? 'rgba(248,81,73,0.7)' : 'rgba(88,166,255,0.6)') }}]
+      }},
       options: {{ responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
     }});
 
@@ -788,6 +980,69 @@ def main():
         sev('yellow', `${{orp}}% of done issues have no issue links`,
           'Issues are not linked to other work, making traceability impossible.');
 
+      // Phase 4b: Sprint scope padding (added and immediately done)
+      for (const [proj, pSprints] of Object.entries(byProj)) {{
+        const paddedSprints = pSprints.filter(s => s.added_and_done_count != null && s.total_issues > 5 && s.added_and_done_count / s.total_issues > 0.2);
+        if (paddedSprints.length > 0)
+          sev('red', `${{proj}}: ${{paddedSprints.length}} sprint(s) with > 20% issues added AND done (scope padding)`,
+            paddedSprints.map(s => `${{s.sprint_name}}: ${{s.added_and_done_count}}/${{s.total_issues}}`).join('; '));
+      }}
+
+      // Phase 4c: Assignee change near resolution
+      const acnr = D.assignee_change_near_resolution || {{}};
+      if (acnr.changed_pct > 15 && acnr.total > 20)
+        sev('orange', `${{acnr.changed_pct}}% of issues had assignee changed in last 24h before resolution (${{acnr.changed_count}}/${{acnr.total}})`,
+          'Potential credit reassignment or completion sniping.');
+
+      // Phase 4d: Post-resolution worklogs
+      const wla = D.worklog_analysis || {{}};
+      if (wla.post_resolution_worklog_pct > 20 && wla.total_done > 10)
+        sev('orange', `${{wla.post_resolution_worklog_pct}}% of done issues have worklogs after resolution (${{wla.post_resolution_worklog_count}}/${{wla.total_done}})`,
+          'Time is being logged retroactively after issue closure.');
+      if (wla.zero_worklog_pct > 80 && wla.total_done > 20)
+        sev('yellow', `${{wla.zero_worklog_pct}}% of done issues have zero worklogs`,
+          'No time tracking for the vast majority of completed work.');
+
+      // Phase 4e: Post-resolution comments
+      const ctm = D.comment_timing || {{}};
+      if (ctm.post_resolution_comment_pct > 30 && ctm.total_issues > 20)
+        sev('orange', `${{ctm.post_resolution_comment_pct}}% of done issues have comments added after resolution`,
+          'High rate of post-resolution documentation suggests retroactive activity.');
+
+      // Phase 4a: Story point inflation
+      const spt = D.sp_trend || {{}};
+      if (spt.inflation_detected)
+        sev('orange', 'Story point inflation detected (avg SP/issue rose > 30% over period)',
+          'Teams may be inflating estimates to meet velocity targets.');
+
+      // Phase 5a: Backlog growth (created > resolved for 4+ weeks)
+      const cbw = D.created_by_week || {{}};
+      const tbw = D.throughput_by_week || {{}};
+      const trendWeeks = [...new Set([...Object.keys(cbw), ...Object.keys(tbw)])].sort().slice(-8);
+      let consGrowth = 0;
+      for (const w of trendWeeks) {{ if ((cbw[w]||0) > (tbw[w]||0)) consGrowth++; else consGrowth = 0; }}
+      if (consGrowth >= 4)
+        sev('orange', `Backlog growing: created > resolved for ${{consGrowth}} consecutive weeks`,
+          'The team is not keeping up with incoming work.');
+
+      // Phase 6a: WIP overload per person
+      const wipAss = D.wip_assignees || {{}};
+      const overloaded = Object.entries(wipAss).filter(([k,v]) => k !== '(unassigned)' && v > 20);
+      if (overloaded.length > 0)
+        sev('orange', `${{overloaded.length}} person(s) with > 20 WIP issues`,
+          overloaded.slice(0,5).map(([n,c]) => `${{n}}: ${{c}}`).join(', '));
+
+      // Phase 6d: Stale epics
+      const staleEpics = D.stale_epics_count || 0;
+      if (staleEpics > 3)
+        sev('orange', `${{staleEpics}} stale epics (>6 months old, <20% complete)`,
+          'Long-running epics with little progress suggest abandoned or poorly managed initiatives.');
+
+      // Phase 6e: SP vs worklog correlation
+      if (wla.sp_worklog_correlation != null && wla.sp_worklog_correlation < 0.3 && wla.sp_worklog_pairs_count >= 10)
+        sev('yellow', `Story points vs worklog correlation is only ${{wla.sp_worklog_correlation}} (weak)`,
+          'Story point estimates do not correlate with actual effort. Points may be arbitrary.');
+
       const container = document.getElementById('auditFlags');
       if (!container) return;
       if (flags.length === 0) {{
@@ -839,6 +1094,13 @@ def main():
         const blkPct = (pm.blocked_count||0) / wipCount * 100;
         if (wipCount > 20 && blkPct < 2) score += 5;
         else if (wipCount > 20 && blkPct < 5) score += 2;
+        // Phase 4 new signals
+        const acnr = pm.assignee_change_near_resolution || {{}};
+        score += Math.min((acnr.changed_pct||0) / 30 * 5, 5);
+        const ctm = pm.comment_timing || {{}};
+        score += Math.min((ctm.post_resolution_comment_pct||0) / 50 * 5, 5);
+        const wla = pm.worklog_analysis || {{}};
+        score += Math.min((wla.post_resolution_worklog_pct||0) / 40 * 5, 5);
         return Math.round(Math.min(score, 100));
       }}
 
@@ -889,6 +1151,14 @@ def main():
       let reopenC = 0, reopenT = 0;
       const ltdMerge = {{ under_1h:0, '1h_to_1d':0, '1d_to_7d':0, '7d_to_30d':0, over_30d:0, total:0 }};
       let edpW = 0, zcpW = 0, orpW = 0, doneTotal = 0;
+      const wipAssMerge = {{}};
+      let acnrChanged = 0, acnrTotal = 0;
+      let ctmPost = 0, ctmTotal = 0;
+      let wlaZero = 0, wlaPostRes = 0, wlaDone = 0, wlaBulk = 0, wlaHours = 0;
+      const wlaByDow = {{}};
+      const createdMerge = {{}};
+      const bugCreatedMerge = {{}};
+      const spTrendMonthMerge = {{}};
       let matched = 0;
       for (const key of keyList) {{
         const m = sourceDict[key];
@@ -948,6 +1218,23 @@ def main():
         edpW += (m.empty_description_done_pct||0) * dc;
         zcpW += (m.zero_comment_done_pct||0) * dc;
         orpW += (m.orphan_done_pct||0) * dc;
+        for (const [k,v] of Object.entries(m.wip_assignees || {{}})) wipAssMerge[k] = (wipAssMerge[k]||0) + v;
+        const macnr = m.assignee_change_near_resolution || {{}};
+        acnrChanged += macnr.changed_count || 0; acnrTotal += macnr.total || 0;
+        const mctm = m.comment_timing || {{}};
+        ctmPost += mctm.with_post_resolution_comments || 0; ctmTotal += mctm.total_issues || 0;
+        const mwla = m.worklog_analysis || {{}};
+        wlaZero += mwla.zero_worklog_count || 0; wlaPostRes += mwla.post_resolution_worklog_count || 0;
+        wlaDone += mwla.total_done || 0; wlaBulk += mwla.bulk_entries_count || 0; wlaHours += mwla.total_hours || 0;
+        for (const [d,h] of Object.entries(mwla.by_dow || {{}})) wlaByDow[d] = (wlaByDow[d]||0) + h;
+        for (const [w,c] of Object.entries(m.created_by_week || {{}})) createdMerge[w] = (createdMerge[w]||0) + c;
+        for (const [w,c] of Object.entries(m.bug_creation_by_week || {{}})) bugCreatedMerge[w] = (bugCreatedMerge[w]||0) + c;
+        const mSpt = m.sp_trend || {{}};
+        for (const [mon, mData] of Object.entries(mSpt.by_month || {{}})) {{
+          if (!spTrendMonthMerge[mon]) spTrendMonthMerge[mon] = {{ total_sp: 0, total_issues: 0 }};
+          spTrendMonthMerge[mon].total_sp += (mData.avg_sp||0) * (mData.count||0);
+          spTrendMonthMerge[mon].total_issues += mData.count||0;
+        }}
       }}
       if (!matched) return null;
       const weeks = Object.keys(throughputMerge).sort();
@@ -991,6 +1278,34 @@ def main():
         empty_description_done_pct: doneTotal ? Math.round(edpW/doneTotal*10)/10 : 0,
         zero_comment_done_pct: doneTotal ? Math.round(zcpW/doneTotal*10)/10 : 0,
         orphan_done_pct: doneTotal ? Math.round(orpW/doneTotal*10)/10 : 0,
+        avg_wip_per_assignee: (() => {{
+          const ppl = Object.entries(wipAssMerge).filter(([k]) => k !== '(unassigned)');
+          return ppl.length > 0 ? Math.round(ppl.reduce((a,[,v])=>a+v,0)/ppl.length*10)/10 : 0;
+        }})(),
+        wip_assignees: wipAssMerge,
+        assignee_change_near_resolution: {{ total: acnrTotal, changed_count: acnrChanged, changed_pct: acnrTotal ? Math.round(acnrChanged/acnrTotal*1000)/10 : 0 }},
+        comment_timing: {{ total_issues: ctmTotal, with_post_resolution_comments: ctmPost, post_resolution_comment_pct: ctmTotal ? Math.round(ctmPost/ctmTotal*1000)/10 : 0 }},
+        worklog_analysis: {{
+          total_done: wlaDone, zero_worklog_count: wlaZero, zero_worklog_pct: wlaDone ? Math.round(wlaZero/wlaDone*1000)/10 : 0,
+          post_resolution_worklog_count: wlaPostRes, post_resolution_worklog_pct: wlaDone ? Math.round(wlaPostRes/wlaDone*1000)/10 : 0,
+          bulk_entries_count: wlaBulk, total_hours: Math.round(wlaHours*10)/10,
+          by_dow: wlaByDow, weekend_pct: wlaHours > 0 ? Math.round(((wlaByDow.Sat||0)+(wlaByDow.Sun||0))/wlaHours*1000)/10 : 0,
+        }},
+        created_by_week: createdMerge,
+        bug_creation_by_week: bugCreatedMerge,
+        sp_trend: (() => {{
+          const byM = {{}};
+          let infl = false, prev = null;
+          const sorted = Object.keys(spTrendMonthMerge).sort();
+          for (const mon of sorted) {{
+            const d = spTrendMonthMerge[mon];
+            const avg = d.total_issues > 0 ? Math.round(d.total_sp / d.total_issues * 100) / 100 : 0;
+            byM[mon] = {{ avg_sp: avg, count: d.total_issues }};
+            if (prev !== null && avg > prev * 1.3) infl = true;
+            prev = avg;
+          }}
+          return {{ by_month: byM, inflation_detected: infl }};
+        }})(),
       }};
     }}
     function mergeProjectMetrics(projList) {{ return _mergeSource(DATA.by_project, projList); }}
@@ -1145,6 +1460,101 @@ def main():
       const feD = useGlobal ? (DATA.flow_efficiency||{{}}) : (m.flow_efficiency||{{}});
       el('cardFlowEff', (feD.efficiency_pct||0) + '%');
 
+      // Created vs Resolved chart
+      const cbwD = useGlobal ? (DATA.created_by_week||{{}}) : (m.created_by_week||{{}});
+      const tbwD = useGlobal ? (DATA.throughput_by_week||{{}}) : (m.throughput_by_week||{{}});
+      const crWeeks = [...new Set([...Object.keys(cbwD), ...Object.keys(tbwD)])].sort().slice(-16);
+      chartCreatedResolved.data.labels = crWeeks;
+      chartCreatedResolved.data.datasets[0].data = crWeeks.map(w => cbwD[w]||0);
+      chartCreatedResolved.data.datasets[1].data = crWeeks.map(w => tbwD[w]||0);
+      chartCreatedResolved.update();
+
+      // WIP assignees chart
+      const waD = useGlobal ? (DATA.wip_assignees||{{}}) : (m.wip_assignees||{{}});
+      const waItems = Object.entries(waD).sort((a,b)=>b[1]-a[1]).slice(0,20);
+      chartWipAssignees.data.labels = waItems.map(a => a[0]);
+      chartWipAssignees.data.datasets[0].data = waItems.map(a => a[1]);
+      chartWipAssignees.data.datasets[0].backgroundColor = waItems.map(([,v]) => v > 20 ? 'rgba(248,81,73,0.7)' : v > 10 ? 'rgba(210,153,34,0.6)' : 'rgba(88,166,255,0.6)');
+      chartWipAssignees.update();
+
+      // Defect density chart (5c) — recompute from by_component
+      const ddSrc = useGlobal ? (DATA.by_component||{{}}) : (m.wip_components ? (() => {{
+        const fake = {{}};
+        for (const [cn, wc] of Object.entries(m.wip_components||{{}})) {{
+          const bugC = (DATA.by_component||{{}})[cn];
+          fake[cn] = {{ wip_count: wc, open_bugs_count: bugC ? bugC.open_bugs_count||0 : 0 }};
+        }}
+        return fake;
+      }})() : (DATA.by_component||{{}}));
+      const ddI2 = Object.entries(ddSrc)
+        .filter(([,mm]) => (mm.wip_count||0) > 0)
+        .map(([n, mm]) => [n, Math.round((mm.open_bugs_count||0) / (mm.wip_count||1) * 1000) / 10])
+        .sort((a,b) => b[1] - a[1]).slice(0, 15);
+      chartDefectDensity.data.labels = ddI2.map(d => d[0]);
+      chartDefectDensity.data.datasets[0].data = ddI2.map(d => d[1]);
+      chartDefectDensity.data.datasets[0].backgroundColor = ddI2.map(([,v]) => v > 30 ? 'rgba(248,81,73,0.7)' : v > 10 ? 'rgba(210,153,34,0.6)' : 'rgba(88,166,255,0.6)');
+      chartDefectDensity.update();
+
+      // Focus factor chart (6c) — rebuild histogram from wip_assignees
+      const waForFf = useGlobal ? (DATA.wip_assignees||{{}}) : (m.wip_assignees||{{}});
+      const ffWipCounts = Object.entries(waForFf).filter(([k]) => k !== '(unassigned)').map(([,v]) => v);
+      const ffB = {{'1': 0, '2-3': 0, '4-5': 0, '6-10': 0, '11-20': 0, '20+': 0}};
+      for (const c of ffWipCounts) {{
+        if (c <= 1) ffB['1']++;
+        else if (c <= 3) ffB['2-3']++;
+        else if (c <= 5) ffB['4-5']++;
+        else if (c <= 10) ffB['6-10']++;
+        else if (c <= 20) ffB['11-20']++;
+        else ffB['20+']++;
+      }}
+      chartFocusFactor.data.datasets[0].data = Object.keys(ffB).map(l => ffB[l]);
+      chartFocusFactor.update();
+
+      // Update avg WIP summary text — prefer pre-computed value, fallback to top-20 approx
+      const avgWipVal = useGlobal
+        ? (DATA.avg_wip_per_assignee || 0)
+        : (ffWipCounts.length > 0 ? (ffWipCounts.reduce((a,b)=>a+b,0)/ffWipCounts.length).toFixed(1) : '0');
+      const awEl1 = document.getElementById('avgWipPP');
+      const awEl2 = document.getElementById('avgWipPP2');
+      if (awEl1) awEl1.textContent = avgWipVal;
+      if (awEl2) awEl2.textContent = avgWipVal;
+
+      // Worklog dow chart
+      const wlAnalysis = useGlobal ? (DATA.worklog_analysis||{{}}) : (m.worklog_analysis||{{}});
+      const wlD = wlAnalysis.by_dow || {{}};
+      chartWorklogDow.data.datasets[0].data = wlDowLabels.map(dd => wlD[dd]||0);
+      chartWorklogDow.update();
+
+      // Update worklog summary text
+      const wkPctEl = document.getElementById('weekendPct');
+      const spCorrEl = document.getElementById('spCorr');
+      if (wkPctEl) wkPctEl.textContent = (wlAnalysis.weekend_pct || 0) + '%';
+      if (spCorrEl) spCorrEl.textContent = wlAnalysis.sp_worklog_correlation != null ? wlAnalysis.sp_worklog_correlation : 'N/A';
+
+      // Bug creation rate chart
+      const bugWkD = useGlobal ? (DATA.bug_creation_by_week||{{}}) : (m.bug_creation_by_week||{{}});
+      const bugWkKeys = Object.keys(bugWkD).sort();
+      chartBugCreation.data.labels = bugWkKeys;
+      chartBugCreation.data.datasets[0].data = bugWkKeys.map(w => bugWkD[w]||0);
+      chartBugCreation.update();
+
+      // SP trend chart (4a)
+      const sptD = useGlobal ? (DATA.sp_trend||{{}}) : (m.sp_trend||{{}});
+      const sptMon = sptD.by_month || {{}};
+      const sptKeys = Object.keys(sptMon).sort();
+      chartSpTrend.data.labels = sptKeys;
+      chartSpTrend.data.datasets[0].data = sptKeys.map(mm => sptMon[mm]?.avg_sp || 0);
+      chartSpTrend.update();
+
+      // Epic health summary text
+      const epicSummEl = document.getElementById('epicHealthSummary');
+      if (epicSummEl) {{
+        const oe = useGlobal ? (DATA.open_epics_count||0) : (m.open_epics_count||0);
+        const se = useGlobal ? (DATA.stale_epics_count||0) : (m.stale_epics_count||0);
+        const ae = useGlobal ? (DATA.avg_epic_completion_pct||0) : (m.avg_epic_completion_pct||0);
+        epicSummEl.textContent = `Open: ${{oe}} | Stale (>6mo, <20% done): ${{se}} | Avg completion: ${{ae}}%`;
+      }}
+
       // Status paths table + description
       const spaD = useGlobal ? (DATA.status_path_analysis||{{}}) : (m.status_path_analysis||{{}});
       const skipDescEl = document.getElementById('skipDesc');
@@ -1180,7 +1590,7 @@ def main():
         if (!tr.dataset.project) {{ tr.style.display = ''; return; }}
         tr.style.display = (effectiveProj === null || effectiveProj.includes(tr.dataset.project)) ? '' : 'none';
       }};
-      ['tableBlocked', 'tableBugs', 'tableSprints', 'tableKanban'].forEach(tableId => {{
+      ['tableBlocked', 'tableBugs', 'tableSprints', 'tableKanban', 'tableEpics'].forEach(tableId => {{
         const t = document.getElementById(tableId);
         if (t && t.tBodies[0]) t.tBodies[0].querySelectorAll('tr').forEach(show);
       }});
@@ -1301,6 +1711,7 @@ def main():
     setupFilter('filterSprints', 'tableSprints');
     setupSort('tableBugs');
     setupSort('tableSprints');
+    setupSort('tableEpics');
 
     // ---------- Evidence Export (Phase 4b) ----------
     function exportEvidence() {{
@@ -1330,6 +1741,14 @@ def main():
       md += `| Empty Descriptions (done) | ${{d.empty_description_done_pct || 0}}% |\\n`;
       md += `| Zero Comments (done) | ${{d.zero_comment_done_pct || 0}}% |\\n`;
       md += `| Workload Gini | ${{d.workload_gini || 0}} |\\n`;
+      md += `| Assignee Change Near Resolution | ${{(d.assignee_change_near_resolution||{{}}).changed_pct || 0}}% |\\n`;
+      md += `| Post-Resolution Comments | ${{(d.comment_timing||{{}}).post_resolution_comment_pct || 0}}% |\\n`;
+      md += `| Zero-Worklog Done Issues | ${{(d.worklog_analysis||{{}}).zero_worklog_pct || 0}}% |\\n`;
+      md += `| Post-Resolution Worklogs | ${{(d.worklog_analysis||{{}}).post_resolution_worklog_pct || 0}}% |\\n`;
+      md += `| Open Epics | ${{d.open_epics_count || 0}} |\\n`;
+      md += `| Stale Epics | ${{d.stale_epics_count || 0}} |\\n`;
+      md += `| SP Inflation Detected | ${{(d.sp_trend||{{}}).inflation_detected ? 'Yes' : 'No'}} |\\n`;
+      md += `| Avg WIP per Person | ${{d.avg_wip_per_assignee || 0}} |\\n`;
       md += '\\n## Audit Flags\\n\\n';
       const sevEmoji = {{ red: '[RED]', orange: '[ORANGE]', yellow: '[YELLOW]' }};
       for (const f of flags) {{

@@ -1,5 +1,5 @@
 {
-  "run_iso_ts": "2026-02-23T11:12:10Z",
+  "run_iso_ts": "2026-02-23T11:00:29Z",
   "projects": [
     "OZN",
     "PMBK",
@@ -45,10 +45,10 @@
   },
   "wip_aging_days": {
     "count": 1666,
-    "avg_days": 509.32630415539694,
-    "p50_days": 634.9392142452314,
-    "p85_days": 776.0045584147916,
-    "p95_days": 970.3258617857408
+    "avg_days": 509.3181862006052,
+    "p50_days": 634.9310962904398,
+    "p85_days": 775.9964404599999,
+    "p95_days": 970.3177438309491
   },
   "wip_components": {
     "(no component)": 1338,
@@ -288,7 +288,7 @@
     ],
     [
       "PBI-169",
-      74.1
+      74.0
     ],
     [
       "PBI-170",
@@ -791,16 +791,16 @@
     "2025-W52": 12
   },
   "cycle_time_days": {
-    "count": 1050,
-    "avg_days": 9.487937186717371,
-    "p50_days": 0.00029271412037037037,
-    "p85_days": 15.889769839120365,
-    "p95_days": 44.68194157465273
+    "count": 1051,
+    "avg_days": 9.478910229113808,
+    "p50_days": 0.0002929050925925926,
+    "p85_days": 15.854088912037037,
+    "p95_days": 44.63546676504629
   },
   "status_path_analysis": {
-    "total": 1050,
-    "skip_count": 663,
-    "skip_pct": 63.1,
+    "total": 1051,
+    "skip_count": 664,
+    "skip_pct": 63.2,
     "top_paths": [
       {
         "path": "Done",
@@ -820,7 +820,7 @@
       },
       {
         "path": "Done (Production)",
-        "count": 47
+        "count": 48
       },
       {
         "path": "In Progress -> For Review -> Done",
@@ -892,8 +892,8 @@
     },
     "To Do": {
       "median_hours": 0.01,
-      "avg_hours": 147.15,
-      "count": 983
+      "avg_hours": 147.0,
+      "count": 984
     },
     "Finished": {
       "median_hours": 26.34,
@@ -917,8 +917,8 @@
     }
   },
   "closer_analysis": {
-    "total_analyzed": 1050,
-    "with_closer": 1050,
+    "total_analyzed": 1051,
+    "with_closer": 1051,
     "top_closers": [
       {
         "name": "Daniel Angelov",
@@ -965,17 +965,17 @@
     "closer_not_assignee_pct": 30.1
   },
   "reopen_analysis": {
-    "total": 1050,
+    "total": 1051,
     "reopened_count": 143,
     "reopened_pct": 13.6
   },
   "flow_efficiency": {
     "active_hours": 159244.0,
-    "wait_hours": 253737.3,
+    "wait_hours": 253736.9,
     "efficiency_pct": 38.6
   },
   "assignee_change_near_resolution": {
-    "total": 1050,
+    "total": 1051,
     "changed_count": 131,
     "changed_pct": 12.5,
     "top_changers": [
@@ -1018,20 +1018,20 @@
     ]
   },
   "comment_timing": {
-    "total_issues": 1050,
+    "total_issues": 1051,
     "with_post_resolution_comments": 19,
     "post_resolution_comment_pct": 1.8,
     "total_comments": 816,
     "post_resolution_comment_count": 21
   },
   "worklog_analysis": {
-    "total_done": 1050,
+    "total_done": 1051,
     "zero_worklog_count": 32,
     "zero_worklog_pct": 3.0,
     "post_resolution_worklog_count": 22,
     "post_resolution_worklog_pct": 2.1,
     "bulk_entries_count": 18,
-    "total_hours": 5498.7,
+    "total_hours": 5500.7,
     "by_person": {
       "Maria Petkova": 428.5,
       "Daniel Tsigularov": 425.5,
@@ -1047,7 +1047,7 @@
       "K. Koprivlenski": 224.0,
       "Sevastian Cholakov": 216.0,
       "Anastasia Velkova": 200.5,
-      "Stoyancho Georgiev": 190.4,
+      "Stoyancho Georgiev": 192.4,
       "Maria Rangelova": 181.0,
       "Kalin Dimitrov": 180.8,
       "Plamen Stanchev": 180.3,
@@ -1056,7 +1056,7 @@
     },
     "by_dow": {
       "Mon": 1234.4,
-      "Tue": 1132.0,
+      "Tue": 1134.0,
       "Wed": 1035.9,
       "Thu": 1041.8,
       "Fri": 984.8,
@@ -1071,10 +1071,10 @@
   "open_bugs_count": 58,
   "open_bugs_age_days": {
     "count": 58,
-    "avg_days": 441.1892156726341,
-    "p50_days": 284.9712236028704,
-    "p85_days": 757.0615562064584,
-    "p95_days": 1091.7511253389812
+    "avg_days": 441.1810977178424,
+    "p50_days": 284.9631056480787,
+    "p85_days": 757.0534382516666,
+    "p95_days": 1091.7430073841897
   },
   "oldest_open_bugs": [
     {
@@ -1104,7 +1104,7 @@
     {
       "key": "O3-2473",
       "project": "O3",
-      "age_days": 990.2,
+      "age_days": 990.1,
       "summary": "5% cashback unicredit + express"
     },
     {
@@ -1134,7 +1134,7 @@
     {
       "key": "LSH-92",
       "project": "LSH",
-      "age_days": 754.8,
+      "age_days": 754.7,
       "summary": "update the HC fo ultima"
     },
     {
@@ -1146,7 +1146,7 @@
     {
       "key": "LSH-94",
       "project": "LSH",
-      "age_days": 754.6,
+      "age_days": 754.5,
       "summary": "update backend config for application timeout"
     },
     {
@@ -1356,10 +1356,10 @@
       },
       "wip_aging_days": {
         "count": 333,
-        "avg_days": 255.87260475680208,
-        "p50_days": 163.92650841768517,
-        "p85_days": 542.5545533528704,
-        "p95_days": 809.8920056862037
+        "avg_days": 255.86448680201042,
+        "p50_days": 163.9183904628935,
+        "p85_days": 542.5464353980786,
+        "p95_days": 809.883887731412
       },
       "blocked_count": 0,
       "open_bugs_count": 36,
@@ -1408,11 +1408,11 @@
         "total": 850
       },
       "cycle_time_days": {
-        "count": 413,
-        "avg_days": 18.5830770064344,
-        "p50_days": 7.997429027777778,
-        "p85_days": 32.332883819444426,
-        "p95_days": 60.900796594907334
+        "count": 414,
+        "avg_days": 18.538191807736176,
+        "p50_days": 7.96806412037037,
+        "p85_days": 32.08142543402779,
+        "p95_days": 60.751922331597115
       },
       "wip_issuetype": {
         "Task": 287,
@@ -1561,9 +1561,9 @@
         }
       ],
       "status_path_analysis": {
-        "total": 413,
-        "skip_count": 107,
-        "skip_pct": 25.9,
+        "total": 414,
+        "skip_count": 108,
+        "skip_pct": 26.1,
         "top_paths": [
           {
             "path": "In Progress -> Finished -> Done (Production)",
@@ -1579,7 +1579,7 @@
           },
           {
             "path": "Done (Production)",
-            "count": 47
+            "count": 48
           },
           {
             "path": "Finished -> Done (Production)",
@@ -1629,9 +1629,9 @@
       },
       "time_in_status": {
         "To Do": {
-          "median_hours": 92.29,
-          "avg_hours": 338.43,
-          "count": 424
+          "median_hours": 92.24,
+          "avg_hours": 337.64,
+          "count": 425
         },
         "In Progress": {
           "median_hours": 70.6,
@@ -1660,8 +1660,8 @@
         }
       },
       "closer_analysis": {
-        "total_analyzed": 413,
-        "with_closer": 413,
+        "total_analyzed": 414,
+        "with_closer": 414,
         "top_closers": [
           {
             "name": "Vladimir Georgiev",
@@ -1689,7 +1689,7 @@
           },
           {
             "name": "Stoyancho Georgiev",
-            "count": 13
+            "count": 14
           },
           {
             "name": "Atanas Lolov",
@@ -1705,16 +1705,16 @@
           }
         ],
         "closer_not_assignee_count": 310,
-        "closer_not_assignee_pct": 75.1
+        "closer_not_assignee_pct": 74.9
       },
       "reopen_analysis": {
-        "total": 413,
+        "total": 414,
         "reopened_count": 143,
-        "reopened_pct": 34.6
+        "reopened_pct": 34.5
       },
       "flow_efficiency": {
         "active_hours": 114181.8,
-        "wait_hours": 233398.9,
+        "wait_hours": 233401.6,
         "efficiency_pct": 32.9
       },
       "empty_description_wip_pct": 5.1,
@@ -1744,7 +1744,7 @@
         "Zhivko Dimitrov": 2
       },
       "assignee_change_near_resolution": {
-        "total": 413,
+        "total": 414,
         "changed_count": 9,
         "changed_pct": 2.2,
         "top_changers": [
@@ -1767,20 +1767,20 @@
         ]
       },
       "comment_timing": {
-        "total_issues": 413,
+        "total_issues": 414,
         "with_post_resolution_comments": 16,
         "post_resolution_comment_pct": 3.9,
         "total_comments": 755,
         "post_resolution_comment_count": 18
       },
       "worklog_analysis": {
-        "total_done": 413,
+        "total_done": 414,
         "zero_worklog_count": 19,
         "zero_worklog_pct": 4.6,
         "post_resolution_worklog_count": 21,
         "post_resolution_worklog_pct": 5.1,
         "bulk_entries_count": 10,
-        "total_hours": 4382.2,
+        "total_hours": 4384.2,
         "by_person": {
           "Maria Petkova": 428.5,
           "Daniel Tsigularov": 425.5,
@@ -1794,7 +1794,7 @@
           "K. Koprivlenski": 224.0,
           "Sevastian Cholakov": 216.0,
           "Anastasia Velkova": 200.5,
-          "Stoyancho Georgiev": 190.4,
+          "Stoyancho Georgiev": 192.4,
           "Kalin Dimitrov": 180.8,
           "Atanas Lolov": 159.5,
           "Nikolay Mateev": 147.0,
@@ -1802,7 +1802,7 @@
         },
         "by_dow": {
           "Mon": 954.3,
-          "Tue": 876.1,
+          "Tue": 878.1,
           "Wed": 858.0,
           "Thu": 854.8,
           "Fri": 833.5,
@@ -1810,7 +1810,7 @@
           "Sun": 4.0
         },
         "weekend_pct": 0.1,
-        "worklog_gini": 0.242,
+        "worklog_gini": 0.241,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
       },
@@ -1916,57 +1916,6 @@
         "2025-W13": 1,
         "2024-W22": 1
       },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2026-W08": 6,
-        "2026-W07": 3,
-        "2026-W06": 4,
-        "2026-W05": 2,
-        "2026-W03": 2,
-        "2026-W02": 3,
-        "2025-W51": 1,
-        "2025-W50": 3,
-        "2025-W49": 4,
-        "2025-W48": 5,
-        "2025-W47": 2,
-        "2025-W46": 3,
-        "2025-W45": 5,
-        "2025-W44": 6,
-        "2025-W43": 1,
-        "2025-W42": 5,
-        "2025-W41": 4,
-        "2025-W40": 4,
-        "2025-W39": 3,
-        "2025-W38": 6,
-        "2025-W37": 6,
-        "2025-W36": 4,
-        "2025-W35": 2,
-        "2025-W34": 4,
-        "2025-W32": 3,
-        "2025-W33": 1,
-        "2025-W31": 2,
-        "2025-W30": 1,
-        "2025-W26": 1,
-        "2025-W22": 2,
-        "2025-W13": 1,
-        "2025-W25": 1,
-        "2025-W24": 2,
-        "2025-W18": 1,
-        "2025-W12": 1,
-        "2025-W03": 1,
-        "2025-W02": 1,
-        "2024-W46": 1,
-        "2024-W35": 1,
-        "2024-W28": 1,
-        "2024-W21": 1,
-        "2023-W50": 1,
-        "2023-W45": 1,
-        "2023-W41": 1
-      },
       "velocity_cv": 0.127
     },
     "PMBK": {
@@ -1990,10 +1939,10 @@
       },
       "wip_aging_days": {
         "count": 3,
-        "avg_days": 2380.130630682346,
-        "p50_days": 2380.1304036375927,
-        "p85_days": 2380.1309056850464,
-        "p95_days": 2380.131049127176
+        "avg_days": 2380.122512727554,
+        "p50_days": 2380.122285682801,
+        "p85_days": 2380.1227877302545,
+        "p95_days": 2380.122931172384
       },
       "blocked_count": 0,
       "open_bugs_count": 0,
@@ -2099,13 +2048,7 @@
       },
       "created_by_week": {
         "2019-W34": 3
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {}
+      }
     },
     "WMS": {
       "wip_count": 597,
@@ -2151,10 +2094,10 @@
       },
       "wip_aging_days": {
         "count": 597,
-        "avg_days": 730.3323391184692,
-        "p50_days": 723.8651688922223,
-        "p85_days": 776.0023348042592,
-        "p95_days": 844.3503870889814
+        "avg_days": 730.3242211636775,
+        "p50_days": 723.8570509374306,
+        "p85_days": 775.9942168494675,
+        "p95_days": 844.3422691341897
       },
       "blocked_count": 1,
       "open_bugs_count": 1,
@@ -2330,14 +2273,6 @@
         "2023-W34": 5,
         "2023-W32": 14
       },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2024-W10": 1
-      },
       "velocity_cv": 0.479
     },
     "O3": {
@@ -2421,10 +2356,10 @@
       },
       "wip_aging_days": {
         "count": 101,
-        "avg_days": 1316.895716261011,
-        "p50_days": 1293.9824589037962,
-        "p85_days": 2040.998198880648,
-        "p95_days": 2048.1064950496298
+        "avg_days": 1316.8875983062196,
+        "p50_days": 1293.9743409490045,
+        "p85_days": 2040.9900809258563,
+        "p95_days": 2048.098377094838
       },
       "blocked_count": 0,
       "open_bugs_count": 5,
@@ -2603,18 +2538,6 @@
         "2019-W28": 1,
         "2020-W29": 14
       },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2023-W23": 1,
-        "2023-W12": 1,
-        "2022-W44": 1,
-        "2021-W37": 1,
-        "2020-W31": 1
-      },
       "velocity_cv": 0.338
     },
     "UP": {
@@ -2638,10 +2561,10 @@
       },
       "wip_aging_days": {
         "count": 428,
-        "avg_days": 171.61723780155506,
-        "p50_days": 175.02961236444446,
-        "p85_days": 222.18325184881942,
-        "p95_days": 230.60050875680554
+        "avg_days": 171.60911984676338,
+        "p50_days": 175.02149440965277,
+        "p85_days": 222.17513389402777,
+        "p95_days": 230.59239080201385
       },
       "blocked_count": 0,
       "open_bugs_count": 0,
@@ -2767,13 +2690,7 @@
         "2025-W29": 20,
         "2025-W28": 36,
         "2025-W27": 16
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {}
+      }
     },
     "RMA": {
       "wip_count": 0,
@@ -2882,13 +2799,7 @@
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
       },
-      "created_by_week": {},
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {}
+      "created_by_week": {}
     },
     "MA": {
       "wip_count": 35,
@@ -2917,10 +2828,10 @@
       },
       "wip_aging_days": {
         "count": 35,
-        "avg_days": 663.912362263254,
-        "p50_days": 690.1550961144444,
-        "p85_days": 717.9477407544907,
-        "p95_days": 773.056422832037
+        "avg_days": 663.9042443084624,
+        "p50_days": 690.1469781596528,
+        "p85_days": 717.9396227996991,
+        "p95_days": 773.0483048772453
       },
       "blocked_count": 0,
       "open_bugs_count": 3,
@@ -3046,16 +2957,6 @@
         "2024-W02": 2,
         "2024-W01": 1
       },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2024-W20": 1,
-        "2024-W15": 1,
-        "2024-W07": 1
-      },
       "velocity_cv": 0.725
     },
     "LSH": {
@@ -3081,10 +2982,10 @@
       },
       "wip_aging_days": {
         "count": 57,
-        "avg_days": 812.7032064104972,
-        "p50_days": 784.6356229431482,
-        "p85_days": 927.3279859801852,
-        "p95_days": 928.1448748737038
+        "avg_days": 812.6950884557053,
+        "p50_days": 784.6275049883566,
+        "p85_days": 927.3198680253935,
+        "p95_days": 928.136756918912
       },
       "blocked_count": 0,
       "open_bugs_count": 4,
@@ -3231,14 +3132,6 @@
         "2023-W33": 1,
         "2023-W32": 11
       },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2024-W05": 4
-      },
       "velocity_cv": 1.074
     },
     "IN": {
@@ -3272,10 +3165,10 @@
       },
       "wip_aging_days": {
         "count": 47,
-        "avg_days": 753.7217529739303,
-        "p50_days": 770.1634818088888,
-        "p85_days": 872.1599302938425,
-        "p95_days": 874.6853270010184
+        "avg_days": 753.7136350191387,
+        "p50_days": 770.1553638540972,
+        "p85_days": 872.1518123390508,
+        "p95_days": 874.677209046227
       },
       "blocked_count": 1,
       "open_bugs_count": 5,
@@ -3420,18 +3313,6 @@
         "2023-W41": 1,
         "2023-W40": 9
       },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2024-W19": 1,
-        "2024-W17": 1,
-        "2024-W16": 1,
-        "2024-W12": 1,
-        "2024-W04": 1
-      },
       "velocity_cv": 0.469
     },
     "HELP": {
@@ -3457,10 +3338,10 @@
       },
       "wip_aging_days": {
         "count": 5,
-        "avg_days": 80.59582645935185,
-        "p50_days": 72.98019045472223,
-        "p85_days": 131.11574650101852,
-        "p95_days": 160.35226967694445
+        "avg_days": 80.58770850456018,
+        "p50_days": 72.97207249993055,
+        "p85_days": 131.10762854622683,
+        "p95_days": 160.34415172215276
       },
       "blocked_count": 0,
       "open_bugs_count": 0,
@@ -3811,13 +3692,7 @@
         "2025-W34": 1,
         "2025-W33": 1,
         "2025-W32": 7
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {}
+      }
     },
     "EBK": {
       "wip_count": 0,
@@ -3926,13 +3801,7 @@
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
       },
-      "created_by_week": {},
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {}
+      "created_by_week": {}
     },
     "PBI": {
       "wip_count": 49,
@@ -3967,10 +3836,10 @@
       },
       "wip_aging_days": {
         "count": 49,
-        "avg_days": 61.61660186557823,
-        "p50_days": 33.12516094083333,
-        "p85_days": 135.4250805866666,
-        "p95_days": 189.18379479037037
+        "avg_days": 61.60848391078656,
+        "p50_days": 33.11704298604167,
+        "p85_days": 135.41696263187492,
+        "p95_days": 189.1756768355787
       },
       "blocked_count": 7,
       "open_bugs_count": 4,
@@ -4279,27 +4148,6 @@
         "2025-W38": 1,
         "2025-W37": 1,
         "2025-W35": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2026-W05": 3,
-        "2026-W04": 2,
-        "2026-W02": 1,
-        "2025-W48": 1,
-        "2025-W46": 4,
-        "2025-W45": 2,
-        "2025-W44": 1,
-        "2025-W43": 2,
-        "2025-W42": 2,
-        "2025-W41": 1,
-        "2026-W08": 1,
-        "2026-W07": 1,
-        "2026-W06": 1,
-        "2025-W49": 1
       }
     },
     "BA": {
@@ -4327,10 +4175,10 @@
       },
       "wip_aging_days": {
         "count": 11,
-        "avg_days": 483.31558305257573,
-        "p50_days": 488.06948864916666,
-        "p85_days": 488.12202369546293,
-        "p95_days": 488.12736617810185
+        "avg_days": 483.30746509778413,
+        "p50_days": 488.061370694375,
+        "p85_days": 488.1139057406713,
+        "p95_days": 488.1192482233102
       },
       "blocked_count": 0,
       "open_bugs_count": 0,
@@ -4440,12 +4288,6 @@
         "2024-W44": 2,
         "2024-W43": 7
       },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {},
       "velocity_cv": 1.414
     }
   },
@@ -4477,10 +4319,10 @@
       },
       "wip_aging_days": {
         "count": 1338,
-        "avg_days": 509.35623825646996,
-        "p50_days": 652.5716061665278,
-        "p85_days": 774.9831157672222,
-        "p95_days": 876.5062315727764
+        "avg_days": 509.34812030167825,
+        "p50_days": 652.5634882117362,
+        "p85_days": 774.9749978124305,
+        "p95_days": 876.4981136179848
       },
       "blocked_count": 6,
       "open_bugs_count": 33,
@@ -5102,188 +4944,6 @@
         "worklog_gini": 0.37,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2024-W25": 8,
-        "2024-W24": 12,
-        "2024-W22": 8,
-        "2024-W21": 27,
-        "2024-W20": 22,
-        "2024-W19": 3,
-        "2024-W17": 15,
-        "2024-W16": 47,
-        "2024-W15": 18,
-        "2024-W14": 47,
-        "2024-W13": 15,
-        "2024-W12": 34,
-        "2024-W11": 32,
-        "2024-W10": 37,
-        "2024-W09": 16,
-        "2024-W08": 19,
-        "2024-W07": 41,
-        "2024-W06": 52,
-        "2024-W05": 31,
-        "2024-W04": 14,
-        "2024-W03": 14,
-        "2024-W02": 59,
-        "2024-W01": 14,
-        "2023-W52": 4,
-        "2023-W51": 5,
-        "2023-W50": 10,
-        "2023-W49": 5,
-        "2023-W48": 9,
-        "2023-W47": 9,
-        "2023-W46": 2,
-        "2023-W45": 11,
-        "2023-W44": 8,
-        "2023-W43": 7,
-        "2023-W42": 6,
-        "2023-W41": 5,
-        "2023-W40": 10,
-        "2023-W34": 5,
-        "2023-W32": 25,
-        "2025-W47": 52,
-        "2025-W46": 79,
-        "2025-W45": 69,
-        "2025-W44": 63,
-        "2025-W43": 64,
-        "2025-W42": 80,
-        "2025-W41": 63,
-        "2025-W40": 61,
-        "2025-W39": 47,
-        "2025-W38": 66,
-        "2025-W37": 46,
-        "2025-W36": 93,
-        "2025-W35": 48,
-        "2025-W34": 30,
-        "2025-W33": 29,
-        "2025-W32": 27,
-        "2025-W31": 40,
-        "2025-W30": 24,
-        "2025-W29": 20,
-        "2025-W28": 37,
-        "2025-W27": 17,
-        "2019-W34": 3,
-        "2026-W08": 45,
-        "2026-W07": 77,
-        "2026-W06": 77,
-        "2026-W05": 64,
-        "2026-W04": 61,
-        "2026-W01": 9,
-        "2025-W51": 59,
-        "2025-W50": 65,
-        "2025-W49": 73,
-        "2026-W09": 1,
-        "2026-W03": 74,
-        "2026-W02": 80,
-        "2025-W48": 76,
-        "2025-W26": 2,
-        "2025-W25": 2,
-        "2025-W24": 2,
-        "2025-W17": 2,
-        "2025-W16": 2,
-        "2025-W15": 1,
-        "2025-W12": 2,
-        "2025-W11": 2,
-        "2025-W03": 1,
-        "2024-W46": 1,
-        "2024-W40": 3,
-        "2024-W34": 1,
-        "2024-W33": 4,
-        "2024-W32": 1,
-        "2024-W28": 1,
-        "2023-W26": 1,
-        "2024-W38": 7,
-        "2024-W27": 1,
-        "2024-W23": 6,
-        "2023-W37": 2,
-        "2023-W30": 1,
-        "2023-W13": 1,
-        "2023-W08": 2,
-        "2022-W42": 1,
-        "2022-W36": 1,
-        "2022-W28": 2,
-        "2022-W24": 1,
-        "2022-W20": 1,
-        "2022-W18": 1,
-        "2022-W17": 1,
-        "2021-W51": 1,
-        "2021-W37": 1,
-        "2021-W35": 1,
-        "2021-W14": 2,
-        "2021-W11": 3,
-        "2020-W45": 1,
-        "2020-W30": 1,
-        "2020-W29": 1,
-        "2025-W08": 2,
-        "2024-W18": 5,
-        "2023-W38": 3,
-        "2023-W35": 5,
-        "2023-W33": 1,
-        "2024-W36": 1,
-        "2024-W30": 1,
-        "2024-W26": 1,
-        "2024-W47": 1,
-        "2024-W45": 1,
-        "2024-W44": 2,
-        "2024-W43": 7,
-        "2025-W52": 11,
-        "2025-W06": 1,
-        "2025-W22": 1,
-        "2025-W21": 1,
-        "2024-W35": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2026-W05": 4,
-        "2026-W04": 2,
-        "2026-W02": 1,
-        "2025-W48": 2,
-        "2025-W46": 5,
-        "2025-W45": 2,
-        "2025-W44": 2,
-        "2025-W43": 2,
-        "2025-W42": 5,
-        "2025-W41": 2,
-        "2026-W06": 3,
-        "2026-W03": 1,
-        "2025-W51": 1,
-        "2025-W40": 4,
-        "2025-W39": 3,
-        "2025-W37": 4,
-        "2025-W36": 2,
-        "2025-W35": 1,
-        "2025-W33": 1,
-        "2025-W31": 2,
-        "2025-W26": 1,
-        "2025-W22": 1,
-        "2024-W10": 1,
-        "2026-W08": 2,
-        "2026-W07": 1,
-        "2025-W49": 1,
-        "2025-W50": 1,
-        "2025-W38": 1,
-        "2025-W34": 2,
-        "2025-W24": 2,
-        "2025-W12": 1,
-        "2025-W03": 1,
-        "2024-W46": 1,
-        "2024-W28": 1,
-        "2024-W21": 1,
-        "2021-W37": 1,
-        "2024-W20": 1,
-        "2024-W15": 1,
-        "2024-W07": 1,
-        "2024-W05": 4,
-        "2024-W19": 1,
-        "2024-W17": 1,
-        "2024-W16": 1,
-        "2024-W12": 1,
-        "2024-W04": 1
       }
     },
     "3d Level Support": {
@@ -5299,10 +4959,10 @@
       },
       "wip_aging_days": {
         "count": 1,
-        "avg_days": 40.069356345925925,
-        "p50_days": 40.069356345925925,
-        "p85_days": 40.069356345925925,
-        "p95_days": 40.069356345925925
+        "avg_days": 40.06123839113426,
+        "p50_days": 40.06123839113426,
+        "p85_days": 40.06123839113426,
+        "p95_days": 40.06123839113426
       },
       "blocked_count": 0,
       "open_bugs_count": 0,
@@ -5404,16 +5064,7 @@
         "worklog_gini": 0,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2026-W03": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {}
+      }
     },
     "ASA": {
       "wip_count": 11,
@@ -5429,10 +5080,10 @@
       },
       "wip_aging_days": {
         "count": 11,
-        "avg_days": 693.9573335386868,
-        "p50_days": 685.0702246908334,
-        "p85_days": 723.0894006283334,
-        "p95_days": 755.1281170461574
+        "avg_days": 693.9492155838951,
+        "p50_days": 685.0621067360416,
+        "p85_days": 723.0812826735416,
+        "p95_days": 755.1199990913658
       },
       "blocked_count": 0,
       "open_bugs_count": 0,
@@ -5538,20 +5189,7 @@
         "worklog_gini": 0,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2024-W20": 1,
-        "2024-W18": 1,
-        "2024-W15": 4,
-        "2024-W14": 3,
-        "2024-W05": 2
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {}
+      }
     },
     "Administrative tasks": {
       "wip_count": 0,
@@ -5673,18 +5311,7 @@
         "worklog_gini": 0,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2025-W44": 1,
-        "2025-W40": 1,
-        "2025-W34": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {}
+      }
     },
     "Baby.bg": {
       "wip_count": 17,
@@ -5702,10 +5329,10 @@
       },
       "wip_aging_days": {
         "count": 17,
-        "avg_days": 788.8587363309477,
-        "p50_days": 866.9359509524073,
-        "p85_days": 1342.6399341051851,
-        "p95_days": 1462.5459347278704
+        "avg_days": 788.850618376156,
+        "p50_days": 866.9278329976156,
+        "p85_days": 1342.6318161503934,
+        "p95_days": 1462.5378167730787
       },
       "blocked_count": 0,
       "open_bugs_count": 1,
@@ -5949,60 +5576,6 @@
         "worklog_gini": 0.331,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2026-W08": 1,
-        "2025-W44": 5,
-        "2025-W38": 6,
-        "2025-W36": 9,
-        "2024-W14": 1,
-        "2024-W08": 1,
-        "2023-W50": 1,
-        "2023-W41": 1,
-        "2023-W37": 1,
-        "2023-W23": 1,
-        "2023-W08": 1,
-        "2023-W04": 1,
-        "2022-W42": 1,
-        "2022-W13": 1,
-        "2022-W09": 1,
-        "2022-W04": 1,
-        "2026-W07": 2,
-        "2026-W05": 1,
-        "2026-W04": 4,
-        "2026-W03": 1,
-        "2026-W02": 8,
-        "2025-W51": 9,
-        "2025-W50": 2,
-        "2025-W49": 7,
-        "2025-W48": 11,
-        "2025-W47": 7,
-        "2025-W46": 9,
-        "2025-W45": 4,
-        "2025-W43": 6,
-        "2025-W42": 1,
-        "2025-W41": 4,
-        "2025-W40": 1,
-        "2025-W39": 2,
-        "2025-W37": 2,
-        "2025-W34": 1,
-        "2025-W32": 1,
-        "2025-W31": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2025-W48": 1,
-        "2025-W45": 1,
-        "2025-W44": 1,
-        "2025-W43": 1,
-        "2025-W41": 1,
-        "2025-W38": 1,
-        "2025-W36": 1,
-        "2023-W23": 1
       }
     },
     "Content System": {
@@ -6018,10 +5591,10 @@
       },
       "wip_aging_days": {
         "count": 1,
-        "avg_days": 1071.0429406862036,
-        "p50_days": 1071.0429406862036,
-        "p85_days": 1071.0429406862036,
-        "p95_days": 1071.0429406862036
+        "avg_days": 1071.034822731412,
+        "p50_days": 1071.034822731412,
+        "p85_days": 1071.034822731412,
+        "p95_days": 1071.034822731412
       },
       "blocked_count": 0,
       "open_bugs_count": 1,
@@ -6123,17 +5696,6 @@
         "worklog_gini": 0,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2023-W12": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2023-W12": 1
       }
     },
     "Fabric External": {
@@ -6254,16 +5816,7 @@
         "worklog_gini": 0,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2025-W34": 3
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {}
+      }
     },
     "Fabric Lakehouse Data Ingestion": {
       "wip_count": 0,
@@ -6430,19 +5983,7 @@
         "worklog_gini": 0.167,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2025-W44": 2,
-        "2025-W42": 14,
-        "2025-W39": 1,
-        "2025-W34": 5
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {}
+      }
     },
     "HR": {
       "wip_count": 0,
@@ -6562,16 +6103,7 @@
         "worklog_gini": 0,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2025-W35": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {}
+      }
     },
     "Incidents": {
       "wip_count": 0,
@@ -6732,17 +6264,7 @@
         "worklog_gini": 0.0,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2025-W40": 1,
-        "2025-W34": 2
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {}
+      }
     },
     "Internal": {
       "wip_count": 41,
@@ -6760,10 +6282,10 @@
       },
       "wip_aging_days": {
         "count": 41,
-        "avg_days": 640.6469375866102,
-        "p50_days": 348.1086433482407,
-        "p85_days": 1422.9746055241667,
-        "p95_days": 1769.158848695463
+        "avg_days": 640.6388196318186,
+        "p50_days": 348.10052539344906,
+        "p85_days": 1422.966487569375,
+        "p95_days": 1769.1507307406712
       },
       "blocked_count": 0,
       "open_bugs_count": 1,
@@ -7051,80 +6573,6 @@
         "worklog_gini": 0.528,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2026-W09": 2,
-        "2026-W08": 14,
-        "2026-W07": 3,
-        "2025-W51": 6,
-        "2025-W45": 11,
-        "2025-W43": 11,
-        "2025-W37": 4,
-        "2025-W36": 12,
-        "2025-W24": 1,
-        "2023-W49": 1,
-        "2025-W11": 3,
-        "2024-W12": 1,
-        "2024-W11": 1,
-        "2023-W35": 1,
-        "2023-W27": 1,
-        "2022-W51": 1,
-        "2022-W50": 1,
-        "2022-W49": 1,
-        "2022-W45": 1,
-        "2022-W44": 2,
-        "2022-W28": 1,
-        "2022-W13": 1,
-        "2022-W11": 1,
-        "2021-W52": 1,
-        "2021-W25": 1,
-        "2021-W16": 1,
-        "2020-W30": 1,
-        "2020-W29": 1,
-        "2026-W06": 4,
-        "2026-W05": 4,
-        "2026-W04": 4,
-        "2026-W03": 11,
-        "2026-W02": 5,
-        "2025-W50": 8,
-        "2025-W49": 10,
-        "2025-W48": 10,
-        "2025-W47": 14,
-        "2025-W46": 10,
-        "2025-W44": 19,
-        "2025-W42": 4,
-        "2025-W41": 11,
-        "2025-W40": 3,
-        "2025-W39": 1,
-        "2025-W38": 16,
-        "2025-W35": 9,
-        "2025-W34": 3,
-        "2025-W33": 1,
-        "2025-W32": 5,
-        "2025-W28": 2,
-        "2025-W31": 4
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2026-W08": 1,
-        "2026-W06": 1,
-        "2026-W05": 1,
-        "2026-W03": 1,
-        "2026-W02": 1,
-        "2025-W48": 2,
-        "2025-W47": 1,
-        "2025-W45": 1,
-        "2025-W44": 2,
-        "2025-W41": 1,
-        "2025-W38": 1,
-        "2025-W37": 1,
-        "2025-W36": 1,
-        "2025-W32": 1,
-        "2022-W44": 1
       }
     },
     "M$ Dynamics 365": {
@@ -7143,10 +6591,10 @@
       },
       "wip_aging_days": {
         "count": 18,
-        "avg_days": 80.18441744353396,
-        "p50_days": 38.118675431574076,
-        "p85_days": 195.06976164974532,
-        "p95_days": 262.012652867338
+        "avg_days": 80.17629948874229,
+        "p50_days": 38.110557476782404,
+        "p85_days": 195.06164369495363,
+        "p95_days": 262.0045349125463
       },
       "blocked_count": 0,
       "open_bugs_count": 0,
@@ -7344,34 +6792,7 @@
         "worklog_gini": 0.328,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2026-W08": 4,
-        "2026-W07": 3,
-        "2026-W04": 2,
-        "2026-W03": 4,
-        "2025-W42": 2,
-        "2025-W40": 6,
-        "2025-W39": 2,
-        "2025-W25": 1,
-        "2025-W23": 6,
-        "2025-W46": 2,
-        "2025-W45": 1,
-        "2025-W44": 1,
-        "2025-W41": 2,
-        "2025-W38": 2,
-        "2025-W32": 1,
-        "2025-W28": 1,
-        "2025-W26": 2,
-        "2025-W21": 2,
-        "2025-W20": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {}
+      }
     },
     "Magento": {
       "wip_count": 12,
@@ -7387,10 +6808,10 @@
       },
       "wip_aging_days": {
         "count": 12,
-        "avg_days": 205.96570429442127,
-        "p50_days": 197.02446318041666,
-        "p85_days": 262.525443554838,
-        "p95_days": 309.916082962824
+        "avg_days": 205.95758633962961,
+        "p50_days": 197.016345225625,
+        "p85_days": 262.51732560004626,
+        "p95_days": 309.9079650080323
       },
       "blocked_count": 0,
       "open_bugs_count": 2,
@@ -7609,36 +7030,6 @@
         "worklog_gini": 0.696,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2026-W08": 1,
-        "2025-W44": 3,
-        "2025-W22": 1,
-        "2025-W24": 5,
-        "2025-W09": 1,
-        "2025-W32": 4,
-        "2025-W33": 5,
-        "2025-W28": 2,
-        "2026-W04": 1,
-        "2025-W47": 5,
-        "2025-W45": 1,
-        "2025-W42": 1,
-        "2025-W40": 1,
-        "2025-W38": 1,
-        "2025-W36": 2,
-        "2025-W34": 1,
-        "2025-W31": 2,
-        "2025-W23": 1,
-        "2024-W36": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2025-W32": 2,
-        "2025-W22": 1
       }
     },
     "Magento 2": {
@@ -7657,10 +7048,10 @@
       },
       "wip_aging_days": {
         "count": 11,
-        "avg_days": 34.051875644116166,
-        "p50_days": 31.90429313990741,
-        "p85_days": 32.90945414106481,
-        "p95_days": 82.05331047787038
+        "avg_days": 34.043757689324494,
+        "p50_days": 31.896175185115737,
+        "p85_days": 32.90133618627315,
+        "p95_days": 82.0451925230787
       },
       "blocked_count": 0,
       "open_bugs_count": 0,
@@ -7830,23 +7221,7 @@
         "worklog_gini": 0.302,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2026-W08": 2,
-        "2026-W06": 2,
-        "2026-W05": 2,
-        "2026-W04": 7,
-        "2025-W42": 3,
-        "2026-W03": 1,
-        "2025-W40": 3,
-        "2025-W39": 2
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {}
+      }
     },
     "Marketing Analytics": {
       "wip_count": 7,
@@ -7862,10 +7237,10 @@
       },
       "wip_aging_days": {
         "count": 7,
-        "avg_days": 723.5170827794576,
-        "p50_days": 725.8817679431481,
-        "p85_days": 731.7611500762499,
-        "p95_days": 759.2946318331944
+        "avg_days": 723.508964824666,
+        "p50_days": 725.8736499883565,
+        "p85_days": 731.7530321214583,
+        "p95_days": 759.2865138784027
       },
       "blocked_count": 0,
       "open_bugs_count": 0,
@@ -7968,18 +7343,7 @@
         "worklog_gini": 0,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2024-W12": 3,
-        "2024-W09": 3,
-        "2024-W02": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {}
+      }
     },
     "Mobile - Android": {
       "wip_count": 26,
@@ -7995,10 +7359,10 @@
       },
       "wip_aging_days": {
         "count": 26,
-        "avg_days": 289.53903482349,
-        "p50_days": 89.01487788527777,
-        "p85_days": 741.1168544188426,
-        "p95_days": 814.9103798586574
+        "avg_days": 289.53091686869834,
+        "p50_days": 89.00675993048611,
+        "p85_days": 741.1087364640509,
+        "p95_days": 814.9022619038657
       },
       "blocked_count": 0,
       "open_bugs_count": 6,
@@ -8234,54 +7598,6 @@
         "worklog_gini": 0.586,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2026-W08": 11,
-        "2026-W04": 3,
-        "2025-W40": 3,
-        "2025-W37": 1,
-        "2025-W24": 2,
-        "2024-W42": 2,
-        "2024-W36": 1,
-        "2024-W24": 1,
-        "2024-W12": 1,
-        "2024-W10": 1,
-        "2023-W50": 1,
-        "2023-W48": 2,
-        "2023-W45": 1,
-        "2026-W03": 1,
-        "2026-W02": 4,
-        "2025-W51": 1,
-        "2025-W50": 1,
-        "2025-W49": 1,
-        "2025-W48": 1,
-        "2025-W47": 1,
-        "2025-W44": 1,
-        "2025-W43": 1,
-        "2025-W41": 1,
-        "2025-W38": 3,
-        "2025-W33": 1,
-        "2025-W32": 1,
-        "2025-W28": 1,
-        "2025-W26": 1,
-        "2025-W23": 1,
-        "2025-W22": 1,
-        "2025-W14": 1,
-        "2025-W13": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2026-W02": 1,
-        "2025-W41": 1,
-        "2025-W38": 1,
-        "2025-W13": 1,
-        "2026-W08": 4,
-        "2023-W50": 1,
-        "2023-W45": 1
       }
     },
     "Mobile - React": {
@@ -8298,10 +7614,10 @@
       },
       "wip_aging_days": {
         "count": 15,
-        "avg_days": 49.98891481814815,
-        "p50_days": 4.092564181574074,
-        "p85_days": 151.26901216189816,
-        "p95_days": 183.2296187961573
+        "avg_days": 49.980796863356474,
+        "p50_days": 4.084446226782408,
+        "p85_days": 151.26089420710647,
+        "p95_days": 183.2215008413656
       },
       "blocked_count": 0,
       "open_bugs_count": 4,
@@ -8469,23 +7785,6 @@
         "worklog_gini": 0.375,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2026-W08": 11,
-        "2025-W40": 1,
-        "2025-W39": 6,
-        "2025-W24": 2,
-        "2025-W48": 2,
-        "2025-W44": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2025-W48": 1,
-        "2026-W08": 4
       }
     },
     "Mobile - iOS": {
@@ -8502,10 +7801,10 @@
       },
       "wip_aging_days": {
         "count": 9,
-        "avg_days": 182.7146034356893,
-        "p50_days": 33.137518255648146,
-        "p85_days": 594.6319313621295,
-        "p95_days": 708.8238974917592
+        "avg_days": 182.70648548089764,
+        "p50_days": 33.12940030085648,
+        "p85_days": 594.6238134073378,
+        "p95_days": 708.8157795369676
       },
       "blocked_count": 0,
       "open_bugs_count": 2,
@@ -8684,26 +7983,6 @@
         "worklog_gini": 0.188,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2026-W08": 4,
-        "2026-W04": 2,
-        "2025-W40": 3,
-        "2024-W12": 1,
-        "2024-W11": 1,
-        "2025-W44": 1,
-        "2025-W24": 2,
-        "2025-W23": 1,
-        "2025-W13": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2025-W13": 1,
-        "2026-W08": 2
       }
     },
     "ORM": {
@@ -8722,10 +8001,10 @@
       },
       "wip_aging_days": {
         "count": 12,
-        "avg_days": 233.52432032547839,
-        "p50_days": 219.95629005541667,
-        "p85_days": 430.23467324060186,
-        "p95_days": 499.94527072034714
+        "avg_days": 233.51620237068673,
+        "p50_days": 219.94817210062502,
+        "p85_days": 430.22655528581015,
+        "p95_days": 499.9371527655555
       },
       "blocked_count": 0,
       "open_bugs_count": 1,
@@ -8893,31 +8172,6 @@
         "worklog_gini": 0.0,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2026-W08": 1,
-        "2026-W03": 1,
-        "2025-W50": 2,
-        "2025-W34": 2,
-        "2025-W31": 1,
-        "2025-W28": 1,
-        "2025-W27": 1,
-        "2025-W14": 1,
-        "2025-W02": 1,
-        "2024-W46": 1,
-        "2024-W35": 1,
-        "2025-W48": 3,
-        "2025-W44": 3,
-        "2025-W40": 1,
-        "2025-W23": 2
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2025-W02": 1
       }
     },
     "Ozon.gr": {
@@ -8936,10 +8190,10 @@
       },
       "wip_aging_days": {
         "count": 16,
-        "avg_days": 873.4144314009028,
-        "p50_days": 918.8714263748611,
-        "p85_days": 1372.7779650756713,
-        "p95_days": 1464.1312618465047
+        "avg_days": 873.4063134461111,
+        "p50_days": 918.8633084200694,
+        "p85_days": 1372.7698471208796,
+        "p95_days": 1464.123143891713
       },
       "blocked_count": 0,
       "open_bugs_count": 0,
@@ -9176,57 +8430,6 @@
         "worklog_gini": 0.354,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2026-W08": 1,
-        "2025-W43": 5,
-        "2025-W37": 3,
-        "2024-W14": 1,
-        "2024-W08": 1,
-        "2023-W50": 1,
-        "2023-W41": 1,
-        "2023-W37": 1,
-        "2023-W30": 2,
-        "2023-W08": 1,
-        "2023-W04": 1,
-        "2022-W42": 1,
-        "2022-W13": 1,
-        "2022-W09": 1,
-        "2022-W04": 1,
-        "2026-W05": 1,
-        "2026-W04": 3,
-        "2026-W03": 2,
-        "2026-W02": 2,
-        "2026-W01": 1,
-        "2025-W51": 4,
-        "2025-W50": 7,
-        "2025-W49": 5,
-        "2025-W48": 7,
-        "2025-W47": 3,
-        "2025-W46": 7,
-        "2025-W45": 11,
-        "2025-W44": 3,
-        "2025-W42": 3,
-        "2025-W41": 2,
-        "2025-W40": 1,
-        "2025-W39": 2,
-        "2025-W38": 4,
-        "2025-W36": 4,
-        "2025-W35": 3,
-        "2025-W29": 1,
-        "2025-W31": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2025-W50": 1,
-        "2025-W48": 1,
-        "2025-W45": 2,
-        "2025-W43": 1,
-        "2025-W35": 1
       }
     },
     "Ozone.bg": {
@@ -9247,10 +8450,10 @@
       },
       "wip_aging_days": {
         "count": 58,
-        "avg_days": 1100.776379132484,
-        "p50_days": 1141.9878110044906,
-        "p85_days": 2048.034806178102,
-        "p95_days": 2048.2835719142126
+        "avg_days": 1100.7682611776925,
+        "p50_days": 1141.979693049699,
+        "p85_days": 2048.0266882233104,
+        "p95_days": 2048.275453959421
       },
       "blocked_count": 0,
       "open_bugs_count": 2,
@@ -9514,77 +8717,6 @@
         "worklog_gini": 0.424,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2026-W09": 1,
-        "2026-W08": 7,
-        "2026-W07": 4,
-        "2026-W04": 8,
-        "2025-W51": 13,
-        "2025-W49": 15,
-        "2025-W44": 7,
-        "2025-W38": 9,
-        "2025-W36": 9,
-        "2024-W14": 1,
-        "2024-W08": 1,
-        "2023-W50": 1,
-        "2023-W37": 1,
-        "2023-W32": 1,
-        "2023-W31": 1,
-        "2023-W30": 2,
-        "2023-W23": 1,
-        "2023-W08": 1,
-        "2023-W04": 2,
-        "2022-W51": 1,
-        "2022-W42": 1,
-        "2022-W32": 1,
-        "2022-W29": 3,
-        "2022-W13": 2,
-        "2022-W09": 1,
-        "2022-W04": 1,
-        "2021-W21": 1,
-        "2021-W19": 1,
-        "2020-W51": 1,
-        "2020-W49": 1,
-        "2020-W31": 1,
-        "2019-W28": 1,
-        "2020-W29": 13,
-        "2026-W06": 2,
-        "2026-W05": 3,
-        "2026-W03": 4,
-        "2026-W02": 7,
-        "2025-W50": 5,
-        "2025-W48": 11,
-        "2025-W47": 8,
-        "2025-W46": 10,
-        "2025-W45": 4,
-        "2025-W43": 9,
-        "2025-W42": 1,
-        "2025-W41": 3,
-        "2025-W40": 1,
-        "2025-W39": 3,
-        "2025-W37": 2,
-        "2025-W35": 6,
-        "2025-W34": 1,
-        "2025-W29": 1,
-        "2025-W28": 1,
-        "2025-W31": 1,
-        "2025-W33": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2025-W48": 1,
-        "2025-W45": 1,
-        "2025-W44": 2,
-        "2025-W43": 1,
-        "2025-W35": 1,
-        "2025-W34": 1,
-        "2023-W23": 1,
-        "2020-W31": 1
       }
     },
     "Ozone.hr": {
@@ -9603,10 +8735,10 @@
       },
       "wip_aging_days": {
         "count": 18,
-        "avg_days": 783.3132350528447,
-        "p50_days": 880.9065074570369,
-        "p85_days": 1312.501903134699,
-        "p95_days": 1460.9606076092361
+        "avg_days": 783.305117098053,
+        "p50_days": 880.8983895022453,
+        "p85_days": 1312.4937851799073,
+        "p95_days": 1460.9524896544444
       },
       "blocked_count": 0,
       "open_bugs_count": 0,
@@ -9843,57 +8975,6 @@
         "worklog_gini": 0.333,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2026-W09": 1,
-        "2026-W08": 1,
-        "2025-W43": 8,
-        "2025-W37": 4,
-        "2024-W14": 1,
-        "2024-W08": 1,
-        "2023-W50": 1,
-        "2023-W41": 1,
-        "2023-W37": 1,
-        "2023-W30": 2,
-        "2023-W08": 1,
-        "2023-W04": 1,
-        "2022-W42": 1,
-        "2022-W13": 1,
-        "2022-W09": 1,
-        "2022-W04": 1,
-        "2026-W05": 1,
-        "2026-W04": 3,
-        "2026-W03": 2,
-        "2026-W02": 2,
-        "2025-W51": 4,
-        "2025-W50": 5,
-        "2025-W49": 3,
-        "2025-W48": 7,
-        "2025-W47": 3,
-        "2025-W46": 5,
-        "2025-W45": 4,
-        "2025-W44": 3,
-        "2025-W42": 2,
-        "2025-W41": 2,
-        "2025-W40": 1,
-        "2025-W39": 2,
-        "2025-W38": 4,
-        "2025-W36": 4,
-        "2025-W35": 3,
-        "2025-W29": 1,
-        "2025-W31": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2025-W50": 1,
-        "2025-W48": 1,
-        "2025-W45": 1,
-        "2025-W43": 1,
-        "2025-W35": 1
       }
     },
     "Ozone.ro": {
@@ -9913,10 +8994,10 @@
       },
       "wip_aging_days": {
         "count": 20,
-        "avg_days": 706.7939721144445,
-        "p50_days": 834.0180967510184,
-        "p85_days": 1252.2258411937266,
-        "p95_days": 1457.7899533719676
+        "avg_days": 706.7858541596528,
+        "p50_days": 834.0099787962268,
+        "p85_days": 1252.217723238935,
+        "p95_days": 1457.781835417176
       },
       "blocked_count": 0,
       "open_bugs_count": 0,
@@ -10153,57 +9234,6 @@
         "worklog_gini": 0.305,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2026-W08": 2,
-        "2026-W06": 1,
-        "2025-W51": 6,
-        "2025-W43": 7,
-        "2025-W37": 3,
-        "2024-W14": 1,
-        "2024-W08": 1,
-        "2023-W50": 1,
-        "2023-W41": 1,
-        "2023-W37": 1,
-        "2023-W30": 2,
-        "2023-W08": 1,
-        "2023-W04": 1,
-        "2022-W42": 1,
-        "2022-W13": 1,
-        "2022-W09": 1,
-        "2022-W04": 1,
-        "2026-W05": 1,
-        "2026-W04": 3,
-        "2026-W03": 1,
-        "2026-W02": 1,
-        "2025-W50": 5,
-        "2025-W49": 3,
-        "2025-W48": 7,
-        "2025-W47": 4,
-        "2025-W46": 5,
-        "2025-W45": 5,
-        "2025-W44": 3,
-        "2025-W42": 2,
-        "2025-W41": 3,
-        "2025-W40": 1,
-        "2025-W39": 2,
-        "2025-W38": 4,
-        "2025-W36": 4,
-        "2025-W35": 3,
-        "2025-W29": 1,
-        "2025-W31": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2025-W50": 1,
-        "2025-W48": 1,
-        "2025-W45": 1,
-        "2025-W43": 1,
-        "2025-W35": 1
       }
     },
     "PCStore.bg": {
@@ -10220,10 +9250,10 @@
       },
       "wip_aging_days": {
         "count": 2,
-        "avg_days": 1683.5624716815742,
-        "p50_days": 1683.5624716815742,
-        "p85_days": 1842.7129634813427,
-        "p95_days": 1888.1845325669908
+        "avg_days": 1683.5543537267824,
+        "p50_days": 1683.5543537267824,
+        "p85_days": 1842.704845526551,
+        "p95_days": 1888.176414612199
       },
       "blocked_count": 0,
       "open_bugs_count": 0,
@@ -10326,17 +9356,7 @@
         "worklog_gini": 0,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2022-W09": 1,
-        "2020-W49": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {}
+      }
     },
     "PowerBI Reports creation": {
       "wip_count": 0,
@@ -10513,17 +9533,7 @@
         "worklog_gini": 0.382,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2025-W44": 3,
-        "2025-W34": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {}
+      }
     },
     "Qlik Migration": {
       "wip_count": 5,
@@ -10540,10 +9550,10 @@
       },
       "wip_aging_days": {
         "count": 5,
-        "avg_days": 174.77858748481484,
-        "p50_days": 189.1843547487037,
-        "p85_days": 189.18549670240742,
-        "p95_days": 189.18639136444446
+        "avg_days": 174.77046953002315,
+        "p50_days": 189.17623679391204,
+        "p85_days": 189.17737874761573,
+        "p95_days": 189.17827340965277
       },
       "blocked_count": 3,
       "open_bugs_count": 0,
@@ -10718,17 +9728,7 @@
         "worklog_gini": 0.0,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2025-W44": 1,
-        "2025-W34": 22
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {}
+      }
     },
     "Tradezone.bg": {
       "wip_count": 1,
@@ -10743,10 +9743,10 @@
       },
       "wip_aging_days": {
         "count": 1,
-        "avg_days": 117.06201279268518,
-        "p50_days": 117.06201279268518,
-        "p85_days": 117.06201279268518,
-        "p95_days": 117.06201279268518
+        "avg_days": 117.05389483789352,
+        "p50_days": 117.05389483789352,
+        "p85_days": 117.05389483789352,
+        "p95_days": 117.05389483789352
       },
       "blocked_count": 0,
       "open_bugs_count": 0,
@@ -10927,26 +9927,6 @@
         "worklog_gini": 0.483,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2025-W44": 1,
-        "2026-W05": 1,
-        "2026-W03": 2,
-        "2026-W02": 4,
-        "2025-W51": 2,
-        "2025-W43": 1,
-        "2025-W42": 1,
-        "2025-W36": 1,
-        "2025-W32": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2026-W02": 1,
-        "2025-W43": 1
       }
     },
     "Ultima": {
@@ -10967,10 +9947,10 @@
       },
       "wip_aging_days": {
         "count": 127,
-        "avg_days": 348.5309957846289,
-        "p50_days": 265.9696059292593,
-        "p85_days": 649.0758595380554,
-        "p95_days": 758.4665566862036
+        "avg_days": 348.5228778298373,
+        "p50_days": 265.96148797446756,
+        "p85_days": 649.0677415832638,
+        "p95_days": 758.4584387314119
       },
       "blocked_count": 0,
       "open_bugs_count": 12,
@@ -11017,11 +9997,11 @@
         "total": 174
       },
       "cycle_time_days": {
-        "count": 92,
-        "avg_days": 24.80884016140801,
-        "p50_days": 4.064837847222222,
-        "p85_days": 40.08555535474536,
-        "p95_days": 124.67027747222234
+        "count": 93,
+        "avg_days": 24.542084941880724,
+        "p50_days": 4.057066770833334,
+        "p85_days": 39.94879938425926,
+        "p95_days": 122.84263899537007
       },
       "wip_issuetype": {
         "Story": 13,
@@ -11071,9 +10051,9 @@
         }
       ],
       "status_path_analysis": {
-        "total": 92,
-        "skip_count": 30,
-        "skip_pct": 32.6,
+        "total": 93,
+        "skip_count": 31,
+        "skip_pct": 33.3,
         "top_paths": [
           {
             "path": "In Progress -> Finished -> QA Passed -> Done (Production)",
@@ -11081,7 +10061,7 @@
           },
           {
             "path": "Done (Production)",
-            "count": 13
+            "count": 14
           },
           {
             "path": "Finished -> QA Passed -> Done (Production)",
@@ -11139,9 +10119,9 @@
       },
       "time_in_status": {
         "To Do": {
-          "median_hours": 49.28,
-          "avg_hours": 368.67,
-          "count": 92
+          "median_hours": 49.27,
+          "avg_hours": 364.71,
+          "count": 93
         },
         "In Progress": {
           "median_hours": 70.33,
@@ -11170,8 +10150,8 @@
         }
       },
       "closer_analysis": {
-        "total_analyzed": 92,
-        "with_closer": 92,
+        "total_analyzed": 93,
+        "with_closer": 93,
         "top_closers": [
           {
             "name": "Vladimir Georgiev",
@@ -11179,7 +10159,7 @@
           },
           {
             "name": "Stoyancho Georgiev",
-            "count": 10
+            "count": 11
           },
           {
             "name": "Kalin Dimitrov",
@@ -11203,16 +10183,16 @@
           }
         ],
         "closer_not_assignee_count": 73,
-        "closer_not_assignee_pct": 79.3
+        "closer_not_assignee_pct": 78.5
       },
       "reopen_analysis": {
-        "total": 92,
+        "total": 93,
         "reopened_count": 55,
-        "reopened_pct": 59.8
+        "reopened_pct": 59.1
       },
       "flow_efficiency": {
         "active_hours": 40361.0,
-        "wait_hours": 77339.1,
+        "wait_hours": 77339.5,
         "efficiency_pct": 34.3
       },
       "empty_description_wip_pct": 0.8,
@@ -11234,7 +10214,7 @@
         "Konstantin Bachev": 1
       },
       "assignee_change_near_resolution": {
-        "total": 92,
+        "total": 93,
         "changed_count": 4,
         "changed_pct": 4.3,
         "top_changers": [
@@ -11253,27 +10233,27 @@
         ]
       },
       "comment_timing": {
-        "total_issues": 92,
+        "total_issues": 93,
         "with_post_resolution_comments": 7,
-        "post_resolution_comment_pct": 7.6,
+        "post_resolution_comment_pct": 7.5,
         "total_comments": 289,
         "post_resolution_comment_count": 7
       },
       "worklog_analysis": {
-        "total_done": 92,
+        "total_done": 93,
         "zero_worklog_count": 2,
         "zero_worklog_pct": 2.2,
         "post_resolution_worklog_count": 6,
         "post_resolution_worklog_pct": 6.5,
         "bulk_entries_count": 6,
-        "total_hours": 1218.6,
+        "total_hours": 1220.6,
         "by_person": {
           "Dimitar Nestorov": 289.5,
           "Sevastian Cholakov": 216.0,
           "Kalin Dimitrov": 156.7,
           "Veselina Yosifova": 142.0,
           "K. Koprivlenski": 139.0,
-          "Stoyancho Georgiev": 102.9,
+          "Stoyancho Georgiev": 104.9,
           "Atanas Lolov": 78.0,
           "Nikolay Mateev": 74.0,
           "Denislav Nedelkov": 19.0,
@@ -11282,7 +10262,7 @@
         },
         "by_dow": {
           "Mon": 273.5,
-          "Tue": 214.4,
+          "Tue": 216.4,
           "Wed": 221.5,
           "Thu": 246.7,
           "Fri": 261.0,
@@ -11290,115 +10270,9 @@
           "Sun": 0
         },
         "weekend_pct": 0.1,
-        "worklog_gini": 0.435,
+        "worklog_gini": 0.434,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2024-W17": 1,
-        "2024-W15": 1,
-        "2024-W14": 3,
-        "2024-W10": 1,
-        "2024-W07": 1,
-        "2024-W05": 2,
-        "2024-W04": 1,
-        "2026-W08": 4,
-        "2026-W07": 7,
-        "2026-W06": 10,
-        "2026-W05": 5,
-        "2026-W04": 7,
-        "2026-W03": 11,
-        "2026-W02": 3,
-        "2025-W51": 5,
-        "2025-W50": 8,
-        "2025-W49": 11,
-        "2025-W48": 9,
-        "2025-W47": 13,
-        "2025-W45": 7,
-        "2025-W44": 7,
-        "2025-W43": 10,
-        "2025-W42": 5,
-        "2025-W40": 12,
-        "2025-W39": 7,
-        "2025-W38": 4,
-        "2025-W36": 1,
-        "2025-W34": 8,
-        "2025-W32": 3,
-        "2025-W31": 3,
-        "2025-W29": 4,
-        "2025-W28": 5,
-        "2025-W27": 2,
-        "2025-W26": 5,
-        "2025-W25": 9,
-        "2025-W24": 6,
-        "2025-W23": 8,
-        "2025-W22": 2,
-        "2025-W21": 4,
-        "2025-W19": 3,
-        "2025-W18": 6,
-        "2025-W17": 6,
-        "2025-W14": 1,
-        "2025-W11": 5,
-        "2025-W10": 1,
-        "2025-W08": 2,
-        "2025-W07": 2,
-        "2025-W03": 1,
-        "2025-W02": 2,
-        "2024-W49": 1,
-        "2024-W48": 1,
-        "2024-W47": 1,
-        "2024-W42": 6,
-        "2024-W35": 2,
-        "2024-W29": 1,
-        "2024-W28": 1,
-        "2024-W27": 1,
-        "2024-W26": 1,
-        "2024-W25": 1,
-        "2024-W20": 1,
-        "2024-W19": 2,
-        "2024-W12": 1,
-        "2023-W41": 1,
-        "2023-W23": 1,
-        "2022-W45": 1,
-        "2022-W07": 1,
-        "2021-W27": 1,
-        "2021-W13": 1,
-        "2025-W52": 1,
-        "2025-W46": 3,
-        "2025-W41": 1,
-        "2025-W37": 5,
-        "2025-W35": 3,
-        "2025-W33": 7,
-        "2025-W30": 3,
-        "2025-W20": 2,
-        "2025-W16": 2,
-        "2025-W15": 1,
-        "2025-W06": 2,
-        "2024-W22": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {
-        "2026-W07": 3,
-        "2026-W06": 1,
-        "2025-W50": 1,
-        "2025-W49": 4,
-        "2025-W46": 2,
-        "2025-W45": 2,
-        "2025-W44": 1,
-        "2025-W38": 2,
-        "2025-W37": 1,
-        "2025-W34": 1,
-        "2025-W30": 1,
-        "2025-W47": 1,
-        "2025-W42": 2,
-        "2025-W25": 1,
-        "2025-W18": 1,
-        "2024-W35": 1,
-        "2023-W41": 1
       }
     },
     "eBook": {
@@ -11415,10 +10289,10 @@
       },
       "wip_aging_days": {
         "count": 10,
-        "avg_days": 1140.0613151966204,
-        "p50_days": 1307.0429095056484,
-        "p85_days": 1476.01691820125,
-        "p95_days": 1554.4959479037962
+        "avg_days": 1140.0531972418287,
+        "p50_days": 1307.0347915508564,
+        "p85_days": 1476.0088002464583,
+        "p95_days": 1554.4878299490044
       },
       "blocked_count": 0,
       "open_bugs_count": 0,
@@ -11580,28 +10454,7 @@
         "worklog_gini": 0.0,
         "sp_worklog_correlation": null,
         "sp_worklog_pairs_count": 0
-      },
-      "created_by_week": {
-        "2024-W20": 1,
-        "2024-W12": 2,
-        "2024-W11": 1,
-        "2022-W45": 1,
-        "2022-W15": 1,
-        "2022-W09": 1,
-        "2022-W08": 1,
-        "2022-W05": 1,
-        "2021-W38": 1,
-        "2026-W06": 1,
-        "2025-W50": 1,
-        "2025-W24": 1,
-        "2025-W06": 1
-      },
-      "sp_trend": {
-        "by_month": {},
-        "by_project": {},
-        "inflation_detected": false
-      },
-      "bug_creation_by_week": {}
+      }
     }
   },
   "kanban_boards": [
@@ -13021,7 +11874,7 @@
       "key": "WMS-948",
       "project": "WMS",
       "summary": "Stage One Prerelease Crosscheck Activities",
-      "age_days": 735.2,
+      "age_days": 735.1,
       "total_children": 13,
       "done_children": 12,
       "completion_pct": 92.3,
@@ -13071,7 +11924,7 @@
       "key": "WMS-266",
       "project": "WMS",
       "summary": "Manual Task Group",
-      "age_days": 819.0,
+      "age_days": 818.9,
       "total_children": 3,
       "done_children": 0,
       "completion_pct": 0.0,
@@ -13361,7 +12214,7 @@
       "key": "UP-528",
       "project": "UP",
       "summary": "[ozone.bg + baby.bg] Проблем с търсачката заради EUR символ",
-      "age_days": 112.1,
+      "age_days": 112.0,
       "total_children": 1,
       "done_children": 0,
       "completion_pct": 0.0,
@@ -13441,7 +12294,7 @@
       "key": "UP-512",
       "project": "UP",
       "summary": "Промяна по логиката за анулиране на поръчка от клиентските профили",
-      "age_days": 117.0,
+      "age_days": 116.9,
       "total_children": 1,
       "done_children": 0,
       "completion_pct": 0.0,
@@ -13531,7 +12384,7 @@
       "key": "UP-494",
       "project": "UP",
       "summary": "Добавяне на нов пилър в категорийното меню",
-      "age_days": 121.9,
+      "age_days": 121.8,
       "total_children": 1,
       "done_children": 0,
       "completion_pct": 0.0,
@@ -13591,7 +12444,7 @@
       "key": "UP-482",
       "project": "UP",
       "summary": "(ultima) да се добави бутон за изваждане на поръчка от едноредовия процес на изд",
-      "age_days": 129.1,
+      "age_days": 129.0,
       "total_children": 1,
       "done_children": 0,
       "completion_pct": 0.0,
@@ -13631,7 +12484,7 @@
       "key": "UP-474",
       "project": "UP",
       "summary": "(internal) Да се изведе инфо в превюто на меню AI",
-      "age_days": 129.3,
+      "age_days": 129.2,
       "total_children": 1,
       "done_children": 0,
       "completion_pct": 0.0,
@@ -13781,7 +12634,7 @@
       "key": "UP-444",
       "project": "UP",
       "summary": "[Internal] Добавяне на бутон за дублиране на слайдер",
-      "age_days": 140.1,
+      "age_days": 140.0,
       "total_children": 1,
       "done_children": 0,
       "completion_pct": 0.0,
@@ -13941,7 +12794,7 @@
       "key": "UP-412",
       "project": "UP",
       "summary": "(ultima) Ограничаване на достъпа до регистрация на нови продукти",
-      "age_days": 150.3,
+      "age_days": 150.2,
       "total_children": 1,
       "done_children": 0,
       "completion_pct": 0.0,
@@ -13981,7 +12834,7 @@
       "key": "UP-404",
       "project": "UP",
       "summary": "Трансфер на наличност и себестойност от едно SKU към друго",
-      "age_days": 152.0,
+      "age_days": 151.9,
       "total_children": 1,
       "done_children": 0,
       "completion_pct": 0.0,
@@ -14071,7 +12924,7 @@
       "key": "UP-386",
       "project": "UP",
       "summary": "[all ozone + baby] Скриване на бутон 'Купи' от сърч листинг",
-      "age_days": 159.2,
+      "age_days": 159.1,
       "total_children": 1,
       "done_children": 0,
       "completion_pct": 0.0,
@@ -14241,7 +13094,7 @@
       "key": "UP-352",
       "project": "UP",
       "summary": "(ultima) Обновяване на бекордър състояние от xml",
-      "age_days": 175.0,
+      "age_days": 174.9,
       "total_children": 1,
       "done_children": 0,
       "completion_pct": 0.0,
@@ -14411,7 +13264,7 @@
       "key": "UP-318",
       "project": "UP",
       "summary": "email инфраструктура",
-      "age_days": 187.2,
+      "age_days": 187.1,
       "total_children": 1,
       "done_children": 0,
       "completion_pct": 0.0,
@@ -14631,7 +13484,7 @@
       "key": "UP-274",
       "project": "UP",
       "summary": "[QA] Photopavilion - цени в Евро",
-      "age_days": 202.0,
+      "age_days": 201.9,
       "total_children": 1,
       "done_children": 0,
       "completion_pct": 0.0,
@@ -14661,7 +13514,7 @@
       "key": "UP-268",
       "project": "UP",
       "summary": "UniCredit 5% кешбек",
-      "age_days": 203.1,
+      "age_days": 203.0,
       "total_children": 1,
       "done_children": 0,
       "completion_pct": 0.0,
@@ -14941,7 +13794,7 @@
       "key": "UP-212",
       "project": "UP",
       "summary": "Проблем с доставки до адрес - Еконт",
-      "age_days": 216.1,
+      "age_days": 216.0,
       "total_children": 1,
       "done_children": 0,
       "completion_pct": 0.0,
@@ -14981,7 +13834,7 @@
       "key": "UP-204",
       "project": "UP",
       "summary": "Визуални промени при масово приемане в протокола",
-      "age_days": 222.2,
+      "age_days": 222.1,
       "total_children": 1,
       "done_children": 0,
       "completion_pct": 0.0,
@@ -15021,7 +13874,7 @@
       "key": "UP-194",
       "project": "UP",
       "summary": "Автоматично отваряне на карта на артикула при ремаркетиране на продукт",
-      "age_days": 223.0,
+      "age_days": 222.9,
       "total_children": 1,
       "done_children": 0,
       "completion_pct": 0.0,
@@ -15341,7 +14194,7 @@
       "key": "OZN-6583",
       "project": "OZN",
       "summary": "(ozone.hr) Нов Спедитор - BoxNow",
-      "age_days": 125.0,
+      "age_days": 124.9,
       "total_children": 4,
       "done_children": 4,
       "completion_pct": 100.0,

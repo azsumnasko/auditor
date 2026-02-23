@@ -158,6 +158,9 @@ class JiraClient:
             time.sleep(0.1)
         return all_issues
 
+    def list_project_versions(self, project_key):
+        return self._get(f"/rest/api/3/project/{project_key}/versions")
+
 
 # ----------------------------
 # Helpers
@@ -841,6 +844,259 @@ def _orphan_pct(issues):
     return round(orphan / len(issues) * 100, 1)
 
 
+def _project_key(issue):
+    p = (issue.get("fields") or {}).get("project")
+    return p.get("key", "?") if isinstance(p, dict) else "?"
+
+
+# ----------------------------
+# Phase 4/5/6: New metric helpers
+# ----------------------------
+
+def _assignee_change_near_resolution(issues, hours=24):
+    """Detect issues where assignee changed within last N hours before resolution (from changelog)."""
+    total = 0
+    changed = 0
+    offenders = Counter()
+    for it in issues:
+        if not _is_done(it):
+            continue
+        total += 1
+        resolved = parse_dt((it.get("fields") or {}).get("resolutiondate"))
+        if not resolved:
+            continue
+        cutoff = resolved - timedelta(hours=hours)
+        histories = (it.get("changelog") or {}).get("histories", [])
+        found = False
+        for h in sorted(histories, key=lambda x: x.get("created", ""), reverse=True):
+            changed_at = parse_dt(h.get("created"))
+            if not changed_at or changed_at < cutoff:
+                break
+            for item in h.get("items", []):
+                if item.get("field") == "assignee":
+                    changed += 1
+                    author = h.get("author") or {}
+                    offenders[author.get("displayName") or "?"] += 1
+                    found = True
+                    break
+            if found:
+                break
+    return {
+        "total": total,
+        "changed_count": changed,
+        "changed_pct": round(changed / total * 100, 1) if total else 0,
+        "top_changers": [{"name": n, "count": c} for n, c in offenders.most_common(10)],
+    }
+
+
+def _comment_timing(issues):
+    """Analyze comment timing relative to resolution date."""
+    total_issues = 0
+    with_post_resolution = 0
+    total_comments = 0
+    post_res_comments = 0
+    for it in issues:
+        if not _is_done(it):
+            continue
+        total_issues += 1
+        resolved = parse_dt((it.get("fields") or {}).get("resolutiondate"))
+        if not resolved:
+            continue
+        comment = (it.get("fields") or {}).get("comment")
+        comments = []
+        if isinstance(comment, dict):
+            comments = comment.get("comments", [])
+        elif isinstance(comment, list):
+            comments = comment
+        if not comments:
+            continue
+        has_post = False
+        for c in comments:
+            total_comments += 1
+            created = parse_dt(c.get("created"))
+            if created and created > resolved:
+                post_res_comments += 1
+                has_post = True
+        if has_post:
+            with_post_resolution += 1
+    return {
+        "total_issues": total_issues,
+        "with_post_resolution_comments": with_post_resolution,
+        "post_resolution_comment_pct": round(with_post_resolution / total_issues * 100, 1) if total_issues else 0,
+        "total_comments": total_comments,
+        "post_resolution_comment_count": post_res_comments,
+    }
+
+
+def _worklog_analysis(issues, sp_field=None):
+    """Analyze worklog patterns from issues fetched with fields=worklog."""
+    total_done = 0
+    zero_worklog = 0
+    post_resolution = 0
+    bulk_entries = 0
+    total_hours = 0
+    by_person = Counter()
+    by_dow = Counter()
+    sp_hours_pairs = []
+
+    for it in issues:
+        if not _is_done(it):
+            continue
+        total_done += 1
+        resolved = parse_dt((it.get("fields") or {}).get("resolutiondate"))
+        worklog = (it.get("fields") or {}).get("worklog")
+        worklogs = []
+        if isinstance(worklog, dict):
+            worklogs = worklog.get("worklogs", [])
+        elif isinstance(worklog, list):
+            worklogs = worklog
+
+        if not worklogs:
+            zero_worklog += 1
+            continue
+
+        has_post_res = False
+        issue_hours = 0
+        for wl in worklogs:
+            secs = wl.get("timeSpentSeconds", 0)
+            hours = secs / 3600.0
+            issue_hours += hours
+            total_hours += hours
+            if hours > 8:
+                bulk_entries += 1
+            author = wl.get("author") or wl.get("updateAuthor") or {}
+            by_person[author.get("displayName") or "?"] += hours
+            started = parse_dt(wl.get("started"))
+            if started:
+                by_dow[["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][started.weekday()]] += hours
+            if resolved and started and started > resolved:
+                has_post_res = True
+        if has_post_res:
+            post_resolution += 1
+
+        if sp_field:
+            sp_val = (it.get("fields") or {}).get(sp_field)
+            if sp_val is not None and issue_hours > 0:
+                try:
+                    sp_hours_pairs.append((float(sp_val), issue_hours))
+                except (TypeError, ValueError):
+                    pass
+
+    sp_correlation = None
+    if len(sp_hours_pairs) >= 5:
+        xs = [p[0] for p in sp_hours_pairs]
+        ys = [p[1] for p in sp_hours_pairs]
+        mx, my = sum(xs) / len(xs), sum(ys) / len(ys)
+        num = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+        dx = sum((x - mx) ** 2 for x in xs) ** 0.5
+        dy = sum((y - my) ** 2 for y in ys) ** 0.5
+        if dx > 0 and dy > 0:
+            sp_correlation = round(num / (dx * dy), 3)
+
+    weekend_hours = by_dow.get("Sat", 0) + by_dow.get("Sun", 0)
+    worklog_gini = _gini_coefficient(list(by_person.values())) if by_person else 0
+
+    return {
+        "total_done": total_done,
+        "zero_worklog_count": zero_worklog,
+        "zero_worklog_pct": round(zero_worklog / total_done * 100, 1) if total_done else 0,
+        "post_resolution_worklog_count": post_resolution,
+        "post_resolution_worklog_pct": round(post_resolution / total_done * 100, 1) if total_done else 0,
+        "bulk_entries_count": bulk_entries,
+        "total_hours": round(total_hours, 1),
+        "by_person": dict(sorted(((k, round(v, 1)) for k, v in by_person.items()), key=lambda x: -x[1])[:20]),
+        "by_dow": {d: round(by_dow.get(d, 0), 1) for d in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]},
+        "weekend_pct": round(weekend_hours / total_hours * 100, 1) if total_hours > 0 else 0,
+        "worklog_gini": worklog_gini,
+        "sp_worklog_correlation": sp_correlation,
+        "sp_worklog_pairs_count": len(sp_hours_pairs),
+    }
+
+
+def _sp_trend(issues, sp_field):
+    """Group average story points per issue by month, per project."""
+    if not sp_field:
+        return {"by_month": {}, "by_project": {}, "inflation_detected": False}
+    by_month = defaultdict(list)
+    by_proj_month = defaultdict(lambda: defaultdict(list))
+    for it in issues:
+        resolved = parse_dt((it.get("fields") or {}).get("resolutiondate"))
+        sp = (it.get("fields") or {}).get(sp_field)
+        if resolved and sp is not None:
+            try:
+                sp_val = float(sp)
+            except (TypeError, ValueError):
+                continue
+            month_key = resolved.strftime("%Y-%m")
+            by_month[month_key].append(sp_val)
+            pk = _project_key(it)
+            by_proj_month[pk][month_key].append(sp_val)
+
+    result = {}
+    for month in sorted(by_month):
+        vals = by_month[month]
+        result[month] = {"avg_sp": round(sum(vals) / len(vals), 2), "count": len(vals)}
+
+    per_project = {}
+    for pk, months in by_proj_month.items():
+        per_project[pk] = {}
+        for month in sorted(months):
+            vals = months[month]
+            per_project[pk][month] = {"avg_sp": round(sum(vals) / len(vals), 2), "count": len(vals)}
+
+    months_sorted = sorted(by_month.keys())
+    inflation_flag = False
+    if len(months_sorted) >= 4:
+        mid = len(months_sorted) // 2
+        first_half = [sp for m in months_sorted[:mid] for sp in by_month[m]]
+        second_half = [sp for m in months_sorted[mid:] for sp in by_month[m]]
+        if first_half and second_half:
+            avg_first = sum(first_half) / len(first_half)
+            avg_second = sum(second_half) / len(second_half)
+            if avg_first > 0 and (avg_second - avg_first) / avg_first > 0.3:
+                inflation_flag = True
+
+    return {"by_month": result, "by_project": per_project, "inflation_detected": inflation_flag}
+
+
+def _created_by_week(issues):
+    """Group issues by creation week."""
+    weekly = Counter()
+    for it in issues:
+        created = parse_dt((it.get("fields") or {}).get("created"))
+        if created:
+            weekly[iso_week(created)] += 1
+    return dict(weekly)
+
+
+def _bug_creation_by_week(done_issues, open_bugs):
+    """Count bug creation by week from both resolved and open bugs."""
+    weekly = Counter()
+    for it in done_issues:
+        itype = (it.get("fields") or {}).get("issuetype")
+        if isinstance(itype, dict) and (itype.get("name") or "").lower() == "bug":
+            created = parse_dt((it.get("fields") or {}).get("created"))
+            if created:
+                weekly[iso_week(created)] += 1
+    for it in open_bugs:
+        created = parse_dt((it.get("fields") or {}).get("created"))
+        if created:
+            weekly[iso_week(created)] += 1
+    return dict(weekly)
+
+
+def _issue_components(issue):
+    """Extract component names from an issue, defaulting to '(no component)'."""
+    comps = (issue.get("fields") or {}).get("components")
+    if not isinstance(comps, list) or not comps:
+        return ["(no component)"]
+    names = []
+    for c in comps:
+        if isinstance(c, dict):
+            names.append(c.get("name") or c.get("id") or "?")
+    return names if names else ["(no component)"]
+
+
 # ----------------------------
 # Main
 # ----------------------------
@@ -882,8 +1138,10 @@ def main():
     # ---------
     base_fields = ["project", "issuetype", "status", "assignee", "priority", "created",
                     "resolutiondate", "resolution", "labels", "summary", "components",
-                    "description", "comment", "issuelinks"]
+                    "description", "comment", "issuelinks", "worklog"]
     fields_with_team = list(base_fields) + ([TEAM_FIELD_ID] if TEAM_FIELD_ID else [])
+    if STORY_POINTS_FIELD:
+        fields_with_team.append(STORY_POINTS_FIELD)
 
     print("\nPulling current (not done) issues for status distribution & WIP aging...")
     jql_wip = f'project in ({projects_jql}) AND statusCategory != {DONE_CATEGORY}'
@@ -934,6 +1192,13 @@ def main():
 
     # Phase 3 WIP metrics
     results["empty_description_wip_pct"] = _empty_description_pct(wip_issues)
+
+    # Phase 6a: WIP by assignee
+    wip_ab = _assignee_breakdown(wip_issues)
+    results["wip_assignees"] = dict(sorted(wip_ab.items(), key=lambda x: -x[1])[:30])
+    wip_per_person = [v for k, v in wip_ab.items() if k != "(unassigned)"]
+    results["avg_wip_per_assignee"] = round(sum(wip_per_person) / len(wip_per_person), 1) if wip_per_person else 0
+    print(f"WIP assignees: {len(wip_ab)}, avg WIP/person: {results['avg_wip_per_assignee']}")
 
     print("\nPulling blockers (heuristic JQL)...")
     blocked_jql = f'project in ({projects_jql}) AND statusCategory != {DONE_CATEGORY} AND {BLOCKED_JQL}'
@@ -1001,6 +1266,22 @@ def main():
     print(f"Zero comments (done): {results['zero_comment_done_pct']}%")
     print(f"Orphan issues (done): {results['orphan_done_pct']}%")
 
+    # Phase 4a: Story point inflation
+    results["sp_trend"] = _sp_trend(done_issues, STORY_POINTS_FIELD)
+    if results["sp_trend"]["inflation_detected"]:
+        print("  WARNING: Story point inflation detected (avg SP/issue up >30%)")
+
+    # Phase 5a: Created vs Resolved trend
+    print("\nPulling created issues (last 180d) for trend analysis...")
+    jql_created = f'project in ({projects_jql}) AND created >= -180d'
+    try:
+        created_issues = jira.search(jql_created, fields=["project", "issuetype", "created", "components"], max_results=10000)
+        results["created_by_week"] = _created_by_week(created_issues)
+        print(f"  Created issues (last 180d): {len(created_issues)}")
+    except Exception as e:
+        results["created_by_week"] = {}
+        print(f"  Created issues query failed: {e}")
+
     # ---------
     # 3) Cycle time from changelog (sample or full)
     # ---------
@@ -1026,6 +1307,18 @@ def main():
     results["flow_efficiency"] = _flow_efficiency(tis)
     print(f"  Flow efficiency: {results['flow_efficiency']['efficiency_pct']}%")
 
+    # Phase 4c: Assignee change near resolution
+    results["assignee_change_near_resolution"] = _assignee_change_near_resolution(done_issues_90)
+    print(f"  Assignee change near resolution: {results['assignee_change_near_resolution']['changed_pct']}%")
+
+    # Phase 4e: Comment timing
+    results["comment_timing"] = _comment_timing(done_issues_90)
+    print(f"  Post-resolution comments: {results['comment_timing']['post_resolution_comment_pct']}%")
+
+    # Phase 4d/6b/6e: Worklog analysis
+    results["worklog_analysis"] = _worklog_analysis(done_issues_90, sp_field=STORY_POINTS_FIELD)
+    print(f"  Zero-worklog done: {results['worklog_analysis']['zero_worklog_pct']}%, Post-res worklogs: {results['worklog_analysis']['post_resolution_worklog_pct']}%")
+
     # ---------
     # 4) Bugs: open, average age, oldest
     # ---------
@@ -1034,9 +1327,6 @@ def main():
     open_bugs = jira.search(jql_open_bugs, fields=fields_with_team, max_results=5000)
     print(f"Open bugs: {len(open_bugs)}")
 
-    def _project_key(issue):
-        p = (issue.get("fields") or {}).get("project")
-        return p.get("key", "?") if isinstance(p, dict) else "?"
     bug_ages = [(bug_age_days(it, now=now) or -1, it.get("key", "?"), (it.get("fields") or {}).get("summary", "") or "", _project_key(it)) for it in open_bugs]
     bug_age_values = [a for a, *_ in bug_ages if a >= 0]
     print("Open bug age summary (days since created):", summarize_time_metrics(bug_age_values))
@@ -1051,6 +1341,20 @@ def main():
             print(f"  {key} [{proj}] - {age:.1f} days - {summary[:80]}")
         except UnicodeEncodeError:
             print(f"  {key} [{proj}] - {age:.1f} days - (summary contains non-printable chars)")
+
+    # Phase 5b: Bug creation rate
+    bug_created_weekly = Counter()
+    for it in done_issues:
+        itype = (it.get("fields") or {}).get("issuetype")
+        if isinstance(itype, dict) and (itype.get("name") or "").lower() == "bug":
+            created = parse_dt((it.get("fields") or {}).get("created"))
+            if created:
+                bug_created_weekly[iso_week(created)] += 1
+    for it in open_bugs:
+        created = parse_dt((it.get("fields") or {}).get("created"))
+        if created:
+            bug_created_weekly[iso_week(created)] += 1
+    results["bug_creation_by_week"] = dict(bug_created_weekly)
 
     # ---------
     # Per-project metrics (for dashboard project filter)
@@ -1117,6 +1421,14 @@ def main():
             "empty_description_done_pct": _empty_description_pct(done_list),
             "zero_comment_done_pct": _zero_comment_pct(done_list),
             "orphan_done_pct": _orphan_pct(done_list),
+            # Phase 4+
+            "wip_assignees": dict(sorted(_assignee_breakdown(wip_list).items(), key=lambda x: -x[1])[:20]),
+            "assignee_change_near_resolution": _assignee_change_near_resolution(done_90_list),
+            "comment_timing": _comment_timing(done_90_list),
+            "worklog_analysis": _worklog_analysis(done_90_list, sp_field=STORY_POINTS_FIELD),
+            "created_by_week": _created_by_week(wip_list + done_list),
+            "sp_trend": _sp_trend(done_list, STORY_POINTS_FIELD),
+            "bug_creation_by_week": _bug_creation_by_week(done_list, open_bugs_by_p.get(pk, [])),
         }
         lead_times_p = [lead_time_days(it) for it in done_list]
         lead_times_p = [t for t in lead_times_p if t is not None]
@@ -1131,16 +1443,6 @@ def main():
     # ---------
     # Per-component metrics (for dashboard component filter)
     # ---------
-    def _issue_components(issue):
-        comps = (issue.get("fields") or {}).get("components")
-        if not isinstance(comps, list) or not comps:
-            return ["(no component)"]
-        names = []
-        for c in comps:
-            if isinstance(c, dict):
-                names.append(c.get("name") or c.get("id") or "?")
-        return names if names else ["(no component)"]
-
     wip_by_c = defaultdict(list)
     for it in wip_issues:
         for cn in _issue_components(it):
@@ -1207,6 +1509,13 @@ def main():
             "empty_description_done_pct": _empty_description_pct(c_done),
             "zero_comment_done_pct": _zero_comment_pct(c_done),
             "orphan_done_pct": _orphan_pct(c_done),
+            "wip_assignees": dict(sorted(_assignee_breakdown(c_wip).items(), key=lambda x: -x[1])[:20]),
+            "assignee_change_near_resolution": _assignee_change_near_resolution(c_done_90),
+            "comment_timing": _comment_timing(c_done_90),
+            "worklog_analysis": _worklog_analysis(c_done_90, sp_field=STORY_POINTS_FIELD),
+            "created_by_week": _created_by_week(c_wip + c_done),
+            "sp_trend": _sp_trend(c_done, STORY_POINTS_FIELD),
+            "bug_creation_by_week": _bug_creation_by_week(c_done, open_bugs_by_c.get(cn, [])),
         }
         c_lead = [lead_time_days(it) for it in c_done]
         c_lead = [t for t in c_lead if t is not None]
@@ -1293,8 +1602,6 @@ def main():
     for pk, board_id, sprint_id, sprint_name, start, end in sprint_rows:
         # Pull sprint issues (include components, team; add changelog for scope metrics)
         fields = list(fields_with_team)
-        if STORY_POINTS_FIELD:
-            fields.append(STORY_POINTS_FIELD)
         expand = "changelog" if SPRINT_FIELD_ID and start else None
         issues = jira.sprint_issues(sprint_id, fields=fields, expand=expand, max_results=1000)
 
@@ -1329,6 +1636,12 @@ def main():
         ratio = (done / committed) if committed else None
         end_dt = parse_dt(end) if end else None
         last_24h, last_24h_pct = _sprint_end_closures(issues, end_dt)
+
+        # Phase 4b: Sprint scope padding — added late AND immediately done
+        added_late_set = set(added_late_keys)
+        added_and_done = sum(1 for it in issues if it.get("key") in added_late_set and _is_done(it))
+        added_and_done_pct = round(added_and_done / len(issues) * 100, 1) if issues else 0
+
         sprint_metrics.append({
             "project": pk,
             "board_id": board_id,
@@ -1347,6 +1660,8 @@ def main():
             "team_breakdown": team_breakdown,
             "added_after_sprint_start": added_after_sprint_start,
             "added_after_sprint_start_issue_keys": added_late_keys[:50],
+            "added_and_done_count": added_and_done,
+            "added_and_done_pct": added_and_done_pct,
             "removed_during_sprint": removed_during_sprint,
             "resolved_last_24h": last_24h,
             "resolved_last_24h_pct": last_24h_pct,
@@ -1367,6 +1682,8 @@ def main():
             "team_breakdown": m["team_breakdown"],
             "added_after_sprint_start": m["added_after_sprint_start"],
             "added_after_sprint_start_issue_keys": m["added_after_sprint_start_issue_keys"],
+            "added_and_done_count": m["added_and_done_count"],
+            "added_and_done_pct": m["added_and_done_pct"],
             "removed_during_sprint": m["removed_during_sprint"],
             "resolved_last_24h": m["resolved_last_24h"],
             "resolved_last_24h_pct": m["resolved_last_24h_pct"],
@@ -1394,6 +1711,85 @@ def main():
         print(view.tail(20).to_string(index=False))
     else:
         print("\nNo sprint metrics computed.")
+
+    # ---------
+    # 6d) Epic health dashboard
+    # ---------
+    print("\nPulling open epics for health analysis...")
+    try:
+        epic_jql = f'project in ({projects_jql}) AND issuetype = Epic AND statusCategory != {DONE_CATEGORY}'
+        epics = jira.search(epic_jql, fields=["project", "status", "summary", "created", "components"], max_results=2000)
+        epic_data = []
+        for ep in epics:
+            ep_key = ep.get("key", "?")
+            ep_fields = ep.get("fields") or {}
+            ep_age = bug_age_days(ep, now=now)
+            child_jql = f'"Epic Link" = {ep_key}'
+            try:
+                children = jira.search(child_jql, fields=["status"], max_results=500)
+                total_children = len(children)
+                done_children = sum(1 for c in children if _is_done(c))
+                pct = round(done_children / total_children * 100, 1) if total_children else 0
+            except Exception:
+                total_children, done_children, pct = 0, 0, 0
+            stale = (ep_age or 0) > 180 and pct < 20
+            epic_data.append({
+                "key": ep_key,
+                "project": _project_key(ep),
+                "summary": (ep_fields.get("summary") or "")[:80],
+                "age_days": round(ep_age, 1) if ep_age else 0,
+                "total_children": total_children,
+                "done_children": done_children,
+                "completion_pct": pct,
+                "stale": stale,
+            })
+        results["epic_health"] = epic_data
+        results["open_epics_count"] = len(epics)
+        results["stale_epics_count"] = sum(1 for e in epic_data if e["stale"])
+        avg_pct = round(sum(e["completion_pct"] for e in epic_data) / len(epic_data), 1) if epic_data else 0
+        results["avg_epic_completion_pct"] = avg_pct
+        print(f"  Open epics: {len(epics)}, stale: {results['stale_epics_count']}, avg completion: {avg_pct}%")
+    except Exception as e:
+        results["epic_health"] = []
+        results["open_epics_count"] = 0
+        results["stale_epics_count"] = 0
+        results["avg_epic_completion_pct"] = 0
+        print(f"  Epic query failed: {e}")
+
+    # ---------
+    # 5d) Release / version tracking
+    # ---------
+    print("\nPulling project versions for release tracking...")
+    release_data = []
+    for pk in PROJECT_KEYS:
+        try:
+            versions = jira.list_project_versions(pk)
+            if not isinstance(versions, list):
+                continue
+            for v in versions:
+                released = v.get("released", False)
+                release_date = v.get("releaseDate")
+                release_data.append({
+                    "project": pk,
+                    "name": v.get("name", "?"),
+                    "released": released,
+                    "release_date": release_date,
+                })
+        except Exception as e:
+            print(f"  {pk}: version fetch failed ({e})")
+    results["releases"] = release_data
+    released_versions = [r for r in release_data if r["released"]]
+    results["total_released_versions"] = len(released_versions)
+    # releases per month
+    from collections import Counter as _Counter
+    rel_months = _Counter()
+    for r in released_versions:
+        if r.get("release_date"):
+            dt = parse_dt(r["release_date"])
+            if dt:
+                rel_months[dt.strftime("%Y-%m")] += 1
+    results["releases_per_month"] = dict(rel_months)
+    print(f"  Total versions: {len(release_data)}, released: {len(released_versions)}")
 
     # ---------
     # 6) Change Failure Rate (CFR) framework
