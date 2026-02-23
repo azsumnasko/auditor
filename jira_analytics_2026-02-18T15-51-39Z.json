@@ -1,0 +1,568 @@
+{
+  "run_iso_ts": "2026-02-18T15:51:39Z",
+  "projects": [
+    "OZN",
+    "PMBK",
+    "WMS",
+    "O3",
+    "UP",
+    "RMA",
+    "MA",
+    "LSH",
+    "IN",
+    "HELP",
+    "EBK",
+    "PBI",
+    "BA"
+  ],
+  "wip_count": 1646,
+  "status_category": {
+    "new": 1407,
+    "indeterminate": 239
+  },
+  "status_distribution": {
+    "To Do": 866,
+    "New": 82,
+    "In Progress": 151,
+    "Staging": 8,
+    "Ready for QA": 12,
+    "In Dev": 2,
+    "Blocked": 9,
+    "Requirements Gathering": 428,
+    "For Review": 13,
+    "Backlog": 22,
+    "Finished": 35,
+    "QA Passed": 8,
+    "Approved": 7,
+    "In Testing": 2,
+    "On hold": 1
+  },
+  "wip_aging_days": {
+    "count": 1646,
+    "avg_days": 511.01094141350677,
+    "p50_days": 636.1579874548148,
+    "p85_days": 771.3380994426622,
+    "p95_days": 981.0858747088658
+  },
+  "blocked_count": 9,
+  "blocked_oldest": [
+    [
+      "WMS-42",
+      910.3
+    ],
+    [
+      "IN-138",
+      768.2
+    ],
+    [
+      "PBI-9",
+      184.4
+    ],
+    [
+      "PBI-10",
+      184.4
+    ],
+    [
+      "PBI-15",
+      184.4
+    ],
+    [
+      "PBI-16",
+      184.4
+    ],
+    [
+      "PBI-169",
+      69.2
+    ],
+    [
+      "PBI-170",
+      69.2
+    ],
+    [
+      "PBI-197",
+      30.3
+    ]
+  ],
+  "throughput_by_week": {
+    "2025-W49": 116,
+    "2025-W50": 100,
+    "2025-W51": 89,
+    "2025-W52": 21,
+    "2026-W01": 19,
+    "2026-W02": 77,
+    "2026-W03": 123,
+    "2026-W04": 81,
+    "2026-W05": 94,
+    "2026-W06": 87,
+    "2026-W07": 117,
+    "2026-W08": 39
+  },
+  "lead_time_days": {
+    "count": 2020,
+    "avg_days": 17.678302436864,
+    "p50_days": 0.23906208333333334,
+    "p85_days": 30.877258651620366,
+    "p95_days": 78.3052551689814
+  },
+  "cycle_time_days": {
+    "count": 1083,
+    "avg_days": 9.124959221897337,
+    "p50_days": 0.00030329861111111106,
+    "p85_days": 14.967334103009254,
+    "p95_days": 43.32486045949071
+  },
+  "open_bugs_count": 53,
+  "open_bugs_age_days": {
+    "count": 53,
+    "avg_days": 477.6195818278494,
+    "p50_days": 397.94042809138887,
+    "p85_days": 764.1134059200924,
+    "p95_days": 1121.4588198274998
+  },
+  "oldest_open_bugs": [
+    {
+      "key": "O3-110",
+      "project": "O3",
+      "age_days": 2031.1,
+      "summary": "Product Label extention bug"
+    },
+    {
+      "key": "O3-867",
+      "project": "O3",
+      "age_days": 1617.3,
+      "summary": "Дизайн на сайтове от 700 нагоре / ipad"
+    },
+    {
+      "key": "O3-2067",
+      "project": "O3",
+      "age_days": 1204.3,
+      "summary": "Добавяне на конф. продукти -> Грешка при обработка"
+    },
+    {
+      "key": "O3-2337",
+      "project": "O3",
+      "age_days": 1066.2,
+      "summary": "(Content System) Презаписване на атрибути от контента"
+    },
+    {
+      "key": "O3-2473",
+      "project": "O3",
+      "age_days": 985.4,
+      "summary": "5% cashback unicredit + express"
+    },
+    {
+      "key": "OZN-4512",
+      "project": "OZN",
+      "age_days": 861.3,
+      "summary": "Корекции при изтриване на резервации"
+    },
+    {
+      "key": "OZN-4573",
+      "project": "OZN",
+      "age_days": 835.1,
+      "summary": "e-Book - Cache"
+    },
+    {
+      "key": "OZN-4652",
+      "project": "OZN",
+      "age_days": 800.3,
+      "summary": "[Транспорт] Пренареждане на пратки"
+    },
+    {
+      "key": "IN-153",
+      "project": "IN",
+      "age_days": 755.1,
+      "summary": "Default events - list of findings"
+    },
+    {
+      "key": "LSH-92",
+      "project": "LSH",
+      "age_days": 750.0,
+      "summary": "update the HC fo ultima"
+    },
+    {
+      "key": "LSH-93",
+      "project": "LSH",
+      "age_days": 749.8,
+      "summary": "Additional ingress creating issue"
+    },
+    {
+      "key": "LSH-94",
+      "project": "LSH",
+      "age_days": 749.7,
+      "summary": "update backend config for application timeout"
+    },
+    {
+      "key": "LSH-96",
+      "project": "LSH",
+      "age_days": 748.8,
+      "summary": "bug in magento ci/cd"
+    },
+    {
+      "key": "MA-11",
+      "project": "MA",
+      "age_days": 733.1,
+      "summary": "GTM Events not fully tracked (reported by Netpeak)"
+    },
+    {
+      "key": "WMS-1110",
+      "project": "WMS",
+      "age_days": 713.3,
+      "summary": "Double message for scan transfer address "
+    }
+  ],
+  "kanban_boards": [
+    {
+      "project": "UP",
+      "board_id": 83,
+      "board_name": "UP board",
+      "issue_count": 433,
+      "done_count": 5,
+      "status_breakdown": {
+        "Requirements Gathering": 428,
+        "Done": 5
+      }
+    },
+    {
+      "project": "PBI",
+      "board_id": 248,
+      "board_name": "PBI board",
+      "issue_count": 228,
+      "done_count": 179,
+      "status_breakdown": {
+        "Backlog": 22,
+        "Done": 179,
+        "For Review": 13,
+        "Blocked": 7,
+        "In Progress": 7
+      }
+    }
+  ],
+  "sprint_metrics": [
+    {
+      "project": "OZN",
+      "sprint_name": "Sprint 2111",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 99,
+      "total_issues": 99
+    },
+    {
+      "project": "OZN",
+      "sprint_name": "Sprint 2112",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 140,
+      "total_issues": 140
+    },
+    {
+      "project": "OZN",
+      "sprint_name": "Sprint 2113",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 117,
+      "total_issues": 117
+    },
+    {
+      "project": "OZN",
+      "sprint_name": "Sprint 2114",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 99,
+      "total_issues": 100
+    },
+    {
+      "project": "OZN",
+      "sprint_name": "Sprint 2115",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 106,
+      "total_issues": 107
+    },
+    {
+      "project": "OZN",
+      "sprint_name": "Sprint 2116",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 108,
+      "total_issues": 109
+    },
+    {
+      "project": "WMS",
+      "sprint_name": "WMS Sprint 14",
+      "committed": 46.0,
+      "done": 46.0,
+      "commitment_done_ratio": 1.0,
+      "throughput_issues": 159,
+      "total_issues": 159
+    },
+    {
+      "project": "WMS",
+      "sprint_name": "WMS Sprint 15",
+      "committed": 50.0,
+      "done": 50.0,
+      "commitment_done_ratio": 1.0,
+      "throughput_issues": 130,
+      "total_issues": 130
+    },
+    {
+      "project": "WMS",
+      "sprint_name": "WMS Sprint 16",
+      "committed": 38.0,
+      "done": 38.0,
+      "commitment_done_ratio": 1.0,
+      "throughput_issues": 51,
+      "total_issues": 51
+    },
+    {
+      "project": "WMS",
+      "sprint_name": "WMS Sprint 17",
+      "committed": 28.0,
+      "done": 28.0,
+      "commitment_done_ratio": 1.0,
+      "throughput_issues": 39,
+      "total_issues": 39
+    },
+    {
+      "project": "WMS",
+      "sprint_name": "WMS Sprint 18",
+      "committed": 24.0,
+      "done": 24.0,
+      "commitment_done_ratio": 1.0,
+      "throughput_issues": 66,
+      "total_issues": 66
+    },
+    {
+      "project": "WMS",
+      "sprint_name": "WMS Sprint 19",
+      "committed": 75.0,
+      "done": 75.0,
+      "commitment_done_ratio": 1.0,
+      "throughput_issues": 93,
+      "total_issues": 93
+    },
+    {
+      "project": "O3",
+      "sprint_name": "Sites W41",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 26,
+      "total_issues": 26
+    },
+    {
+      "project": "O3",
+      "sprint_name": "Sites W42",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 7,
+      "total_issues": 7
+    },
+    {
+      "project": "O3",
+      "sprint_name": "Sites W43",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 22,
+      "total_issues": 22
+    },
+    {
+      "project": "O3",
+      "sprint_name": "Sites W44",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 17,
+      "total_issues": 17
+    },
+    {
+      "project": "O3",
+      "sprint_name": "Sites W45",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 15,
+      "total_issues": 15
+    },
+    {
+      "project": "O3",
+      "sprint_name": "Sites W46",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 18,
+      "total_issues": 18
+    },
+    {
+      "project": "MA",
+      "sprint_name": "IN Sprint 6",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 9,
+      "total_issues": 9
+    },
+    {
+      "project": "MA",
+      "sprint_name": "MA Sprint 1",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 4,
+      "total_issues": 4
+    },
+    {
+      "project": "MA",
+      "sprint_name": "MA Sprint 2",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 3,
+      "total_issues": 6
+    },
+    {
+      "project": "MA",
+      "sprint_name": "MA Sprint 3",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 4,
+      "total_issues": 7
+    },
+    {
+      "project": "MA",
+      "sprint_name": "MA Sprint 4",
+      "committed": 0,
+      "done": 0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 0,
+      "total_issues": 0
+    },
+    {
+      "project": "LSH",
+      "sprint_name": "LSH Sprint 1",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 9,
+      "total_issues": 9
+    },
+    {
+      "project": "LSH",
+      "sprint_name": "LSH Sprint 2",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 1,
+      "total_issues": 1
+    },
+    {
+      "project": "LSH",
+      "sprint_name": "LSH Sprint 3",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 3,
+      "total_issues": 3
+    },
+    {
+      "project": "LSH",
+      "sprint_name": "LSH Sprint 4",
+      "committed": 0,
+      "done": 0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 0,
+      "total_issues": 0
+    },
+    {
+      "project": "IN",
+      "sprint_name": "IN Sprint 1",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 8,
+      "total_issues": 8
+    },
+    {
+      "project": "IN",
+      "sprint_name": "IN Sprint 2",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 1,
+      "total_issues": 1
+    },
+    {
+      "project": "IN",
+      "sprint_name": "IN Sprint 3",
+      "committed": 29.0,
+      "done": 29.0,
+      "commitment_done_ratio": 1.0,
+      "throughput_issues": 15,
+      "total_issues": 15
+    },
+    {
+      "project": "IN",
+      "sprint_name": "IN Sprint 4",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 13,
+      "total_issues": 13
+    },
+    {
+      "project": "IN",
+      "sprint_name": "IN Sprint 5",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 12,
+      "total_issues": 12
+    },
+    {
+      "project": "IN",
+      "sprint_name": "IN Sprint 6",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 9,
+      "total_issues": 9
+    },
+    {
+      "project": "BA",
+      "sprint_name": "BA Sprint 1",
+      "committed": 0.0,
+      "done": 0.0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 1,
+      "total_issues": 5
+    },
+    {
+      "project": "BA",
+      "sprint_name": "BA Sprint 2",
+      "committed": 0.0,
+      "done": 0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 0,
+      "total_issues": 7
+    },
+    {
+      "project": "BA",
+      "sprint_name": "BA Sprint 3",
+      "committed": 0.0,
+      "done": 0,
+      "commitment_done_ratio": null,
+      "throughput_issues": 0,
+      "total_issues": 7
+    }
+  ],
+  "cfr_failures_count": 0
+}
