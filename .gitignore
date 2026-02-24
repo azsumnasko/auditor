@@ -17,6 +17,9 @@ env/
 dist/
 build/
 
+# Dispatcher worktrees (when worktree_placement is "inside")
+/worktrees/
+
 # IDE / OS
 .idea/
 .vscode/

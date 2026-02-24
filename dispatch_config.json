@@ -1,0 +1,9 @@
+{
+  "num_workers": 14,
+  "worktree_prefix": "ozon-w",
+  "worktree_placement": "inside",
+  "branch": "main",
+  "model": "ollama/qwen3-coder:30b",
+  "aider_cmd": "aider",
+  "repo_root": "."
+}
