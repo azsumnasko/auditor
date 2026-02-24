@@ -1,6 +1,6 @@
 You are a coding agent in a Gas Town-style workflow. Execute this task fully, then exit.
 
-◐ ozon-5vp · Resolve merge conflict: ozon-w2   [● P2 · IN_PROGRESS]
+◐ ozon-mfb · Resolve merge conflict: ozon-w2   [● P2 · IN_PROGRESS]
 Owner: Nasko · Type: task
 Created: 2026-02-24 · Updated: 2026-02-24
 
