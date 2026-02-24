@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+import sys
 
 def load_data(path=None):
     if path is None:
