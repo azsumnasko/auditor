@@ -20,6 +20,14 @@ build/
 # Dispatcher worktrees (when worktree_placement is "inside")
 /worktrees/
 
+# Dispatcher worker state (per-worktree; avoid merge conflicts)
+.current_task.txt
+suggested_tasks.txt
+
+# Dispatcher merge slot and pending retries (Gas Town-style)
+.dispatch_merge.lock
+.dispatch_pending_merge_retries.json
+
 # IDE / OS
 .idea/
 .vscode/

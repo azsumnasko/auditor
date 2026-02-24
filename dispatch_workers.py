@@ -25,10 +25,15 @@ from typing import Any
 # Default config path next to this script
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent / "dispatch_config.json"
 TASK_FILE = ".current_task.txt"
+SUGGESTED_FILE = "suggested_tasks.txt"
 
 # Open null device once; used for worker stdout/stderr to avoid any pipe (and thus _readerthread) on Windows where pipe decoding can raise UnicodeDecodeError.
 _NULL_DEV = open(os.devnull, "wb")  # noqa: SIM115
 TASK_QUEUE_FILE = "task_queue.json"
+MERGE_LOCK_FILE = ".dispatch_merge.lock"
+PENDING_MERGE_RETRIES_FILE = ".dispatch_pending_merge_retries.json"
+MERGE_SLOT_TIMEOUT_SECS = 120
+RETRY_PENDING_INTERVAL_SECS = 45
 
 # On Windows, run worker via a tiny wrapper so we never attach to the real process's stdout/stderr (avoids _readerthread + cp1252 decode errors).
 _USE_WRAPPER_WIN = sys.platform == "win32"
@@ -109,6 +114,156 @@ def mark_task_status(repo_root: Path, task_id: str, status: str) -> None:
             t["status"] = status
             break
     save_task_queue(repo_root, data)
+
+
+# ---------- Merge slot (Gas Town-style: serialize merges) ----------
+def _merge_lock_path(repo_root: Path) -> Path:
+    return repo_root / MERGE_LOCK_FILE
+
+
+def acquire_merge_slot(repo_root: Path, timeout_secs: float = MERGE_SLOT_TIMEOUT_SECS) -> bool:
+    """Acquire the merge slot (file lock). Returns True if acquired. Blocks up to timeout_secs."""
+    lock_path = _merge_lock_path(repo_root)
+    deadline = time.monotonic() + timeout_secs
+    while time.monotonic() < deadline:
+        try:
+            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+            os.write(fd, str(os.getpid()).encode())
+            os.close(fd)
+            return True
+        except FileExistsError:
+            time.sleep(1.0)
+            continue
+    return False
+
+
+def release_merge_slot(repo_root: Path) -> None:
+    lock_path = _merge_lock_path(repo_root)
+    try:
+        lock_path.unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
+# ---------- Pending merge retries (auto-retry when conflict bead is closed) ----------
+def _pending_retries_path(repo_root: Path) -> Path:
+    return repo_root / PENDING_MERGE_RETRIES_FILE
+
+
+def load_pending_merge_retries(repo_root: Path) -> dict[str, str]:
+    """Returns { branch_name: bead_or_task_id }."""
+    p = _pending_retries_path(repo_root)
+    if not p.exists():
+        return {}
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        return data.get("pending", data) if isinstance(data.get("pending"), dict) else {}
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def save_pending_merge_retries(repo_root: Path, pending: dict[str, str]) -> None:
+    p = _pending_retries_path(repo_root)
+    p.write_text(json.dumps({"pending": pending}, indent=2), encoding="utf-8")
+
+
+def _bd_open_id_set(repo_root: Path) -> set[str]:
+    """Set of open bead IDs (for detecting newly created bead)."""
+    beads = bd_list_open_json(repo_root)
+    return {str(b.get("id") or b.get("bead_id") or b.get("hash") or "") for b in beads if b.get("id") or b.get("bead_id") or b.get("hash")}
+
+
+def bd_is_closed(repo_root: Path, bead_id: str) -> bool:
+    """True if the bead is closed/done."""
+    r = subprocess.run(
+        ["bd", "show", bead_id, "--json"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        timeout=10,
+        **_SUBPROCESS_ENCODING,
+    )
+    if r.returncode != 0:
+        r = subprocess.run(
+            ["bd", "list", "--status", "closed", "--json"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            timeout=15,
+            **_SUBPROCESS_ENCODING,
+        )
+        if r.returncode != 0 or not r.stdout.strip():
+            return False
+        try:
+            data = json.loads(r.stdout)
+            issues = data if isinstance(data, list) else data.get("issues", [])
+            ids = {str(i.get("id") or i.get("hash") or i.get("key")) for i in issues if i}
+            return bead_id in ids
+        except json.JSONDecodeError:
+            return False
+    try:
+        data = json.loads(r.stdout)
+        # bd show --json may return a single object or a list
+        if isinstance(data, list):
+            obj = data[0] if data else {}
+        else:
+            obj = data
+        return (obj.get("status") or "").lower() in ("closed", "done")
+    except (json.JSONDecodeError, TypeError, IndexError, KeyError):
+        return False
+
+
+def task_queue_is_done(repo_root: Path, task_id: str) -> bool:
+    """True if the task in task_queue.json is done."""
+    data = load_task_queue(repo_root)
+    for t in data["tasks"]:
+        if t.get("id") == task_id:
+            return (t.get("status") or "").lower() in ("done", "closed")
+    return False
+
+
+def retry_pending_merges(
+    repo_root: Path,
+    worktree_roots: list[Path],
+    prefix: str,
+    base_branch: str,
+    beads_mode: bool,
+    use_merge_slot: bool,
+) -> None:
+    """Check pending conflict-resolution tasks; if any are closed, retry merging that branch (Gas Town-style auto-retry)."""
+    pending = load_pending_merge_retries(repo_root)
+    if not pending:
+        return
+    # Match branch name to worktree: ozon-w3 -> index 2
+    branch_re = re.compile(re.escape(prefix) + r"(\d+)$")
+    to_remove: list[str] = []
+    for branch_name, task_or_bead_id in list(pending.items()):
+        is_closed = bd_is_closed(repo_root, task_or_bead_id) if beads_mode else task_queue_is_done(repo_root, task_or_bead_id)
+        if not is_closed:
+            continue
+        m = branch_re.match(branch_name)
+        if not m:
+            to_remove.append(branch_name)
+            continue
+        slot_num = int(m.group(1))
+        if slot_num < 1 or slot_num > len(worktree_roots):
+            to_remove.append(branch_name)
+            continue
+        worktree_path = worktree_roots[slot_num - 1]
+        if use_merge_slot and not acquire_merge_slot(repo_root, timeout_secs=30):
+            continue
+        try:
+            ok, _ = merge_worktree_into_main(repo_root, worktree_path, branch_name, base_branch)
+            if ok:
+                to_remove.append(branch_name)
+                print(f"[merge] retried and merged {branch_name} -> {base_branch} (conflict was resolved)", flush=True)
+        finally:
+            if use_merge_slot:
+                release_merge_slot(repo_root)
+    for branch_name in to_remove:
+        pending.pop(branch_name, None)
+    if to_remove:
+        save_pending_merge_retries(repo_root, pending)
 
 
 def seed_task_queue_if_missing(repo_root: Path) -> None:
@@ -258,6 +413,17 @@ def write_task_file(worktree_root: Path, content: str) -> None:
     (worktree_root / TASK_FILE).write_text(content, encoding="utf-8")
 
 
+def prune_stale_worktrees(repo_root: Path) -> None:
+    """Remove registered worktrees whose directories are missing (e.g. after Remove-Item worktrees)."""
+    subprocess.run(
+        ["git", "worktree", "prune"],
+        cwd=repo_root,
+        capture_output=True,
+        timeout=15,
+        **_SUBPROCESS_ENCODING,
+    )
+
+
 def ensure_worktree(
     repo_root: Path,
     worktree_path: Path,
@@ -354,6 +520,170 @@ def run_worker(
     )
 
 
+def merge_worktree_into_main(
+    repo_root: Path,
+    worktree_path: Path,
+    branch_name: str,
+    base_branch: str = "main",
+) -> tuple[bool, str | None]:
+    """Merge the worktree's branch into base_branch, then reset worktree to base for next task.
+    Returns (True, None) on success, (False, error_message) on failure."""
+    # Commit any uncommitted changes in the worktree so we don't lose them
+    r = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=worktree_path,
+        capture_output=True,
+        text=True,
+        timeout=5,
+        **_SUBPROCESS_ENCODING,
+    )
+    if r.returncode == 0 and (r.stdout or "").strip():
+        subprocess.run(["git", "add", "-A"], cwd=worktree_path, capture_output=True, timeout=10)
+        # Don't commit dispatcher-only files (avoid add/add conflicts when merging into main)
+        subprocess.run(
+            ["git", "reset", "HEAD", TASK_FILE, SUGGESTED_FILE],
+            cwd=worktree_path,
+            capture_output=True,
+            timeout=5,
+        )
+        subprocess.run(
+            ["git", "commit", "-m", f"Dispatcher: capture work ({branch_name})"],
+            cwd=worktree_path,
+            capture_output=True,
+            timeout=10,
+            **_SUBPROCESS_ENCODING,
+        )
+    # Checkout base and merge
+    r = subprocess.run(
+        ["git", "checkout", base_branch],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        timeout=15,
+        **_SUBPROCESS_ENCODING,
+    )
+    if r.returncode != 0:
+        msg = (r.stderr or r.stdout or "").strip()
+        print(f"[merge] git checkout {base_branch} failed: {msg}", file=sys.stderr)
+        return False, msg
+    r = subprocess.run(
+        ["git", "merge", branch_name, "-m", f"Merge {branch_name} (dispatcher)"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        **_SUBPROCESS_ENCODING,
+    )
+    if r.returncode != 0:
+        # Try to resolve trivial conflicts (dispatcher-only files that we don't want in main)
+        conflict_files = set()
+        r2 = subprocess.run(
+            ["git", "diff", "--name-only", "--diff-filter=U"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            **_SUBPROCESS_ENCODING,
+        )
+        if r2.returncode == 0 and r2.stdout:
+            conflict_files = {f.strip() for f in r2.stdout.splitlines() if f.strip()}
+        trivial = {TASK_FILE, SUGGESTED_FILE, ".gitignore"}
+        if conflict_files and conflict_files <= trivial:
+            # Resolve: drop .current_task.txt and suggested_tasks.txt from merge; keep main's .gitignore
+            for f in (TASK_FILE, SUGGESTED_FILE):
+                if f in conflict_files:
+                    subprocess.run(["git", "rm", "-f", f], cwd=repo_root, capture_output=True, timeout=5)
+            if ".gitignore" in conflict_files:
+                subprocess.run(["git", "checkout", "--ours", ".gitignore"], cwd=repo_root, capture_output=True, timeout=5)
+                subprocess.run(["git", "add", ".gitignore"], cwd=repo_root, capture_output=True, timeout=5)
+            subprocess.run(["git", "add", "-A"], cwd=repo_root, capture_output=True, timeout=5)
+            r3 = subprocess.run(
+                ["git", "commit", "-m", f"Merge {branch_name} (dispatcher, resolve trivial conflicts)"],
+                cwd=repo_root,
+                capture_output=True,
+                timeout=10,
+                **_SUBPROCESS_ENCODING,
+            )
+            if r3.returncode == 0:
+                # Merge completed; reset worktree and return success
+                subprocess.run(
+                    ["git", "reset", "--hard", base_branch],
+                    cwd=worktree_path,
+                    capture_output=True,
+                    timeout=10,
+                    **_SUBPROCESS_ENCODING,
+                )
+                print(f"[merge] resolved trivial conflicts ({branch_name}) -> {base_branch}", flush=True)
+                return True, None
+        subprocess.run(
+            ["git", "merge", "--abort"],
+            cwd=repo_root,
+            capture_output=True,
+            timeout=10,
+        )
+        msg = (r.stderr or r.stdout or "").strip() or branch_name
+        print(f"[merge] merge {branch_name} failed (conflict?): {msg}", file=sys.stderr)
+        return False, msg
+    # Reset worktree to base so next task starts clean
+    r = subprocess.run(
+        ["git", "reset", "--hard", base_branch],
+        cwd=worktree_path,
+        capture_output=True,
+        text=True,
+        timeout=10,
+        **_SUBPROCESS_ENCODING,
+    )
+    if r.returncode != 0:
+        print(f"[merge] reset worktree failed: {r.stderr or r.stdout}", file=sys.stderr)
+    return True, None
+
+
+def create_merge_conflict_task(
+    repo_root: Path,
+    branch_name: str,
+    detail: str,
+    beads_mode: bool,
+) -> str | None:
+    """Create a bead or queue task for resolving a merge conflict. Returns the created task/bead id for pending retry tracking."""
+    title = f"Resolve merge conflict: {branch_name}"
+    description = (
+        f"Merge of branch {branch_name} into main failed. Resolve conflicts and complete the merge.\n\n"
+        f"Steps: cd to repo root, run `git checkout main`, then `git merge {branch_name}`. "
+        "Fix conflicts, then `git add` and `git commit`.\n\n"
+        "The dispatcher will auto-retry the merge when this task is closed.\n\n"
+        f"Git output:\n{detail[:1500]}"
+    )
+    if beads_mode:
+        before_ids = _bd_open_id_set(repo_root)
+        subprocess.run(
+            ["bd", "create", title, "--description", description],
+            cwd=repo_root,
+            capture_output=True,
+            timeout=15,
+            **_SUBPROCESS_ENCODING,
+        )
+        after_ids = _bd_open_id_set(repo_root)
+        new_id = next(iter(after_ids - before_ids), None)
+        print(f"[merge] created bead for resolving conflict: {branch_name}", flush=True)
+        return new_id
+    path = task_queue_path(repo_root)
+    if path.exists():
+        data = json.loads(path.read_text(encoding="utf-8"))
+    else:
+        data = {"tasks": [], "next_id": 1}
+    task_id = f"task-{data['next_id']}"
+    data["tasks"].append({
+        "id": task_id,
+        "title": title,
+        "status": "pending",
+        "description": description,
+    })
+    data["next_id"] += 1
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"[merge] added to task_queue.json: {title}", flush=True)
+    return task_id
+
+
 def main() -> int:
     config_path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_CONFIG_PATH
     if not config_path.exists():
@@ -382,6 +712,11 @@ def main() -> int:
         parent = repo_root.parent
         worktree_roots = [parent / f"{prefix}{i}" for i in range(1, num_workers + 1)]
     base_branch = config.get("branch", "main")
+    auto_merge_worktrees = config.get("auto_merge_worktrees", True)
+    use_merge_slot = config.get("merge_slot", True)
+    auto_retry_merge_on_conflict_close = config.get("auto_retry_merge_on_conflict_close", True)
+    # Prune stale worktrees so we can recreate if user deleted worktrees/ with Remove-Item
+    prune_stale_worktrees(repo_root)
     # Each worktree gets its own branch (worker-w1, worker-w2, ...) so we don't check out main twice
     for i, wt in enumerate(worktree_roots, start=1):
         worktree_branch = f"{prefix}{i}"
@@ -458,6 +793,26 @@ def main() -> int:
         assigned_beads.discard(bid)
         print(f"[w{slot_idx + 1}] done   {bid}", flush=True)
         slots[slot_idx] = None
+        # Auto-merge this worktree's branch into main (Gas Town-style: merge slot + conflict bead + pending retry)
+        if auto_merge_worktrees:
+            wt = worktree_roots[slot_idx]
+            worker_branch = f"{prefix}{slot_idx + 1}"
+            if use_merge_slot and not acquire_merge_slot(repo_root):
+                print(f"[w{slot_idx + 1}] merge slot busy, skipping merge for {worker_branch}", flush=True)
+            else:
+                try:
+                    ok, merge_err = merge_worktree_into_main(repo_root, wt, worker_branch, base_branch)
+                    if ok:
+                        print(f"[w{slot_idx + 1}] merged {worker_branch} -> {base_branch}", flush=True)
+                    elif merge_err and config.get("create_bead_on_merge_conflict", True):
+                        conflict_id = create_merge_conflict_task(repo_root, worker_branch, merge_err, beads_mode)
+                        if conflict_id and auto_retry_merge_on_conflict_close:
+                            pending = load_pending_merge_retries(repo_root)
+                            pending[worker_branch] = conflict_id
+                            save_pending_merge_retries(repo_root, pending)
+                finally:
+                    if use_merge_slot:
+                        release_merge_slot(repo_root)
 
     mode_str = "Beads" if beads_mode else "task_queue.json"
     print(f"Dispatcher: {num_workers} workers, {mode_str}. Press Ctrl+C to stop.", flush=True)
@@ -486,8 +841,13 @@ def main() -> int:
     for i in range(num_workers):
         assign_slot(i)
 
+    last_retry_time = 0.0
     try:
         while True:
+            now = time.monotonic()
+            if auto_retry_merge_on_conflict_close and (now - last_retry_time) >= RETRY_PENDING_INTERVAL_SECS:
+                retry_pending_merges(repo_root, worktree_roots, prefix, base_branch, beads_mode, use_merge_slot)
+                last_retry_time = now
             for i in range(num_workers):
                 if slots[i] is None:
                     assign_slot(i)

@@ -3,6 +3,10 @@
   "worktree_prefix": "ozon-w",
   "worktree_placement": "inside",
   "branch": "main",
+  "auto_merge_worktrees": true,
+  "create_bead_on_merge_conflict": true,
+  "merge_slot": true,
+  "auto_retry_merge_on_conflict_close": true,
   "model": "ollama/qwen3-coder:30b",
   "aider_cmd": "aider",
   "repo_root": "."

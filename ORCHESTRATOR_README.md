@@ -175,6 +175,10 @@ Beads + 14 worktrees + a Python dispatcher that assigns beads to Aider+Qwen work
    - `worktree_placement`: `"inside"` = worktrees in repo `worktrees/w1` … (recommended if "Failed to create worktree" for sibling path); `"sibling"` = `../ozon-w1` …
    - `worktree_prefix`: used when placement is `sibling` (e.g. `ozon-w` → `ozon-w1` .. `ozon-w14`)
    - `branch`: branch to use for worktrees (must exist: use `main` or `master` per your repo — run `git branch` to see)
+   - `auto_merge_worktrees`: when `true` (default), after each worker exits the dispatcher merges that worktree's branch into `main` so changes appear in the repo root; set to `false` to merge manually
+   - `create_bead_on_merge_conflict`: when `true` (default), if a merge fails (e.g. conflict), the dispatcher creates a bead (or task_queue entry) "Resolve merge conflict: ozon-wN" so you or a worker can fix it
+   - `merge_slot`: when `true` (default), only one merge runs at a time (file lock), Gas Town–style
+   - `auto_retry_merge_on_conflict_close`: when `true` (default), after you close the "Resolve merge conflict: ozon-wN" bead, the dispatcher automatically retries merging that branch into main
    - `model`: e.g. `ollama/qwen2.5-coder:7b`
    - `aider_cmd`: `aider` (or full path)
    - `repo_root`: `.` (repo root = directory of this file)

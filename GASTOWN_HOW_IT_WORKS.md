@@ -69,3 +69,23 @@ You don’t have the Mayor, so:
 | Run workers | `gt sling <bead-ids> ozon` (or Mayor slings) | `py dispatch_workers.py` |
 
 So: **we reuse Gas Town’s ideas (beads, convoys, sling) and, on Path A, the Mayor for splitting**. On Path B we reuse the same beads and dispatcher and add **split_task.py** to mimic the Mayor’s “one goal → many beads” step.
+
+---
+
+## How Gas Town Solves Merge Conflicts (and how we compare)
+
+In full Gas Town, a dedicated **Refinery** (merge-queue processor) handles merging Polecat branches into main. When a merge **fails** (e.g. conflict), Gas Town does the following (from [internal/refinery/engineer.go](https://github.com/steveyegge/gastown/blob/main/internal/refinery/engineer.go)):
+
+1. **Sends `MERGE_FAILED` to the Witness** – so the overseer agent knows and can react.
+2. **Creates a conflict-resolution task (bead)** – title like `"Resolve merge conflicts: <branch>"` with a description that includes branch, target (main), conflict SHA, and steps: checkout branch, pull/merge main, resolve conflicts, force-push; "The Refinery will automatically retry the merge after you force-push."
+3. **Blocks the MR on that task** – the merge-request bead gets a dependency on the new conflict-resolution bead, so the queue does not retry the same MR until the conflict is resolved.
+4. **Merge slot** – only one merge (or conflict resolution) runs at a time per rig; conflict resolution acquires the same slot so pushes to main are serialized.
+5. **Config** – `merge_queue.on_conflict` can be `"assign_back"` (create task, assign back) or `"auto_rebase"`.
+
+So Gas Town **does create beads for resolving merge conflicts**, and integrates them with the merge queue (block MR until conflict bead is done) and with the Witness.
+
+**In this repo (Path B):** We now mirror more of this:
+- **Merge slot** – `merge_slot: true` (default) uses a file lock (`.dispatch_merge.lock`) so only one merge runs at a time.
+- **Conflict bead** – On merge failure we create `"Resolve merge conflict: ozon-wN"` and record it in `.dispatch_pending_merge_retries.json`.
+- **Auto-retry** – `auto_retry_merge_on_conflict_close: true` (default): the dispatcher periodically checks whether that bead is closed; when it is, it retries merging that branch into main (Gas Town–style).
+We still do not have a Witness or MR-bead blocking; we avoid `.current_task.txt` / `suggested_tasks.txt` conflicts via `.gitignore`.
