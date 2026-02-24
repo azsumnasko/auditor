@@ -1,19 +1,11 @@
 You are a coding agent in a Gas Town-style workflow. Execute this task fully, then exit.
 
-◐ ozon-0p4 · Resolve merge conflict: ozon-w3   [● P2 · IN_PROGRESS]
+◐ ozon-vpx · update the jira_analytics.py and generate_dashboard   [● P2 · IN_PROGRESS]
 Owner: Nasko · Type: task
 Created: 2026-02-24 · Updated: 2026-02-24
 
-DESCRIPTION
-Merge of branch ozon-w3 into main failed. Resolve conflicts and complete the merge.
-
-Steps: cd to repo root, run `git checkout main`, then `git merge ozon-w3`. Fix conflicts, then `git add` and `git commit`.
-
-Git output:
-Auto-merging .current_task.txt
-CONFLICT (add/add): Merge conflict in .current_task.txt
-Auto-merging .gitignore
-Automatic merge failed; fix conflicts and then commit the result.
+DISCOVERED FROM
+  ◊ ○ ozon-0mc: Enhance the dashbord with the best analiticks and metrics, update the jira_analytics.py and generate_dashboard, make no regressions and everything currently working should continue, split it into the smallest chunks possible ● P2
 
 
 
