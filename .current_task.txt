@@ -1,11 +1,11 @@
 You are a coding agent in a Gas Town-style workflow. Execute this task fully, then exit.
 
-◐ ozon-qi3 · Enhance the dashbord with the best analiticks and metrics   [● P2 · IN_PROGRESS]
+◐ ozon-8b0 · Enhance the dashbord with the best analiticks and metrics   [● P2 · IN_PROGRESS]
 Owner: Nasko · Type: task
 Created: 2026-02-24 · Updated: 2026-02-24
 
 DISCOVERED FROM
-  ◊ ◐ ozon-gim: Enhance the dashbord with the best analiticks and metrics, update the jira_analytics.py and generate_dashboard, make no regressions and everything currently working should continue ● P2
+  ◊ ◐ ozon-tjz: Enhance the dashbord with the best analiticks and metrics, update the jira_analytics.py and generate_dashboard, make no regressions and everything currently working should continue, split it into the smallest chunks possible ● P2
 
 
 
