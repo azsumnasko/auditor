@@ -57,7 +57,13 @@ def split_with_ollama(goal: str, max_subtasks: int = 10) -> list[str]:
     if urllib.request is None:
         return _fallback_split(goal, max_subtasks)
 
-    prompt = f"""You are a task splitter for a coding project. Break this goal into 3 to {max_subtasks} concrete, small subtasks that can be done in order. Output exactly one subtask title per line. No numbering, no bullets, no extra text. Only the titles.
+    prompt = f"""You are a task splitter for a coding project. Break this goal into 3 to {max_subtasks} concrete, small subtasks.
+
+Rules:
+- Each subtask must be INDEPENDENT: doable by one worker without depending on another worker's unfinished work. Prefer splitting by file or feature area so different workers rarely edit the same file.
+- Keep subtasks SMALL: one clear change per task (e.g. "In generate_dashboard.py add X" or "In jira_analytics.py compute Y and add to JSON"), so merges stay clean and conflicts are rare.
+- When the change touches the dashboard or report, mention the file: generate_dashboard.py (HTML report), jira_analytics.py (metrics/compute), or jira_dashboard.html only if editing static HTML directly.
+- Output exactly one subtask title per line. No numbering, no bullets, no extra text. Only the titles.
 
 Goal: {goal}
 """

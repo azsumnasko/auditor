@@ -158,7 +158,7 @@ After installation: with Beads, run `bd init` then `bd create "..."` and `py dis
 
 ## 7. Gas Town CLI (`gt`) – optional, for Mayor/convoys
 
-Only needed if you want **Path A** (Mayor, `gt sling`, convoys) on Windows. **`go install ...@latest` does not work** (repo’s go.mod has `replace` directives). **`npm install -g @gastown/gt` returns 404** (package not published).
+Only needed if you want **Path A** (Mayor, `gt sling`, convoys). For a full Path A setup with the original [Gas Town](https://github.com/steveyegge/gastown) and a local model, see [SETUP_ORIGINAL_GASTOWN.md](SETUP_ORIGINAL_GASTOWN.md). On Windows without WSL: **`go install ...@latest` does not work** (repo’s go.mod has `replace` directives). **`npm install -g @gastown/gt` returns 404** (package not published).
 
 Use one of these:
 

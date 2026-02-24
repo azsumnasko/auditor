@@ -60,7 +60,8 @@ Run these in order each time you want to run the agents:
    The dispatcher assigns ready beads to 14 workers. Each worker gets the bead text (from `bd show`) as its prompt in `.current_task.txt` and runs Aider + Qwen on it. When one finishes, the next bead is assigned to that slot. Stop with **Ctrl+C**.
 4. **Richer prompts**: use `bd create "Title"` then `bd show <id>` and `bd update <id> --description "Long instructions here"` if your Beads version supports it, or put the full instructions in the title.
 5. **Ready-made beads for this repo**: see [BEADS_FOR_ANALYSIS.md](BEADS_FOR_ANALYSIS.md) for copy-paste tasks that improve the Jira analytics and dashboard.
-6. **No Beads?** Run `py dispatch_workers.py` anyway; it creates `task_queue.json` with the analysis tasks and runs the same way.
+6. **Keep tasks independent:** For big goals, use `py split_task.py "Your big goal"` so subtasks are small and file-scoped; workers then touch different files and merges stay clean. See [GASTOWN_HOW_IT_WORKS.md](GASTOWN_HOW_IT_WORKS.md#keeping-tasks-independent-and-everything-updated).
+7. **No Beads?** Run `py dispatch_workers.py` anyway; it creates `task_queue.json` with the analysis tasks and runs the same way.
 
 ### Self-improving flow
 
@@ -92,6 +93,8 @@ Run `ingest_suggested_tasks.py` periodically (e.g. after a batch of workers fini
 ---
 
 ## Path A: Full Gas Town on WSL (recommended if you use WSL)
+
+**Full step-by-step:** [SETUP_ORIGINAL_GASTOWN.md](SETUP_ORIGINAL_GASTOWN.md) – install [github.com/steveyegge/gastown](https://github.com/steveyegge/gastown), create HQ, add this repo as a rig, register the Qwen agent, then use Mayor/sling.
 
 Uses the real `gt` binary; all workers run the custom Qwen wrapper. You get convoys, sling, Witness, Refinery.
 
@@ -182,6 +185,7 @@ Beads + 14 worktrees + a Python dispatcher that assigns beads to Aider+Qwen work
    - `model`: e.g. `ollama/qwen2.5-coder:7b`
    - `aider_cmd`: `aider` (or full path)
    - `repo_root`: `.` (repo root = directory of this file)
+   - `worker_timeout_secs`: max seconds per worker (default 1800 = 30 min); after this the worker is terminated and the slot is freed. Set to `0` to disable.
 
 ### Run the dispatcher
 
@@ -195,8 +199,8 @@ py dispatch_workers.py
 If you see "Python was not found": use `py` (Windows Python Launcher), or add Python to PATH from [python.org](https://www.python.org/downloads/) (check "Add Python to PATH" during install).
 
 - The script creates 14 worktrees (e.g. `c:\Work\ozon-w1` .. `c:\Work\ozon-w14`) if they don't exist.
-- It reads `bd ready`, assigns one bead per slot, writes `.current_task.txt` in each worktree, and starts Aider with `--message-file .current_task.txt`.
-- When a worker (Aider) exits, the dispatcher closes that bead, runs `bd sync`, and assigns the next ready bead to that slot.
+- It reads `bd ready`, assigns one bead per slot, writes `.current_task.txt` in each worktree, and starts Aider with `--message-file .current_task.txt --yes --no-show-model-warnings` so it processes the task and exits (no interactive prompts). Tasks instruct the model to commit and stop so the session ends.
+- When a worker (Aider) exits, the dispatcher closes that bead, runs `bd sync`, and assigns the next ready bead to that slot. If a worker runs longer than `worker_timeout_secs` (default 30 min), it is terminated and the slot is freed.
 - Stop with Ctrl+C; the dispatcher will terminate all worker processes.
 
 ---

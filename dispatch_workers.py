@@ -484,15 +484,19 @@ def run_worker(
         env.setdefault("PYTHONIOENCODING", "utf-8")
         env["_DISPATCH_CWD"] = str(worktree_root)
 
+    # --message-file: process task, then exit (no chat mode). --yes: auto-accept all prompts so we don't block headless.
+    aider_args = [
+        aider_cmd,
+        "--model",
+        model,
+        "--message-file",
+        str(worktree_root / TASK_FILE),
+        "--yes",
+        "--no-show-model-warnings",
+    ]
     if _USE_WRAPPER_WIN:
         # Run worker via a Python one-liner so we never attach to the real process's stdout/stderr (avoids _readerthread + cp1252 UnicodeDecodeError).
-        real_cmd = [
-            aider_cmd,
-            "--model",
-            model,
-            "--message-file",
-            str(worktree_root / TASK_FILE),
-        ]
+        real_cmd = aider_args
         wrapper_code = (
             "import subprocess,sys,os; "
             "i=sys.argv.index('--'); "
@@ -502,13 +506,7 @@ def run_worker(
         )
         cmd = [sys.executable, "-c", wrapper_code, "--"] + real_cmd
     else:
-        cmd = [
-            aider_cmd,
-            "--model",
-            model,
-            "--message-file",
-            str(worktree_root / TASK_FILE),
-        ]
+        cmd = aider_args
 
     return subprocess.Popen(
         cmd,
@@ -715,6 +713,7 @@ def main() -> int:
     auto_merge_worktrees = config.get("auto_merge_worktrees", True)
     use_merge_slot = config.get("merge_slot", True)
     auto_retry_merge_on_conflict_close = config.get("auto_retry_merge_on_conflict_close", True)
+    worker_timeout_secs = int(config.get("worker_timeout_secs", 1800) or 0)  # default 30 min; 0 = no timeout
     # Prune stale worktrees so we can recreate if user deleted worktrees/ with Remove-Item
     prune_stale_worktrees(repo_root)
     # Each worktree gets its own branch (worker-w1, worker-w2, ...) so we don't check out main twice
@@ -753,12 +752,17 @@ def main() -> int:
             return (
                 "You are a coding agent in a Gas Town-style workflow. Execute this task fully, then exit.\n\n"
                 + body
+                + "\n\nScope: Work only on the files needed for this task (keep tasks independent so other workers can merge cleanly). "
+                "For dashboard/report tasks: add and edit the relevant code (e.g. generate_dashboard.py, jira_analytics.py, or jira_dashboard.html), not only ingest_suggested_tasks.py."
+                + "\n\nWhen done: Make your edits, commit, then stop. Do not ask for more input or suggest further steps in chat; the session will end after your response."
                 + "\n\nSelf-improving: If you think of 1–3 concrete follow-up improvements, append them one per line to suggested_tasks.txt in the repo root (create if missing). Run ingest_suggested_tasks.py later to add them as beads or queue tasks."
             )
         return (
             "You are a coding agent. Execute this task fully, then exit.\n\n"
             f"Task: {title}\n\n"
-            "Implement it in this repo (jira_analytics.py, generate_dashboard.py, jira_dashboard.html as needed).\n\n"
+            "Scope: Implement only what this task needs (use jira_analytics.py, generate_dashboard.py, or jira_dashboard.html as needed). Keep changes to the minimum required so other workers can merge cleanly. "
+            "For dashboard/report: add those code files to the chat and edit them; do not only add ingest_suggested_tasks.py. "
+            "When done: Make your edits, commit, then stop. Do not ask for more input or suggest further steps in chat; the session will end after your response.\n\n"
             "Self-improving: If you think of 1–3 concrete follow-up improvements (new metrics, UX, or code quality), "
             "append them one per line to suggested_tasks.txt in the repo root (create the file if missing). "
             "Each line = one task title. These can be ingested later to grow the backlog."
@@ -780,7 +784,7 @@ def main() -> int:
         content = task_content(bead)
         wt = worktree_roots[slot_idx]
         proc = run_worker(wt, content, aider_cmd, model)
-        slots[slot_idx] = {"bead_id": bid, "process": proc}
+        slots[slot_idx] = {"bead_id": bid, "process": proc, "started_at": time.monotonic()}
         print(f"[w{slot_idx + 1}] started {bid}: {title}", flush=True)
         return True
 
@@ -853,6 +857,15 @@ def main() -> int:
                     assign_slot(i)
                     continue
                 proc = slots[i]["process"]
+                # Worker timeout: free the slot if Aider runs too long (e.g. never exits)
+                if worker_timeout_secs > 0 and (now - slots[i]["started_at"]) >= worker_timeout_secs:
+                    if proc.poll() is None:
+                        print(f"[w{i + 1}] worker timeout ({worker_timeout_secs}s), terminating", flush=True)
+                        proc.terminate()
+                        try:
+                            proc.wait(timeout=10)
+                        except subprocess.TimeoutExpired:
+                            proc.kill()
                 if proc.poll() is not None:
                     on_worker_done(i)
                     assign_slot(i)

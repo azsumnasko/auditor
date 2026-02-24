@@ -60,6 +60,30 @@ You don’t have the Mayor, so:
 
 ---
 
+## Keeping tasks independent and everything updated
+
+So that **multiple workers can run in parallel** and **merges stay clean**, tasks should be **small** and **independent** (different workers ideally touch different files or different parts of the codebase).
+
+### How we handle it (Gas Town–style)
+
+| Concern | Gas Town (Path A) | This repo (Path B) |
+|--------|--------------------|---------------------|
+| **Merge conflicts** | Refinery creates a conflict-resolution bead; merge slot serializes merges. | Same idea: merge slot (file lock), conflict bead `"Resolve merge conflict: ozon-wN"`, auto-retry when bead is closed. See section below. |
+| **Task independence** | The Mayor (or you) splits goals into beads; smaller beads = less overlap. | `split_task.py` asks the LLM for **independent, small subtasks** and for each to **name the main file(s)** (e.g. `generate_dashboard.py`, `jira_analytics.py`) so workers get the right context. |
+| **Context so agents edit the right files** | Bead title/description tells the agent what to do. | Dispatcher adds instructions: scope work to the files needed for this task; for dashboard/report tasks, add and edit `generate_dashboard.py` or `jira_analytics.py`, not only `ingest_suggested_tasks.py`. |
+
+### Split into smaller, file-scoped tasks
+
+- **Path B:** Run `py split_task.py "Your big goal"` (or `--bead <id>` to split an existing bead). The splitter prompt asks for:
+  - **Independent** subtasks (one worker’s work doesn’t block another’s).
+  - **Small** scope (one clear change per task so merges are easy).
+  - **File scope** where useful: e.g. “In generate_dashboard.py add …” or “In jira_analytics.py compute …” so the agent knows which file to add to the chat.
+- **Path A:** When talking to the Mayor, ask for a convoy of **small, independent** tasks and, if helpful, mention that dashboard changes go in `generate_dashboard.py` / `jira_analytics.py`.
+
+After splitting, run the dispatcher (or sling) as usual. Each worker gets one bead/task and the added instructions so they use the right files and keep changes scoped.
+
+---
+
 ## Quick Reference
 
 | Goal | Path A (Gas Town) | Path B (Windows) |
@@ -89,3 +113,32 @@ So Gas Town **does create beads for resolving merge conflicts**, and integrates 
 - **Conflict bead** – On merge failure we create `"Resolve merge conflict: ozon-wN"` and record it in `.dispatch_pending_merge_retries.json`.
 - **Auto-retry** – `auto_retry_merge_on_conflict_close: true` (default): the dispatcher periodically checks whether that bead is closed; when it is, it retries merging that branch into main (Gas Town–style).
 We still do not have a Witness or MR-bead blocking; we avoid `.current_task.txt` / `suggested_tasks.txt` conflicts via `.gitignore`.
+
+---
+
+## How Gas Town handles worker exit (and how we mirror it)
+
+In full Gas Town, **polecats** (workers) use a **self-cleaning** model ([Polecat Lifecycle](https://gastown.dev/docs/concepts/polecat-lifecycle)):
+
+1. **When the polecat finishes its work**, it runs **`gt done`** from inside the session. That command:
+   - Pushes the branch to origin
+   - Submits the work to the Refinery merge queue (MR bead)
+   - **Requests self-nuke** (sandbox + session cleanup)
+   - **Exits the session immediately**
+
+   So the agent is **instructed to call `gt done`** when the task is complete; the exit is **explicit** and part of the workflow.
+
+2. **If something goes wrong:**
+   - **Zombie** = work is done but `gt done` failed (e.g. cleanup failed), so the session is still running. The **Witness** cleans up zombie polecats.
+   - **Stalled** = session stopped mid-work (crashed, timed out, interrupted). The Witness respawns or nudges stalled polecats.
+
+There is **no idle state**: polecats don’t wait between tasks. Done → `gt done` → exit → slot freed.
+
+**In this repo (Path B):** We don’t have `gt` or `gt done`, so we approximate this as follows:
+
+| Gas Town | Path B (this repo) |
+|----------|---------------------|
+| Agent runs `gt done` when finished → session exits | Task text says: “When done: Make your edits, commit, then stop. Do not ask for more input…” so the model ends its turn. Aider is run with `--message-file` (process task then exit) and `--yes` (auto-accept prompts so it doesn’t block). |
+| Witness cleans up zombies (sessions that didn’t exit) | **Worker timeout**: `worker_timeout_secs` (default 30 min). If Aider is still running after that, the dispatcher **terminates** the process and frees the slot (merge is still attempted for any commits). Set to `0` in `dispatch_config.json` to disable. |
+
+So we rely on: (1) Aider’s “message-file then exit” behavior plus `--yes`, (2) the “commit then stop” instruction so the model doesn’t keep the session open, and (3) a timeout to free slots when the worker never exits (analogous to the Witness cleaning up zombies/stalled polecats).

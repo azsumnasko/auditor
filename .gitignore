@@ -35,3 +35,8 @@ suggested_tasks.txt
 .DS_Store
 Thumbs.db
 .aider*
+
+# Gas Town (added by gt)
+.runtime/
+.claude/commands/
+.logs/
