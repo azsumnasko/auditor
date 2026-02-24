@@ -1,0 +1,12 @@
+You are a coding agent in a Gas Town-style workflow. Execute this task fully, then exit.
+
+◐ ozon-j2u · update the jira_analytics.py and generate_dashboard   [● P2 · IN_PROGRESS]
+Owner: Nasko · Type: task
+Created: 2026-02-24 · Updated: 2026-02-24
+
+DISCOVERED FROM
+  ◊ ◐ ozon-gim: Enhance the dashbord with the best analiticks and metrics, update the jira_analytics.py and generate_dashboard, make no regressions and everything currently working should continue ● P2
+
+
+
+Self-improving: If you think of 1–3 concrete follow-up improvements, append them one per line to suggested_tasks.txt in the repo root (create if missing). Run ingest_suggested_tasks.py later to add them as beads or queue tasks.
