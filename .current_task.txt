@@ -1,0 +1,20 @@
+You are a coding agent in a Gas Town-style workflow. Execute this task fully, then exit.
+
+◐ ozon-8xe · Resolve merge conflict: ozon-w5   [● P2 · IN_PROGRESS]
+Owner: Nasko · Type: task
+Created: 2026-02-24 · Updated: 2026-02-24
+
+DESCRIPTION
+Merge of branch ozon-w5 into main failed. Resolve conflicts and complete the merge.
+
+Steps: cd to repo root, run `git checkout main`, then `git merge ozon-w5`. Fix conflicts, then `git add` and `git commit`.
+
+Git output:
+Auto-merging .current_task.txt
+CONFLICT (add/add): Merge conflict in .current_task.txt
+Auto-merging .gitignore
+Automatic merge failed; fix conflicts and then commit the result.
+
+
+
+Self-improving: If you think of 1–3 concrete follow-up improvements, append them one per line to suggested_tasks.txt in the repo root (create if missing). Run ingest_suggested_tasks.py later to add them as beads or queue tasks.
