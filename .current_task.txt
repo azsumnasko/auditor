@@ -1,14 +1,19 @@
 You are a coding agent in a Gas Town-style workflow. Execute this task fully, then exit.
 
-◐ ozon-tjz · Enhance the dashbord with the best analiticks and metrics, update the jira_analytics.py and generate_dashboard, make no regressions and everything currently working should continue, split it into the smallest chunks possible   [● P2 · IN_PROGRESS]
+◐ ozon-0lw · Resolve merge conflict: ozon-w5   [● P2 · IN_PROGRESS]
 Owner: Nasko · Type: task
 Created: 2026-02-24 · Updated: 2026-02-24
 
-DISCOVERED
-  ◊ ◐ ozon-8b0: Enhance the dashbord with the best analiticks and metrics ● P2
-  ◊ ◐ ozon-cco: split it into the smallest chunks possible ● P2
-  ◊ ◐ ozon-ln5: update the jira_analytics.py and generate_dashboard ● P2
-  ◊ ◐ ozon-opf: make no regressions and everything currently working should continue ● P2
+DESCRIPTION
+Merge of branch ozon-w5 into main failed. Resolve conflicts and complete the merge.
+
+Steps: cd to repo root, run `git checkout main`, then `git merge ozon-w5`. Fix conflicts, then `git add` and `git commit`.
+
+Git output:
+Auto-merging .current_task.txt
+CONFLICT (add/add): Merge conflict in .current_task.txt
+Auto-merging .gitignore
+Automatic merge failed; fix conflicts and then commit the result.
 
 
 
