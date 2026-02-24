@@ -1,0 +1,42 @@
+# Environment and secrets
+.env
+.env.local
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Dispatcher worktrees (when worktree_placement is "inside")
+/worktrees/
+
+# Dispatcher worker state (per-worktree; avoid merge conflicts)
+.current_task.txt
+suggested_tasks.txt
+
+# Dispatcher merge slot and pending retries (Gas Town-style)
+.dispatch_merge.lock
+.dispatch_pending_merge_retries.json
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+.aider*
+
+# Gas Town (added by gt)
+.runtime/
+.claude/commands/
+.logs/

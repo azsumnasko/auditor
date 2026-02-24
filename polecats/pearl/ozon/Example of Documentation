@@ -1,0 +1,50 @@
+def load_data(path=None):
+    """
+    Load data from a specified path or default path.
+    
+    Args:
+        path (str, optional): Path to the JSON file. Defaults to None.
+    
+    Returns:
+        dict: Loaded data as a dictionary.
+    """
+    try:
+        with open(path or "jira_analytics_latest.json", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print("Error: Data file not found.")
+        sys.exit(1)
+    except json.JSONDecodeError:
+        print("Error: Invalid JSON format in data file.")
+        sys.exit(1)
+
+def main():
+    """
+    Main function to load and process data.
+    """
+    try:
+        data = load_data(sys.argv[1] if len(sys.argv) > 1 else None)
+        
+        def project_from_key(key):
+            """
+            Extract project information from a key.
+            
+            Args:
+                key (str): Project key.
+                
+            Returns:
+                str or None: Project name if valid, otherwise None.
+            """
+            if not key or "-" not in key:
+                return None
+            return key.split("-", 1)[0]
+        
+        # Process and generate dashboard based on the loaded data
+        pass
+    
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        sys.exit(1)
+
+if __name__ == '__main__':
+    main()

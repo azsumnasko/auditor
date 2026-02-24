@@ -1,0 +1,3 @@
+Improve error handling in generate_dashboard.py to gracefully handle missing files
+Add unit tests for the generate_report function in generate_dashboard.py
+Implement logging instead of print statements in generate_dashboard.py

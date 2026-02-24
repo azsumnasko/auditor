@@ -1,0 +1,11 @@
+{
+  "type": "town-settings",
+  "version": 1,
+  "default_agent": "claude",
+  "agents": {
+    "claude": {
+      "command": "/home/nasko/bin/qwen-agent.sh",
+      "args": []
+    }
+  }
+}

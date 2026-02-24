@@ -1,0 +1,80 @@
+2026/02/24 15:27:57 Daemon starting (PID 22240)
+2026/02/24 15:27:57 Daemon running, recovery heartbeat interval 3m0s
+2026/02/24 15:27:58 Feed curator started
+2026/02/24 15:27:58 Convoy: opened 1 beads store(s): [hq]
+2026/02/24 15:27:58 Convoy manager started
+2026/02/24 15:27:58 KRC pruner started
+2026/02/24 15:27:58 Heartbeat starting (recovery-focused)
+2026/02/24 15:28:00 Deacon started successfully
+2026/02/24 15:28:00 Spawning Boot for triage...
+2026/02/24 15:28:00 Boot spawned successfully
+2026/02/24 15:28:00 Deacon started 0s ago, awaiting first heartbeat...
+2026/02/24 15:28:06 Mayor started successfully
+2026/02/24 15:28:06 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 15:28:11 Heartbeat complete (#1)
+2026/02/24 15:30:57 Heartbeat starting (recovery-focused)
+2026/02/24 15:31:03 Deacon started successfully
+2026/02/24 15:31:03 Spawning Boot for triage...
+2026/02/24 15:31:04 Boot spawned successfully
+2026/02/24 15:31:04 Deacon started 0s ago, awaiting first heartbeat...
+2026/02/24 15:31:06 Mayor started successfully
+2026/02/24 15:31:06 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 15:31:19 Heartbeat complete (#2)
+2026/02/24 15:34:19 Heartbeat starting (recovery-focused)
+2026/02/24 15:34:21 Deacon started successfully
+2026/02/24 15:34:21 Spawning Boot for triage...
+2026/02/24 15:34:21 Boot spawned successfully
+2026/02/24 15:34:21 Deacon started 0s ago, awaiting first heartbeat...
+2026/02/24 15:34:27 Mayor started successfully
+2026/02/24 15:34:27 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 15:34:32 Heartbeat complete (#3)
+2026/02/24 15:37:32 Heartbeat starting (recovery-focused)
+2026/02/24 15:37:34 Deacon started successfully
+2026/02/24 15:37:34 Spawning Boot for triage...
+2026/02/24 15:37:35 Boot spawned successfully
+2026/02/24 15:37:35 Deacon started 0s ago, awaiting first heartbeat...
+2026/02/24 15:37:37 Mayor started successfully
+2026/02/24 15:37:37 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 15:37:42 Heartbeat complete (#4)
+2026/02/24 15:40:42 Heartbeat starting (recovery-focused)
+2026/02/24 15:40:42 Deacon restart in backoff, 52s remaining
+2026/02/24 15:40:42 Spawning Boot for triage...
+2026/02/24 15:40:42 Boot spawned successfully
+2026/02/24 15:40:42 Deacon started 3m8s ago, awaiting first heartbeat...
+2026/02/24 15:40:44 Mayor started successfully
+2026/02/24 15:40:44 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 15:40:49 Heartbeat complete (#5)
+2026/02/24 15:43:49 Heartbeat starting (recovery-focused)
+2026/02/24 15:43:51 Deacon started successfully
+2026/02/24 15:43:51 Spawning Boot for triage...
+2026/02/24 15:43:51 Boot spawned successfully
+2026/02/24 15:43:51 Deacon started 0s ago, awaiting first heartbeat...
+2026/02/24 15:43:53 Mayor started successfully
+2026/02/24 15:43:53 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 15:43:59 Heartbeat complete (#6)
+2026/02/24 15:46:59 Heartbeat starting (recovery-focused)
+2026/02/24 15:46:59 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 15:46:59 Spawning Boot for triage...
+2026/02/24 15:46:59 Boot spawned successfully
+2026/02/24 15:46:59 Deacon started 3m8s ago, awaiting first heartbeat...
+2026/02/24 15:47:05 Mayor started successfully
+2026/02/24 15:47:05 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 15:47:10 Heartbeat complete (#7)
+2026/02/24 15:50:10 Heartbeat starting (recovery-focused)
+2026/02/24 15:50:10 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 15:50:10 Spawning Boot for triage...
+2026/02/24 15:50:10 Boot spawned successfully
+2026/02/24 15:50:10 Deacon started 6m0s ago but hasn't written heartbeat - restarting
+2026/02/24 15:50:10 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 15:50:12 Mayor started successfully
+2026/02/24 15:50:12 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 15:50:17 Heartbeat complete (#8)
+2026/02/24 15:53:17 Heartbeat starting (recovery-focused)
+2026/02/24 15:53:17 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 15:53:17 Spawning Boot for triage...
+2026/02/24 15:53:17 Boot spawned successfully
+2026/02/24 15:53:17 Deacon started 9m0s ago but hasn't written heartbeat - restarting
+2026/02/24 15:53:17 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 15:53:23 Mayor started successfully
+2026/02/24 15:53:23 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 15:53:28 Heartbeat complete (#9)

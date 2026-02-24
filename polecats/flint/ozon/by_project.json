@@ -1,0 +1,989 @@
+{
+  "IN": {
+    "blocked_count": 1,
+    "blocked_issues": [
+      {
+        "key": "IN-138",
+        "age_days": 770.9
+      }
+    ],
+    "oldest_bugs_count": 1,
+    "oldest_bugs": [
+      {
+        "key": "IN-153",
+        "project": "IN",
+        "age_days": 757.8,
+        "summary": "Default events - list of findings"
+      }
+    ],
+    "sprint_summary": {
+      "sprint_count": 6,
+      "total_throughput_done": 58,
+      "total_issues_in_sprints": 58,
+      "avg_commitment_done_ratio": 1.0,
+      "avg_assignee_count": 1.7,
+      "total_added_after_sprint_start": 34,
+      "avg_added_after_sprint_start": 5.7,
+      "total_removed_during_sprint": null,
+      "recent_sprints": [
+        {
+          "project": "IN",
+          "sprint_name": "IN Sprint 4",
+          "committed": 0.0,
+          "done": 0.0,
+          "commitment_done_ratio": null,
+          "throughput_issues": 13,
+          "total_issues": 13,
+          "assignee_count": 2,
+          "assignees": [
+            "Ivan Reiko",
+            "Yurii Holskyi"
+          ],
+          "component_breakdown": {
+            "(no component)": 13
+          },
+          "team_breakdown": {
+            "(no team)": 13
+          },
+          "added_after_sprint_start": 8,
+          "added_after_sprint_start_issue_keys": [
+            "IN-105",
+            "IN-106",
+            "IN-110",
+            "IN-115",
+            "IN-116",
+            "IN-117",
+            "IN-120",
+            "IN-124"
+          ],
+          "removed_during_sprint": null
+        },
+        {
+          "project": "IN",
+          "sprint_name": "IN Sprint 5",
+          "committed": 0.0,
+          "done": 0.0,
+          "commitment_done_ratio": null,
+          "throughput_issues": 12,
+          "total_issues": 12,
+          "assignee_count": 1,
+          "assignees": [
+            "Nikola Slavchev"
+          ],
+          "component_breakdown": {
+            "(no component)": 12
+          },
+          "team_breakdown": {
+            "(no team)": 12
+          },
+          "added_after_sprint_start": 9,
+          "added_after_sprint_start_issue_keys": [
+            "IN-55",
+            "IN-59",
+            "IN-62",
+            "IN-68",
+            "IN-74",
+            "IN-72",
+            "IN-70",
+            "IN-71",
+            "IN-83"
+          ],
+          "removed_during_sprint": null
+        },
+        {
+          "project": "IN",
+          "sprint_name": "IN Sprint 6",
+          "committed": 0.0,
+          "done": 0.0,
+          "commitment_done_ratio": null,
+          "throughput_issues": 9,
+          "total_issues": 9,
+          "assignee_count": 2,
+          "assignees": [
+            "Ivan Reiko",
+            "Nikola Slavchev"
+          ],
+          "component_breakdown": {
+            "(no component)": 9
+          },
+          "team_breakdown": {
+            "(no team)": 9
+          },
+          "added_after_sprint_start": 5,
+          "added_after_sprint_start_issue_keys": [
+            "IN-45",
+            "IN-131",
+            "IN-121",
+            "IN-122",
+            "IN-160"
+          ],
+          "removed_during_sprint": null
+        }
+      ]
+    },
+    "kanban": null
+  },
+  "OZN": {
+    "blocked_count": 0,
+    "blocked_issues": [],
+    "oldest_bugs_count": 3,
+    "oldest_bugs": [
+      {
+        "key": "OZN-4512",
+        "project": "OZN",
+        "age_days": 864.0,
+        "summary": "Корекции при изтриване на резервации"
+      },
+      {
+        "key": "OZN-4573",
+        "project": "OZN",
+        "age_days": 837.8,
+        "summary": "e-Book - Cache"
+      },
+      {
+        "key": "OZN-4652",
+        "project": "OZN",
+        "age_days": 803.0,
+        "summary": "[Транспорт] Пренареждане на пратки"
+      }
+    ],
+    "sprint_summary": {
+      "sprint_count": 6,
+      "total_throughput_done": 669,
+      "total_issues_in_sprints": 672,
+      "avg_commitment_done_ratio": null,
+      "avg_assignee_count": 11.0,
+      "total_added_after_sprint_start": 194,
+      "avg_added_after_sprint_start": 32.3,
+      "total_removed_during_sprint": null,
+      "recent_sprints": [
+        {
+          "project": "OZN",
+          "sprint_name": "Sprint 2114",
+          "committed": 0.0,
+          "done": 0.0,
+          "commitment_done_ratio": null,
+          "throughput_issues": 99,
+          "total_issues": 100,
+          "assignee_count": 11,
+          "assignees": [
+            "Asen Trichkov",
+            "Atanas Lolov",
+            "Borislav Kamenov",
+            "Dimitar Marinov",
+            "Dimitar Nestorov",
+            "K. Koprivlenski",
+            "Kalin Dimitrov",
+            "Lyubomir Ganchev",
+            "Marina",
+            "Momchil Marinov",
+            "Vladimir Georgiev"
+          ],
+          "component_breakdown": {
+            "Ultima": 68,
+            "(no component)": 9,
+            "Internal": 4,
+            "Magento": 4,
+            "Mobile - Android": 18,
+            "Mobile - iOS": 6,
+            "eBook": 5
+          },
+          "team_breakdown": {
+            "(no team)": 100
+          },
+          "added_after_sprint_start": 11,
+          "added_after_sprint_start_issue_keys": [
+            "OZN-1741",
+            "OZN-1699",
+            "OZN-1736",
+            "OZN-1657",
+            "OZN-1658",
+            "OZN-1717",
+            "OZN-1737",
+            "OZN-1738",
+            "OZN-1740",
+            "OZN-1760",
+            "OZN-1718"
+          ],
+          "removed_during_sprint": null
+        },
+        {
+          "project": "OZN",
+          "sprint_name": "Sprint 2115",
+          "committed": 0.0,
+          "done": 0.0,
+          "commitment_done_ratio": null,
+          "throughput_issues": 106,
+          "total_issues": 107,
+          "assignee_count": 11,
+          "assignees": [
+            "Asen Trichkov",
+            "Atanas Lolov",
+            "Borislav Kamenov",
+            "Dimitar Marinov",
+            "Dimitar Nestorov",
+            "K. Koprivlenski",
+            "Kalin Dimitrov",
+            "Lyubomir Ganchev",
+            "Marina",
+            "Momchil Marinov",
+            "Vladimir Georgiev"
+          ],
+          "component_breakdown": {
+            "Ultima": 74,
+            "(no component)": 10,
+            "Internal": 4,
+            "Magento": 4,
+            "Mobile - Android": 15,
+            "Mobile - iOS": 7,
+            "eBook": 5
+          },
+          "team_breakdown": {
+            "(no team)": 107
+          },
+          "added_after_sprint_start": 16,
+          "added_after_sprint_start_issue_keys": [
+            "OZN-1797",
+            "OZN-1775",
+            "OZN-1745",
+            "OZN-1757",
+            "OZN-1657",
+            "OZN-1658",
+            "OZN-1748",
+            "OZN-1749",
+            "OZN-1754",
+            "OZN-1762",
+            "OZN-1766",
+            "OZN-1773",
+            "OZN-1777",
+            "OZN-1784",
+            "OZN-1787",
+            "OZN-1718"
+          ],
+          "removed_during_sprint": null
+        },
+        {
+          "project": "OZN",
+          "sprint_name": "Sprint 2116",
+          "committed": 0.0,
+          "done": 0.0,
+          "commitment_done_ratio": null,
+          "throughput_issues": 108,
+          "total_issues": 109,
+          "assignee_count": 10,
+          "assignees": [
+            "Asen Trichkov",
+            "Atanas Lolov",
+            "Borislav Kamenov",
+            "Dimitar Marinov",
+            "Dimitar Nestorov",
+            "K. Koprivlenski",
+            "Kalin Dimitrov",
+            "Lyubomir Ganchev",
+            "Momchil Marinov",
+            "Vladimir Georgiev"
+          ],
+          "component_breakdown": {
+            "Ultima": 75,
+            "(no component)": 10,
+            "Internal": 4,
+            "Magento": 4,
+            "Mobile - Android": 16,
+            "Mobile - iOS": 8,
+            "eBook": 7
+          },
+          "team_breakdown": {
+            "(no team)": 109
+          },
+          "added_after_sprint_start": 22,
+          "added_after_sprint_start_issue_keys": [
+            "OZN-1818",
+            "OZN-1598",
+            "OZN-1817",
+            "OZN-1778",
+            "OZN-1800",
+            "OZN-1657",
+            "OZN-1658",
+            "OZN-1687",
+            "OZN-1772",
+            "OZN-1774",
+            "OZN-1791",
+            "OZN-1794",
+            "OZN-1801",
+            "OZN-1810",
+            "OZN-1811",
+            "OZN-1814",
+            "OZN-1820",
+            "OZN-1780",
+            "OZN-1718",
+            "OZN-1788",
+            "OZN-1705",
+            "OZN-1799"
+          ],
+          "removed_during_sprint": null
+        }
+      ]
+    },
+    "kanban": null
+  },
+  "WMS": {
+    "blocked_count": 1,
+    "blocked_issues": [
+      {
+        "key": "WMS-42",
+        "age_days": 913.0
+      }
+    ],
+    "oldest_bugs_count": 1,
+    "oldest_bugs": [
+      {
+        "key": "WMS-1110",
+        "project": "WMS",
+        "age_days": 716.0,
+        "summary": "Double message for scan transfer address "
+      }
+    ],
+    "sprint_summary": {
+      "sprint_count": 6,
+      "total_throughput_done": 538,
+      "total_issues_in_sprints": 538,
+      "avg_commitment_done_ratio": 1.0,
+      "avg_assignee_count": 7.0,
+      "total_added_after_sprint_start": 12,
+      "avg_added_after_sprint_start": 2.0,
+      "total_removed_during_sprint": null,
+      "recent_sprints": [
+        {
+          "project": "WMS",
+          "sprint_name": "WMS Sprint 17",
+          "committed": 28.0,
+          "done": 28.0,
+          "commitment_done_ratio": 1.0,
+          "throughput_issues": 39,
+          "total_issues": 39,
+          "assignee_count": 8,
+          "assignees": [
+            "Emil Manov",
+            "Galya Ivanova",
+            "K. Koprivlenski",
+            "Sevastian Cholakov",
+            "Stefan Spirov",
+            "Teodor Todorov",
+            "Veselina Yosifova",
+            "gregari iliev"
+          ],
+          "component_breakdown": {
+            "(no component)": 39
+          },
+          "team_breakdown": {
+            "(no team)": 39
+          },
+          "added_after_sprint_start": 0,
+          "added_after_sprint_start_issue_keys": [],
+          "removed_during_sprint": null
+        },
+        {
+          "project": "WMS",
+          "sprint_name": "WMS Sprint 18",
+          "committed": 24.0,
+          "done": 24.0,
+          "commitment_done_ratio": 1.0,
+          "throughput_issues": 66,
+          "total_issues": 66,
+          "assignee_count": 7,
+          "assignees": [
+            "Emil Manov",
+            "Galya Ivanova",
+            "Sevastian Cholakov",
+            "Stefan Spirov",
+            "Teodor Todorov",
+            "Veselina Yosifova",
+            "gregari iliev"
+          ],
+          "component_breakdown": {
+            "(no component)": 65,
+            "ASA": 1
+          },
+          "team_breakdown": {
+            "(no team)": 66
+          },
+          "added_after_sprint_start": 5,
+          "added_after_sprint_start_issue_keys": [
+            "WMS-1551",
+            "WMS-1600",
+            "WMS-1619",
+            "WMS-1699",
+            "WMS-1700"
+          ],
+          "removed_during_sprint": null
+        },
+        {
+          "project": "WMS",
+          "sprint_name": "WMS Sprint 19",
+          "committed": 75.0,
+          "done": 75.0,
+          "commitment_done_ratio": 1.0,
+          "throughput_issues": 93,
+          "total_issues": 93,
+          "assignee_count": 7,
+          "assignees": [
+            "Emil Manov",
+            "Galya Ivanova",
+            "Sevastian Cholakov",
+            "Stefan Spirov",
+            "Teodor Todorov",
+            "Veselina Yosifova",
+            "gregari iliev"
+          ],
+          "component_breakdown": {
+            "(no component)": 90,
+            "ASA": 1,
+            "Ultima": 2
+          },
+          "team_breakdown": {
+            "(no team)": 93
+          },
+          "added_after_sprint_start": 1,
+          "added_after_sprint_start_issue_keys": [
+            "WMS-1721"
+          ],
+          "removed_during_sprint": null
+        }
+      ]
+    },
+    "kanban": null
+  },
+  "BA": {
+    "blocked_count": 0,
+    "blocked_issues": [],
+    "oldest_bugs_count": 0,
+    "oldest_bugs": [],
+    "sprint_summary": {
+      "sprint_count": 3,
+      "total_throughput_done": 1,
+      "total_issues_in_sprints": 19,
+      "avg_commitment_done_ratio": null,
+      "avg_assignee_count": 1.0,
+      "total_added_after_sprint_start": 6,
+      "avg_added_after_sprint_start": 2.0,
+      "total_removed_during_sprint": null,
+      "recent_sprints": [
+        {
+          "project": "BA",
+          "sprint_name": "BA Sprint 1",
+          "committed": 0.0,
+          "done": 0.0,
+          "commitment_done_ratio": null,
+          "throughput_issues": 1,
+          "total_issues": 5,
+          "assignee_count": 1,
+          "assignees": [
+            "Ivan Krastev"
+          ],
+          "component_breakdown": {
+            "(no component)": 5
+          },
+          "team_breakdown": {
+            "(no team)": 5
+          },
+          "added_after_sprint_start": 4,
+          "added_after_sprint_start_issue_keys": [
+            "BA-8",
+            "BA-1",
+            "BA-2",
+            "BA-3"
+          ],
+          "removed_during_sprint": null
+        },
+        {
+          "project": "BA",
+          "sprint_name": "BA Sprint 2",
+          "committed": 0.0,
+          "done": 0,
+          "commitment_done_ratio": null,
+          "throughput_issues": 0,
+          "total_issues": 7,
+          "assignee_count": 1,
+          "assignees": [
+            "Ivan Krastev"
+          ],
+          "component_breakdown": {
+            "(no component)": 7
+          },
+          "team_breakdown": {
+            "(no team)": 7
+          },
+          "added_after_sprint_start": 2,
+          "added_after_sprint_start_issue_keys": [
+            "BA-10",
+            "BA-6"
+          ],
+          "removed_during_sprint": null
+        },
+        {
+          "project": "BA",
+          "sprint_name": "BA Sprint 3",
+          "committed": 0.0,
+          "done": 0,
+          "commitment_done_ratio": null,
+          "throughput_issues": 0,
+          "total_issues": 7,
+          "assignee_count": 1,
+          "assignees": [
+            "Ivan Krastev"
+          ],
+          "component_breakdown": {
+            "(no component)": 7
+          },
+          "team_breakdown": {
+            "(no team)": 7
+          },
+          "added_after_sprint_start": 0,
+          "added_after_sprint_start_issue_keys": [],
+          "removed_during_sprint": null
+        }
+      ]
+    },
+    "kanban": null
+  },
+  "UP": {
+    "blocked_count": 0,
+    "blocked_issues": [],
+    "oldest_bugs_count": 0,
+    "oldest_bugs": [],
+    "sprint_summary": null,
+    "kanban": {
+      "project": "UP",
+      "board_id": 83,
+      "board_name": "UP board",
+      "issue_count": 433,
+      "done_count": 5,
+      "status_breakdown": {
+        "Requirements Gathering": 428,
+        "Done": 5
+      }
+    }
+  },
+  "LSH": {
+    "blocked_count": 0,
+    "blocked_issues": [],
+    "oldest_bugs_count": 4,
+    "oldest_bugs": [
+      {
+        "key": "LSH-92",
+        "project": "LSH",
+        "age_days": 752.6,
+        "summary": "update the HC fo ultima"
+      },
+      {
+        "key": "LSH-93",
+        "project": "LSH",
+        "age_days": 752.5,
+        "summary": "Additional ingress creating issue"
+      },
+      {
+        "key": "LSH-94",
+        "project": "LSH",
+        "age_days": 752.4,
+        "summary": "update backend config for application timeout"
+      },
+      {
+        "key": "LSH-96",
+        "project": "LSH",
+        "age_days": 751.5,
+        "summary": "bug in magento ci/cd"
+      }
+    ],
+    "sprint_summary": {
+      "sprint_count": 4,
+      "total_throughput_done": 13,
+      "total_issues_in_sprints": 13,
+      "avg_commitment_done_ratio": null,
+      "avg_assignee_count": 2.0,
+      "total_added_after_sprint_start": 2,
+      "avg_added_after_sprint_start": 0.5,
+      "total_removed_during_sprint": null,
+      "recent_sprints": [
+        {
+          "project": "LSH",
+          "sprint_name": "LSH Sprint 2",
+          "committed": 0.0,
+          "done": 0.0,
+          "commitment_done_ratio": null,
+          "throughput_issues": 1,
+          "total_issues": 1,
+          "assignee_count": 1,
+          "assignees": [
+            "Pavlo Myshok"
+          ],
+          "component_breakdown": {
+            "(no component)": 1
+          },
+          "team_breakdown": {
+            "(no team)": 1
+          },
+          "added_after_sprint_start": 0,
+          "added_after_sprint_start_issue_keys": [],
+          "removed_during_sprint": null
+        },
+        {
+          "project": "LSH",
+          "sprint_name": "LSH Sprint 3",
+          "committed": 0.0,
+          "done": 0.0,
+          "commitment_done_ratio": null,
+          "throughput_issues": 3,
+          "total_issues": 3,
+          "assignee_count": 3,
+          "assignees": [
+            "Oleksii Vovniuk",
+            "Pavlo Myshok",
+            "Teodor Todorov"
+          ],
+          "component_breakdown": {
+            "(no component)": 3
+          },
+          "team_breakdown": {
+            "(no team)": 3
+          },
+          "added_after_sprint_start": 0,
+          "added_after_sprint_start_issue_keys": [],
+          "removed_during_sprint": null
+        },
+        {
+          "project": "LSH",
+          "sprint_name": "LSH Sprint 4",
+          "committed": 0,
+          "done": 0,
+          "commitment_done_ratio": null,
+          "throughput_issues": 0,
+          "total_issues": 0,
+          "assignee_count": 0,
+          "assignees": [],
+          "component_breakdown": {},
+          "team_breakdown": {},
+          "added_after_sprint_start": 0,
+          "added_after_sprint_start_issue_keys": [],
+          "removed_during_sprint": null
+        }
+      ]
+    },
+    "kanban": null
+  },
+  "EBK": {
+    "blocked_count": 0,
+    "blocked_issues": [],
+    "oldest_bugs_count": 0,
+    "oldest_bugs": [],
+    "sprint_summary": null,
+    "kanban": null
+  },
+  "MA": {
+    "blocked_count": 0,
+    "blocked_issues": [],
+    "oldest_bugs_count": 1,
+    "oldest_bugs": [
+      {
+        "key": "MA-11",
+        "project": "MA",
+        "age_days": 735.7,
+        "summary": "GTM Events not fully tracked (reported by Netpeak)"
+      }
+    ],
+    "sprint_summary": {
+      "sprint_count": 5,
+      "total_throughput_done": 20,
+      "total_issues_in_sprints": 26,
+      "avg_commitment_done_ratio": null,
+      "avg_assignee_count": 1.4,
+      "total_added_after_sprint_start": 6,
+      "avg_added_after_sprint_start": 1.2,
+      "total_removed_during_sprint": null,
+      "recent_sprints": [
+        {
+          "project": "MA",
+          "sprint_name": "MA Sprint 2",
+          "committed": 0.0,
+          "done": 0.0,
+          "commitment_done_ratio": null,
+          "throughput_issues": 3,
+          "total_issues": 6,
+          "assignee_count": 3,
+          "assignees": [
+            "Dimitar Marinov",
+            "Ivan Reiko",
+            "Nikola Slavchev"
+          ],
+          "component_breakdown": {
+            "Marketing Analytics": 1,
+            "(no component)": 5
+          },
+          "team_breakdown": {
+            "(no team)": 6
+          },
+          "added_after_sprint_start": 0,
+          "added_after_sprint_start_issue_keys": [],
+          "removed_during_sprint": null
+        },
+        {
+          "project": "MA",
+          "sprint_name": "MA Sprint 3",
+          "committed": 0.0,
+          "done": 0.0,
+          "commitment_done_ratio": null,
+          "throughput_issues": 4,
+          "total_issues": 7,
+          "assignee_count": 2,
+          "assignees": [
+            "Dimitar Marinov",
+            "Nikola Slavchev"
+          ],
+          "component_breakdown": {
+            "Marketing Analytics": 1,
+            "(no component)": 6
+          },
+          "team_breakdown": {
+            "(no team)": 7
+          },
+          "added_after_sprint_start": 0,
+          "added_after_sprint_start_issue_keys": [],
+          "removed_during_sprint": null
+        },
+        {
+          "project": "MA",
+          "sprint_name": "MA Sprint 4",
+          "committed": 0,
+          "done": 0,
+          "commitment_done_ratio": null,
+          "throughput_issues": 0,
+          "total_issues": 0,
+          "assignee_count": 0,
+          "assignees": [],
+          "component_breakdown": {},
+          "team_breakdown": {},
+          "added_after_sprint_start": 0,
+          "added_after_sprint_start_issue_keys": [],
+          "removed_during_sprint": null
+        }
+      ]
+    },
+    "kanban": null
+  },
+  "PBI": {
+    "blocked_count": 7,
+    "blocked_issues": [
+      {
+        "key": "PBI-9",
+        "age_days": 187.1
+      },
+      {
+        "key": "PBI-10",
+        "age_days": 187.1
+      },
+      {
+        "key": "PBI-15",
+        "age_days": 187.1
+      },
+      {
+        "key": "PBI-16",
+        "age_days": 187.1
+      },
+      {
+        "key": "PBI-169",
+        "age_days": 71.9
+      },
+      {
+        "key": "PBI-170",
+        "age_days": 71.9
+      },
+      {
+        "key": "PBI-197",
+        "age_days": 32.9
+      }
+    ],
+    "oldest_bugs_count": 0,
+    "oldest_bugs": [],
+    "sprint_summary": null,
+    "kanban": {
+      "project": "PBI",
+      "board_id": 248,
+      "board_name": "PBI board",
+      "issue_count": 229,
+      "done_count": 180,
+      "status_breakdown": {
+        "Backlog": 22,
+        "Done": 180,
+        "For Review": 15,
+        "Blocked": 7,
+        "In Progress": 5
+      }
+    }
+  },
+  "PMBK": {
+    "blocked_count": 0,
+    "blocked_issues": [],
+    "oldest_bugs_count": 0,
+    "oldest_bugs": [],
+    "sprint_summary": null,
+    "kanban": null
+  },
+  "O3": {
+    "blocked_count": 0,
+    "blocked_issues": [],
+    "oldest_bugs_count": 5,
+    "oldest_bugs": [
+      {
+        "key": "O3-110",
+        "project": "O3",
+        "age_days": 2033.8,
+        "summary": "Product Label extention bug"
+      },
+      {
+        "key": "O3-867",
+        "project": "O3",
+        "age_days": 1620.0,
+        "summary": "Дизайн на сайтове от 700 нагоре / ipad"
+      },
+      {
+        "key": "O3-2067",
+        "project": "O3",
+        "age_days": 1207.0,
+        "summary": "Добавяне на конф. продукти -> Грешка при обработка"
+      },
+      {
+        "key": "O3-2337",
+        "project": "O3",
+        "age_days": 1068.9,
+        "summary": "(Content System) Презаписване на атрибути от контента"
+      },
+      {
+        "key": "O3-2473",
+        "project": "O3",
+        "age_days": 988.0,
+        "summary": "5% cashback unicredit + express"
+      }
+    ],
+    "sprint_summary": {
+      "sprint_count": 6,
+      "total_throughput_done": 105,
+      "total_issues_in_sprints": 105,
+      "avg_commitment_done_ratio": null,
+      "avg_assignee_count": 3.5,
+      "total_added_after_sprint_start": 3,
+      "avg_added_after_sprint_start": 0.5,
+      "total_removed_during_sprint": null,
+      "recent_sprints": [
+        {
+          "project": "O3",
+          "sprint_name": "Sites W44",
+          "committed": 0.0,
+          "done": 0.0,
+          "commitment_done_ratio": null,
+          "throughput_issues": 17,
+          "total_issues": 17,
+          "assignee_count": 3,
+          "assignees": [
+            "Daniel Tsigularov",
+            "Maria Petkova",
+            "Martin Valchev"
+          ],
+          "component_breakdown": {
+            "Baby.bg": 5,
+            "Ozone.ro": 1,
+            "PCStore.bg": 3,
+            "(no component)": 8,
+            "Internal": 3,
+            "Ozone.bg": 1
+          },
+          "team_breakdown": {
+            "(no team)": 17
+          },
+          "added_after_sprint_start": 1,
+          "added_after_sprint_start_issue_keys": [
+            "O3-1020"
+          ],
+          "removed_during_sprint": null
+        },
+        {
+          "project": "O3",
+          "sprint_name": "Sites W45",
+          "committed": 0.0,
+          "done": 0.0,
+          "commitment_done_ratio": null,
+          "throughput_issues": 15,
+          "total_issues": 15,
+          "assignee_count": 4,
+          "assignees": [
+            "Daniel Tsigularov",
+            "Maria Petkova",
+            "Martin Valchev",
+            "Zornica Petrova"
+          ],
+          "component_breakdown": {
+            "(no component)": 3,
+            "Internal": 10,
+            "Content System": 1,
+            "Baby.bg": 1,
+            "Ozone.bg": 1,
+            "PCStore.bg": 1
+          },
+          "team_breakdown": {
+            "(no team)": 15
+          },
+          "added_after_sprint_start": 0,
+          "added_after_sprint_start_issue_keys": [],
+          "removed_during_sprint": null
+        },
+        {
+          "project": "O3",
+          "sprint_name": "Sites W46",
+          "committed": 0.0,
+          "done": 0.0,
+          "commitment_done_ratio": null,
+          "throughput_issues": 18,
+          "total_issues": 18,
+          "assignee_count": 3,
+          "assignees": [
+            "Daniel Tsigularov",
+            "Maria Petkova",
+            "Martin Valchev"
+          ],
+          "component_breakdown": {
+            "Internal": 4,
+            "(no component)": 9,
+            "Content System": 1,
+            "Ozone.bg": 4,
+            "PCStore.bg": 3,
+            "Baby.bg": 2,
+            "Ozone.ro": 1
+          },
+          "team_breakdown": {
+            "(no team)": 18
+          },
+          "added_after_sprint_start": 1,
+          "added_after_sprint_start_issue_keys": [
+            "O3-1048"
+          ],
+          "removed_during_sprint": null
+        }
+      ]
+    },
+    "kanban": null
+  },
+  "HELP": {
+    "blocked_count": 0,
+    "blocked_issues": [],
+    "oldest_bugs_count": 0,
+    "oldest_bugs": [],
+    "sprint_summary": null,
+    "kanban": null
+  },
+  "RMA": {
+    "blocked_count": 0,
+    "blocked_issues": [],
+    "oldest_bugs_count": 0,
+    "oldest_bugs": [],
+    "sprint_summary": null,
+    "kanban": null
+  }
+}
