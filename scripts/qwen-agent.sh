@@ -20,6 +20,8 @@ fi
 
 # Use $1 as directory only if it looks like a path (gt sometimes passes a long message as $1).
 # Prefer GT_RIG_ROOT when set so Aider sees the rig repo (e.g. ozon code), not the town (0 files).
+# When Mayor runs the agent (e.g. in tmux), it often does NOT inherit your shell's GT_RIG_ROOT;
+# so we fall back to common rig paths if unset.
 AGENT_DIR="."
 if [ -n "$GT_RIG_ROOT" ] && [ -d "$GT_RIG_ROOT" ]; then
   AGENT_DIR="$GT_RIG_ROOT"
@@ -27,6 +29,14 @@ elif [ -n "$1" ] && [ "${#1}" -lt 512 ] && [ -d "$1" ]; then
   AGENT_DIR="$1"
 elif [ -n "$GT_TOWN_ROOT" ] && [ -d "$GT_TOWN_ROOT" ]; then
   AGENT_DIR="$GT_TOWN_ROOT"
+else
+  # Fallback: try common rig locations so Aider sees code even when env isn't passed through
+  for candidate in "/mnt/c/Work/ozon" "$HOME/gt/ozon"; do
+    if [ -d "$candidate" ] && [ -d "$candidate/.git" ]; then
+      AGENT_DIR="$candidate"
+      break
+    fi
+  done
 fi
 cd "$AGENT_DIR"
 

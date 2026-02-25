@@ -921,3 +921,54 @@
 2026/02/24 20:02:52 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
 2026/02/24 20:02:52 Convoy: no beads stores available, event polling disabled
 2026/02/24 20:02:57 Convoy: opened 1 beads store(s): [hq]
+2026/02/24 20:24:51 Daemon starting (PID 54073)
+2026/02/24 20:24:51 Daemon running, recovery heartbeat interval 3m0s
+2026/02/24 20:24:51 Feed curator started
+2026/02/24 20:24:51 Convoy: opened 1 beads store(s): [hq]
+2026/02/24 20:24:51 Convoy manager started
+2026/02/24 20:24:51 KRC pruner started
+2026/02/24 20:24:51 Heartbeat starting (recovery-focused)
+2026/02/24 20:24:51 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 20:24:51 Spawning Boot for triage...
+2026/02/24 20:24:55 Boot spawned successfully
+2026/02/24 20:25:20 Mayor started successfully
+2026/02/24 20:25:20 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 20:25:59 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 20:25:59 Heartbeat complete (#1)
+2026/02/24 20:28:03 Heartbeat starting (recovery-focused)
+2026/02/24 20:28:03 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 20:28:03 Spawning Boot for triage...
+2026/02/24 20:28:07 Boot spawned successfully
+2026/02/24 20:28:29 Mayor started successfully
+2026/02/24 20:28:29 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 20:29:06 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 20:29:06 Heartbeat complete (#2)
+2026/02/24 20:32:20 Heartbeat starting (recovery-focused)
+2026/02/24 20:32:20 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 20:32:20 Spawning Boot for triage...
+2026/02/24 20:32:24 Boot spawned successfully
+2026/02/24 20:32:46 Mayor started successfully
+2026/02/24 20:32:46 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 20:33:25 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 20:33:25 Heartbeat complete (#3)
+2026/02/24 20:36:36 Heartbeat starting (recovery-focused)
+2026/02/24 20:36:36 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 20:36:36 Spawning Boot for triage...
+2026/02/24 20:36:40 Boot spawned successfully
+2026/02/24 20:37:05 Mayor started successfully
+2026/02/24 20:37:05 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 20:37:44 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 20:37:44 Heartbeat complete (#4)
+2026/02/24 20:40:57 Heartbeat starting (recovery-focused)
+2026/02/24 20:40:57 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 20:40:57 Spawning Boot for triage...
+2026/02/24 20:41:01 Boot spawned successfully
+2026/02/24 20:41:26 Mayor started successfully
+2026/02/24 20:41:26 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 20:42:04 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 20:42:04 Heartbeat complete (#5)

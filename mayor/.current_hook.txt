@@ -1,4 +1,4 @@
-[GAS TOWN] role:mayor pid:163822 session:mayor-163822
+[GAS TOWN] role:mayor pid:113966 session:mayor-113966
 # Mayor Context
 
 > **Recovery**: Run `gt prime` after compaction, clear, or new session
@@ -323,3 +323,10 @@ Before signaling completion:
 4. Check for attached work: `gt hook`
    - If mol attached → **RUN IT** (no human input needed)
    - If no mol → await user instruction
+
+🪝 Hook Status: mayor/
+Role: mayor
+
+Nothing on hook - no work slung
+
+Next: Check inbox for work assignments: gt mail inbox

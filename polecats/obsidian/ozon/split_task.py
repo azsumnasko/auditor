@@ -9,7 +9,7 @@ Usage:
   py split_task.py "Improve dashboard" --max-subtasks 5
   py split_task.py --bead ozon-abc12   # use existing bead as parent, split its title/description
 
-Requires: Ollama running (same model as dispatch_config.json, e.g. qwen2.5-coder:7b).
+Requires: Ollama running (same model as dispatch_config.json, e.g. qwen3-coder:30b).
 Works with or without Beads (falls back to task_queue.json).
 """
 from __future__ import annotations
@@ -42,7 +42,7 @@ def load_config() -> dict:
 def ollama_model() -> str:
     """Ollama model name (without 'ollama/' prefix)."""
     config = load_config()
-    model = config.get("model", "ollama/qwen2.5-coder:7b")
+    model = config.get("model", "ollama/qwen3-coder:30b")
     if model.startswith("ollama/"):
         return model.replace("ollama/", "", 1)
     return model

@@ -78,3 +78,846 @@
 2026/02/24 15:53:23 Mayor started successfully
 2026/02/24 15:53:23 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
 2026/02/24 15:53:28 Heartbeat complete (#9)
+2026/02/24 15:56:28 Heartbeat starting (recovery-focused)
+2026/02/24 15:56:28 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 15:56:28 Spawning Boot for triage...
+2026/02/24 15:56:28 Boot spawned successfully
+2026/02/24 15:56:28 Deacon started 13m0s ago but hasn't written heartbeat - restarting
+2026/02/24 15:56:28 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 15:56:30 Mayor started successfully
+2026/02/24 15:56:30 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 15:56:36 Heartbeat complete (#10)
+2026/02/24 15:59:36 Heartbeat starting (recovery-focused)
+2026/02/24 15:59:36 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 15:59:36 Spawning Boot for triage...
+2026/02/24 15:59:36 Boot spawned successfully
+2026/02/24 15:59:36 Deacon started 16m0s ago but hasn't written heartbeat - restarting
+2026/02/24 15:59:36 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 15:59:42 Mayor started successfully
+2026/02/24 15:59:42 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 15:59:48 Heartbeat complete (#11)
+2026/02/24 16:02:48 Heartbeat starting (recovery-focused)
+2026/02/24 16:02:48 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:02:48 Spawning Boot for triage...
+2026/02/24 16:02:49 Boot spawned successfully
+2026/02/24 16:02:49 Deacon started 19m0s ago but hasn't written heartbeat - restarting
+2026/02/24 16:02:49 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:02:50 Mayor started successfully
+2026/02/24 16:02:50 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 16:02:56 Heartbeat complete (#12)
+2026/02/24 16:05:56 Heartbeat starting (recovery-focused)
+2026/02/24 16:05:56 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:05:56 Spawning Boot for triage...
+2026/02/24 16:05:56 Boot spawned successfully
+2026/02/24 16:05:56 Deacon started 22m0s ago but hasn't written heartbeat - restarting
+2026/02/24 16:05:56 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:06:02 Mayor started successfully
+2026/02/24 16:06:02 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 16:06:08 Branch prune: removed 2 stale polecat branch(es) in town-root
+2026/02/24 16:06:08   polecat/obsidian/oz-kff@mm0sl2wg (no-remote-merged)
+2026/02/24 16:06:08   polecat/obsidian/oz-kff@mm0sovee (no-remote-merged)
+2026/02/24 16:06:09 Heartbeat complete (#13)
+2026/02/24 16:09:09 Heartbeat starting (recovery-focused)
+2026/02/24 16:09:09 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:09:09 Spawning Boot for triage...
+2026/02/24 16:09:10 Boot spawned successfully
+2026/02/24 16:09:10 Deacon started 25m0s ago but hasn't written heartbeat - restarting
+2026/02/24 16:09:10 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:09:12 Mayor started successfully
+2026/02/24 16:09:12 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 16:09:17 Heartbeat complete (#14)
+2026/02/24 16:12:17 Heartbeat starting (recovery-focused)
+2026/02/24 16:12:17 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:12:17 Spawning Boot for triage...
+2026/02/24 16:12:17 Boot spawned successfully
+2026/02/24 16:12:17 Deacon started 28m0s ago but hasn't written heartbeat - restarting
+2026/02/24 16:12:17 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:12:23 Mayor started successfully
+2026/02/24 16:12:23 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 16:12:28 Branch prune: removed 1 stale polecat branch(es) in town-root
+2026/02/24 16:12:28   polecat/obsidian/oz-kff@mm0sut0z (no-remote-merged)
+2026/02/24 16:12:29 Heartbeat complete (#15)
+2026/02/24 16:15:29 Heartbeat starting (recovery-focused)
+2026/02/24 16:15:29 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:15:29 Spawning Boot for triage...
+2026/02/24 16:15:29 Boot spawned successfully
+2026/02/24 16:15:29 Deacon started 32m0s ago but hasn't written heartbeat - restarting
+2026/02/24 16:15:29 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:15:48 Mayor started successfully
+2026/02/24 16:15:48 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 16:15:53 Heartbeat complete (#16)
+2026/02/24 16:18:53 Heartbeat starting (recovery-focused)
+2026/02/24 16:18:53 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:18:53 Spawning Boot for triage...
+2026/02/24 16:18:57 Boot spawned successfully
+2026/02/24 16:18:57 Deacon started 35m0s ago but hasn't written heartbeat - restarting
+2026/02/24 16:18:57 Killing stuck Deacon session hq-deacon
+2026/02/24 16:19:01 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:19:20 Mayor started successfully
+2026/02/24 16:19:20 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 16:19:25 Heartbeat complete (#17)
+2026/02/24 16:22:25 Heartbeat starting (recovery-focused)
+2026/02/24 16:22:25 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:22:25 Spawning Boot for triage...
+2026/02/24 16:22:29 Boot spawned successfully
+2026/02/24 16:22:29 Deacon started 39m0s ago but hasn't written heartbeat - restarting
+2026/02/24 16:22:29 Killing stuck Deacon session hq-deacon
+2026/02/24 16:22:33 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:22:52 Mayor started successfully
+2026/02/24 16:22:52 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 16:22:57 Heartbeat complete (#18)
+2026/02/24 16:25:57 Heartbeat starting (recovery-focused)
+2026/02/24 16:25:57 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:25:57 Spawning Boot for triage...
+2026/02/24 16:26:01 Boot spawned successfully
+2026/02/24 16:26:01 Deacon started 42m0s ago but hasn't written heartbeat - restarting
+2026/02/24 16:26:01 Killing stuck Deacon session hq-deacon
+2026/02/24 16:26:05 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:26:24 Mayor started successfully
+2026/02/24 16:26:24 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 16:26:30 Heartbeat complete (#19)
+2026/02/24 16:29:30 Heartbeat starting (recovery-focused)
+2026/02/24 16:29:30 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:29:30 Spawning Boot for triage...
+2026/02/24 16:29:34 Boot spawned successfully
+2026/02/24 16:29:34 Deacon started 46m0s ago but hasn't written heartbeat - restarting
+2026/02/24 16:29:34 Killing stuck Deacon session hq-deacon
+2026/02/24 16:29:38 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:29:49 Mayor started successfully
+2026/02/24 16:29:49 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 16:29:54 Heartbeat complete (#20)
+2026/02/24 16:32:54 Heartbeat starting (recovery-focused)
+2026/02/24 16:32:54 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:32:54 Spawning Boot for triage...
+2026/02/24 16:32:58 Boot spawned successfully
+2026/02/24 16:32:58 Deacon started 49m0s ago but hasn't written heartbeat - restarting
+2026/02/24 16:32:58 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:33:09 Mayor started successfully
+2026/02/24 16:33:09 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 16:33:15 Heartbeat complete (#21)
+2026/02/24 16:36:15 Heartbeat starting (recovery-focused)
+2026/02/24 16:36:15 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:36:15 Spawning Boot for triage...
+2026/02/24 16:36:19 Boot spawned successfully
+2026/02/24 16:36:19 Deacon started 52m0s ago but hasn't written heartbeat - restarting
+2026/02/24 16:36:19 Killing stuck Deacon session hq-deacon
+2026/02/24 16:36:23 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:36:34 Mayor started successfully
+2026/02/24 16:36:34 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 16:36:40 Branch prune: removed 2 stale polecat branch(es) in town-root
+2026/02/24 16:36:40   polecat/obsidian/oz-kff@mm0tozif (no-remote-merged)
+2026/02/24 16:36:40   polecat/obsidian/oz-kff@mm0trynm (no-remote-merged)
+2026/02/24 16:36:41 Heartbeat complete (#22)
+2026/02/24 16:39:41 Heartbeat starting (recovery-focused)
+2026/02/24 16:39:41 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:39:41 Spawning Boot for triage...
+2026/02/24 16:39:45 Boot spawned successfully
+2026/02/24 16:39:45 Deacon started 56m0s ago but hasn't written heartbeat - restarting
+2026/02/24 16:39:45 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:39:56 Mayor started successfully
+2026/02/24 16:39:56 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 16:40:02 Branch prune: removed 1 stale polecat branch(es) in town-root
+2026/02/24 16:40:02   polecat/obsidian/oz-kff@mm0tuu15 (no-remote-merged)
+2026/02/24 16:40:03 Heartbeat complete (#23)
+2026/02/24 16:43:03 Heartbeat starting (recovery-focused)
+2026/02/24 16:43:03 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:43:03 Spawning Boot for triage...
+2026/02/24 16:43:07 Boot spawned successfully
+2026/02/24 16:43:07 Deacon started 59m0s ago but hasn't written heartbeat - restarting
+2026/02/24 16:43:07 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:43:18 Mayor started successfully
+2026/02/24 16:43:18 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 16:43:24 Branch prune: removed 2 stale polecat branch(es) in town-root
+2026/02/24 16:43:24   polecat/obsidian/oz-kff@mm0txumt (no-remote-merged)
+2026/02/24 16:43:24   polecat/obsidian/oz-kff@mm0u0vor (no-remote-merged)
+2026/02/24 16:43:25 Heartbeat complete (#24)
+2026/02/24 16:43:54 Daemon starting (PID 183571)
+2026/02/24 16:46:25 Heartbeat starting (recovery-focused)
+2026/02/24 16:46:25 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:46:25 Spawning Boot for triage...
+2026/02/24 16:46:29 Boot spawned successfully
+2026/02/24 16:46:29 Deacon started 1h3m0s ago but hasn't written heartbeat - restarting
+2026/02/24 16:46:29 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:46:40 Mayor started successfully
+2026/02/24 16:46:40 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 16:46:45 Branch prune: removed 1 stale polecat branch(es) in town-root
+2026/02/24 16:46:45   polecat/obsidian/oz-kff@mm0u3viv (no-remote-merged)
+2026/02/24 16:46:46 Heartbeat complete (#25)
+2026/02/24 16:49:46 Heartbeat starting (recovery-focused)
+2026/02/24 16:49:46 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:49:46 Spawning Boot for triage...
+2026/02/24 16:49:46 Boot spawned successfully
+2026/02/24 16:49:46 Deacon started 1h6m0s ago but hasn't written heartbeat - restarting
+2026/02/24 16:49:46 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:49:57 Mayor started successfully
+2026/02/24 16:49:57 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 16:50:02 Branch prune: removed 1 stale polecat branch(es) in town-root
+2026/02/24 16:50:02   polecat/obsidian/oz-kff@mm0u70kk (no-remote-merged)
+2026/02/24 16:50:03 Heartbeat complete (#26)
+2026/02/24 16:53:03 Heartbeat starting (recovery-focused)
+2026/02/24 16:53:03 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:53:03 Spawning Boot for triage...
+2026/02/24 16:53:07 Boot spawned successfully
+2026/02/24 16:53:07 Deacon started 1h9m0s ago but hasn't written heartbeat - restarting
+2026/02/24 16:53:07 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:53:18 Mayor started successfully
+2026/02/24 16:53:18 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 16:53:24 Branch prune: removed 1 stale polecat branch(es) in town-root
+2026/02/24 16:53:24   polecat/obsidian/oz-kff@mm0ucv9a (no-remote-merged)
+2026/02/24 16:53:25 Heartbeat complete (#27)
+2026/02/24 16:56:25 Heartbeat starting (recovery-focused)
+2026/02/24 16:56:25 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:56:25 Spawning Boot for triage...
+2026/02/24 16:56:29 Boot spawned successfully
+2026/02/24 16:56:29 Deacon started 1h13m0s ago but hasn't written heartbeat - restarting
+2026/02/24 16:56:29 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:56:40 Mayor started successfully
+2026/02/24 16:56:40 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 16:56:45 Branch prune: removed 1 stale polecat branch(es) in town-root
+2026/02/24 16:56:45   polecat/obsidian/oz-kff@mm0ufvcw (no-remote-merged)
+2026/02/24 16:56:46 Heartbeat complete (#28)
+2026/02/24 16:59:46 Heartbeat starting (recovery-focused)
+2026/02/24 16:59:46 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 16:59:46 Spawning Boot for triage...
+2026/02/24 16:59:50 Boot spawned successfully
+2026/02/24 16:59:50 Deacon started 1h16m0s ago but hasn't written heartbeat - restarting
+2026/02/24 16:59:50 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:00:01 Mayor started successfully
+2026/02/24 17:00:01 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 17:00:07 Branch prune: removed 1 stale polecat branch(es) in town-root
+2026/02/24 17:00:07   polecat/obsidian/oz-kff@mm0ulqa0 (no-remote-merged)
+2026/02/24 17:00:08 Heartbeat complete (#29)
+2026/02/24 17:03:08 Heartbeat starting (recovery-focused)
+2026/02/24 17:03:08 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:03:08 Spawning Boot for triage...
+2026/02/24 17:03:12 Boot spawned successfully
+2026/02/24 17:03:12 Deacon started 1h19m0s ago but hasn't written heartbeat - restarting
+2026/02/24 17:03:12 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:03:23 Mayor started successfully
+2026/02/24 17:03:23 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 17:03:30 Branch prune: removed 1 stale polecat branch(es) in town-root
+2026/02/24 17:03:30   polecat/obsidian/oz-kff@mm0uox7n (no-remote-merged)
+2026/02/24 17:03:31 Heartbeat complete (#30)
+2026/02/24 17:06:31 Heartbeat starting (recovery-focused)
+2026/02/24 17:06:31 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:06:31 Spawning Boot for triage...
+2026/02/24 17:06:35 Boot spawned successfully
+2026/02/24 17:06:35 Deacon started 1h23m0s ago but hasn't written heartbeat - restarting
+2026/02/24 17:06:35 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:06:47 Mayor started successfully
+2026/02/24 17:06:47 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 17:06:52 Branch prune: removed 1 stale polecat branch(es) in town-root
+2026/02/24 17:06:52   polecat/obsidian/oz-kff@mm0uv5ol (no-remote-merged)
+2026/02/24 17:06:53 Heartbeat complete (#31)
+2026/02/24 17:09:53 Heartbeat starting (recovery-focused)
+2026/02/24 17:09:53 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:09:53 Spawning Boot for triage...
+2026/02/24 17:09:57 Boot spawned successfully
+2026/02/24 17:09:57 Deacon started 1h26m0s ago but hasn't written heartbeat - restarting
+2026/02/24 17:09:57 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:10:08 Mayor started successfully
+2026/02/24 17:10:08 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 17:10:13 Branch prune: removed 1 stale polecat branch(es) in town-root
+2026/02/24 17:10:13   polecat/obsidian/oz-kff@mm0uy8ce (no-remote-merged)
+2026/02/24 17:10:14 Heartbeat complete (#32)
+2026/02/24 17:13:14 Heartbeat starting (recovery-focused)
+2026/02/24 17:13:14 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:13:14 Spawning Boot for triage...
+2026/02/24 17:13:18 Boot spawned successfully
+2026/02/24 17:13:18 Deacon started 1h29m0s ago but hasn't written heartbeat - restarting
+2026/02/24 17:13:18 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:13:29 Mayor started successfully
+2026/02/24 17:13:29 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 17:13:34 Heartbeat complete (#33)
+2026/02/24 17:16:34 Heartbeat starting (recovery-focused)
+2026/02/24 17:16:34 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:16:34 Spawning Boot for triage...
+2026/02/24 17:16:38 Boot spawned successfully
+2026/02/24 17:16:38 Deacon started 1h33m0s ago but hasn't written heartbeat - restarting
+2026/02/24 17:16:38 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:16:49 Mayor started successfully
+2026/02/24 17:16:49 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 17:16:54 Branch prune: removed 1 stale polecat branch(es) in town-root
+2026/02/24 17:16:54   polecat/obsidian/oz-kff@mm0v73nl (no-remote-merged)
+2026/02/24 17:16:55 Heartbeat complete (#34)
+2026/02/24 17:19:55 Heartbeat starting (recovery-focused)
+2026/02/24 17:19:55 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:19:55 Spawning Boot for triage...
+2026/02/24 17:19:59 Boot spawned successfully
+2026/02/24 17:19:59 Deacon started 1h36m0s ago but hasn't written heartbeat - restarting
+2026/02/24 17:19:59 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:20:10 Mayor started successfully
+2026/02/24 17:20:10 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 17:20:15 Heartbeat complete (#35)
+2026/02/24 17:23:15 Heartbeat starting (recovery-focused)
+2026/02/24 17:23:15 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:23:15 Spawning Boot for triage...
+2026/02/24 17:23:20 Boot spawned successfully
+2026/02/24 17:23:20 Deacon started 1h39m0s ago but hasn't written heartbeat - restarting
+2026/02/24 17:23:20 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:23:37 Mayor started successfully
+2026/02/24 17:23:37 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 17:23:42 Branch prune: removed 1 stale polecat branch(es) in town-root
+2026/02/24 17:23:42   polecat/obsidian/oz-kff@mm0vg0c1 (no-remote-merged)
+2026/02/24 17:23:43 Heartbeat complete (#36)
+2026/02/24 17:26:43 Heartbeat starting (recovery-focused)
+2026/02/24 17:26:43 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:26:43 Spawning Boot for triage...
+2026/02/24 17:26:47 Boot spawned successfully
+2026/02/24 17:26:47 Deacon started 1h43m0s ago but hasn't written heartbeat - restarting
+2026/02/24 17:26:47 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:26:55 Mayor started successfully
+2026/02/24 17:26:55 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 17:27:01 Heartbeat complete (#37)
+2026/02/24 17:30:01 Heartbeat starting (recovery-focused)
+2026/02/24 17:30:01 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:30:01 Spawning Boot for triage...
+2026/02/24 17:30:05 Boot spawned successfully
+2026/02/24 17:30:05 Deacon started 1h46m0s ago but hasn't written heartbeat - restarting
+2026/02/24 17:30:05 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:30:20 Mayor started successfully
+2026/02/24 17:30:20 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 17:30:25 Branch prune: removed 1 stale polecat branch(es) in town-root
+2026/02/24 17:30:25   polecat/obsidian/oz-kff@mm0vpazf (no-remote-merged)
+2026/02/24 17:30:26 Heartbeat complete (#38)
+2026/02/24 17:33:26 Heartbeat starting (recovery-focused)
+2026/02/24 17:33:26 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:33:26 Spawning Boot for triage...
+2026/02/24 17:33:30 Boot spawned successfully
+2026/02/24 17:33:30 Deacon started 1h50m0s ago but hasn't written heartbeat - restarting
+2026/02/24 17:33:30 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:33:45 Mayor started successfully
+2026/02/24 17:33:45 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 17:33:52 Heartbeat complete (#39)
+2026/02/24 17:36:52 Heartbeat starting (recovery-focused)
+2026/02/24 17:36:52 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:36:52 Spawning Boot for triage...
+2026/02/24 17:36:56 Boot spawned successfully
+2026/02/24 17:36:56 Deacon started 1h53m0s ago but hasn't written heartbeat - restarting
+2026/02/24 17:36:56 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:37:10 Mayor started successfully
+2026/02/24 17:37:10 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 17:37:16 Heartbeat complete (#40)
+2026/02/24 17:40:16 Heartbeat starting (recovery-focused)
+2026/02/24 17:40:16 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:40:16 Spawning Boot for triage...
+2026/02/24 17:40:17 Boot spawned successfully
+2026/02/24 17:40:17 Deacon started 1h56m0s ago but hasn't written heartbeat - restarting
+2026/02/24 17:40:17 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:40:32 Mayor started successfully
+2026/02/24 17:40:32 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 17:40:37 Branch prune: removed 1 stale polecat branch(es) in town-root
+2026/02/24 17:40:37   polecat/obsidian/oz-kff@mm0w2ei8 (no-remote-merged)
+2026/02/24 17:40:38 Heartbeat complete (#41)
+2026/02/24 17:43:38 Heartbeat starting (recovery-focused)
+2026/02/24 17:43:38 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:43:38 Spawning Boot for triage...
+2026/02/24 17:43:42 Boot spawned successfully
+2026/02/24 17:43:42 Deacon started 2h0m0s ago but hasn't written heartbeat - restarting
+2026/02/24 17:43:42 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:43:56 Mayor started successfully
+2026/02/24 17:43:56 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 17:44:02 Heartbeat complete (#42)
+2026/02/24 17:47:02 Heartbeat starting (recovery-focused)
+2026/02/24 17:47:02 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:47:02 Spawning Boot for triage...
+2026/02/24 17:47:06 Boot spawned successfully
+2026/02/24 17:47:06 Deacon started 2h3m0s ago but hasn't written heartbeat - restarting
+2026/02/24 17:47:06 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:47:20 Mayor started successfully
+2026/02/24 17:47:20 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 17:47:26 Heartbeat complete (#43)
+2026/02/24 17:50:26 Heartbeat starting (recovery-focused)
+2026/02/24 17:50:26 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:50:26 Spawning Boot for triage...
+2026/02/24 17:50:30 Boot spawned successfully
+2026/02/24 17:50:31 Deacon started 2h7m0s ago but hasn't written heartbeat - restarting
+2026/02/24 17:50:31 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:50:44 Mayor started successfully
+2026/02/24 17:50:44 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 17:50:51 Heartbeat complete (#44)
+2026/02/24 17:53:51 Heartbeat starting (recovery-focused)
+2026/02/24 17:53:51 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:53:51 Spawning Boot for triage...
+2026/02/24 17:53:51 Boot spawned successfully
+2026/02/24 17:53:51 Deacon started 2h10m0s ago but hasn't written heartbeat - restarting
+2026/02/24 17:53:51 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:54:09 Mayor started successfully
+2026/02/24 17:54:09 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 17:54:17 Heartbeat complete (#45)
+2026/02/24 17:57:17 Heartbeat starting (recovery-focused)
+2026/02/24 17:57:17 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:57:17 Spawning Boot for triage...
+2026/02/24 17:57:21 Boot spawned successfully
+2026/02/24 17:57:21 Deacon started 2h13m0s ago but hasn't written heartbeat - restarting
+2026/02/24 17:57:21 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 17:57:35 Mayor started successfully
+2026/02/24 17:57:35 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 17:57:41 Branch prune: removed 1 stale polecat branch(es) in town-root
+2026/02/24 17:57:41   polecat/obsidian/oz-kff@mm0wo5l9 (no-remote-merged)
+2026/02/24 17:57:43 Heartbeat complete (#46)
+2026/02/24 18:00:43 Heartbeat starting (recovery-focused)
+2026/02/24 18:00:43 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:00:43 Spawning Boot for triage...
+2026/02/24 18:00:47 Boot spawned successfully
+2026/02/24 18:00:47 Deacon started 2h17m0s ago but hasn't written heartbeat - restarting
+2026/02/24 18:00:47 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:01:02 Mayor started successfully
+2026/02/24 18:01:02 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 18:01:08 Heartbeat complete (#47)
+2026/02/24 18:04:08 Heartbeat starting (recovery-focused)
+2026/02/24 18:04:08 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:04:08 Spawning Boot for triage...
+2026/02/24 18:04:12 Boot spawned successfully
+2026/02/24 18:04:12 Deacon started 2h20m0s ago but hasn't written heartbeat - restarting
+2026/02/24 18:04:12 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:04:32 Mayor started successfully
+2026/02/24 18:04:32 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 18:04:38 Branch prune: removed 1 stale polecat branch(es) in town-root
+2026/02/24 18:04:38   polecat/obsidian/oz-kff@mm0wxg8q (no-remote-merged)
+2026/02/24 18:04:39 Heartbeat complete (#48)
+2026/02/24 18:07:39 Heartbeat starting (recovery-focused)
+2026/02/24 18:07:39 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:07:39 Spawning Boot for triage...
+2026/02/24 18:07:43 Boot spawned successfully
+2026/02/24 18:07:43 Deacon started 2h24m0s ago but hasn't written heartbeat - restarting
+2026/02/24 18:07:43 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:07:57 Mayor started successfully
+2026/02/24 18:07:57 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 18:08:04 Heartbeat complete (#49)
+2026/02/24 18:11:04 Heartbeat starting (recovery-focused)
+2026/02/24 18:11:04 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:11:04 Spawning Boot for triage...
+2026/02/24 18:11:08 Boot spawned successfully
+2026/02/24 18:11:08 Deacon started 2h27m0s ago but hasn't written heartbeat - restarting
+2026/02/24 18:11:08 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:11:20 Mayor started successfully
+2026/02/24 18:11:20 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 18:11:27 Heartbeat complete (#50)
+2026/02/24 18:14:27 Heartbeat starting (recovery-focused)
+2026/02/24 18:14:27 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:14:27 Spawning Boot for triage...
+2026/02/24 18:14:31 Boot spawned successfully
+2026/02/24 18:14:31 Deacon started 2h31m0s ago but hasn't written heartbeat - restarting
+2026/02/24 18:14:31 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:14:45 Mayor started successfully
+2026/02/24 18:14:45 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 18:14:58 Heartbeat complete (#51)
+2026/02/24 18:17:58 Heartbeat starting (recovery-focused)
+2026/02/24 18:17:58 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:17:58 Spawning Boot for triage...
+2026/02/24 18:17:58 Boot spawned successfully
+2026/02/24 18:17:58 Deacon started 2h34m0s ago but hasn't written heartbeat - restarting
+2026/02/24 18:17:58 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:18:11 Mayor started successfully
+2026/02/24 18:18:11 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 18:18:30 Heartbeat complete (#52)
+2026/02/24 18:19:26 Daemon starting (PID 612883)
+2026/02/24 18:21:30 Heartbeat starting (recovery-focused)
+2026/02/24 18:21:30 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:21:30 Spawning Boot for triage...
+2026/02/24 18:21:34 Boot spawned successfully
+2026/02/24 18:21:34 Deacon started 2h38m0s ago but hasn't written heartbeat - restarting
+2026/02/24 18:21:34 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:21:46 Mayor started successfully
+2026/02/24 18:21:46 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 18:22:07 Heartbeat complete (#53)
+2026/02/24 18:24:03 Convoy: close detected: oz-kff
+2026/02/24 18:25:07 Heartbeat starting (recovery-focused)
+2026/02/24 18:25:07 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:25:07 Spawning Boot for triage...
+2026/02/24 18:25:11 Boot spawned successfully
+2026/02/24 18:25:11 Deacon started 2h41m0s ago but hasn't written heartbeat - restarting
+2026/02/24 18:25:11 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:25:30 Mayor started successfully
+2026/02/24 18:25:30 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 18:25:59 Heartbeat complete (#54)
+2026/02/24 18:28:59 Heartbeat starting (recovery-focused)
+2026/02/24 18:28:59 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:28:59 Spawning Boot for triage...
+2026/02/24 18:29:03 Boot spawned successfully
+2026/02/24 18:29:03 Deacon started 2h45m0s ago but hasn't written heartbeat - restarting
+2026/02/24 18:29:03 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:29:18 Mayor started successfully
+2026/02/24 18:29:18 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 18:29:45 Heartbeat complete (#55)
+2026/02/24 18:32:45 Heartbeat starting (recovery-focused)
+2026/02/24 18:32:45 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:32:45 Spawning Boot for triage...
+2026/02/24 18:32:49 Boot spawned successfully
+2026/02/24 18:32:49 Deacon started 2h49m0s ago but hasn't written heartbeat - restarting
+2026/02/24 18:32:49 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:33:09 Mayor started successfully
+2026/02/24 18:33:09 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 18:33:39 Heartbeat complete (#56)
+2026/02/24 18:36:39 Heartbeat starting (recovery-focused)
+2026/02/24 18:36:39 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:36:39 Spawning Boot for triage...
+2026/02/24 18:36:43 Boot spawned successfully
+2026/02/24 18:36:43 Deacon started 2h53m0s ago but hasn't written heartbeat - restarting
+2026/02/24 18:36:43 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:36:56 Mayor started successfully
+2026/02/24 18:36:56 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 18:37:25 Heartbeat complete (#57)
+2026/02/24 18:40:25 Heartbeat starting (recovery-focused)
+2026/02/24 18:40:25 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:40:25 Spawning Boot for triage...
+2026/02/24 18:40:29 Boot spawned successfully
+2026/02/24 18:40:29 Deacon started 2h57m0s ago but hasn't written heartbeat - restarting
+2026/02/24 18:40:29 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:40:42 Mayor started successfully
+2026/02/24 18:40:42 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 18:41:11 Heartbeat complete (#58)
+2026/02/24 18:44:11 Heartbeat starting (recovery-focused)
+2026/02/24 18:44:11 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:44:11 Spawning Boot for triage...
+2026/02/24 18:44:11 Boot spawned successfully
+2026/02/24 18:44:11 Deacon started 3h0m0s ago but hasn't written heartbeat - restarting
+2026/02/24 18:44:11 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:44:34 Mayor started successfully
+2026/02/24 18:44:34 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 18:45:08 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 18:45:08 Heartbeat complete (#59)
+2026/02/24 18:53:09 Daemon starting (PID 3174)
+2026/02/24 18:53:09 Daemon running, recovery heartbeat interval 3m0s
+2026/02/24 18:53:09 Feed curator started
+2026/02/24 18:53:09 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:53:09 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:53:09 Convoy manager started
+2026/02/24 18:53:09 KRC pruner started
+2026/02/24 18:53:09 Heartbeat starting (recovery-focused)
+2026/02/24 18:53:09 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:53:09 Spawning Boot for triage...
+2026/02/24 18:53:09 Boot spawned successfully
+2026/02/24 18:53:11 Convoy: stranded scan failed: WARNING: This binary was built with 'go build' directly.
+2026/02/24 18:53:14 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:53:14 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:53:19 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:53:19 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:53:24 Mayor started successfully
+2026/02/24 18:53:24 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 18:53:24 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:53:24 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:53:28 Warning: failed to fetch deacon inbox: exit status 1
+2026/02/24 18:53:31 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:53:31 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:53:36 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:53:36 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:53:41 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:53:41 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:53:43 Convoy: stranded scan failed: WARNING: This binary was built with 'go build' directly.
+2026/02/24 18:53:46 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:53:46 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:53:51 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:53:51 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:53:55 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 18:53:55 Heartbeat complete (#1)
+2026/02/24 18:53:56 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:53:56 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:54:03 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:54:03 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:54:08 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:54:08 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:54:13 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:54:13 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:54:15 Convoy: stranded scan failed: WARNING: This binary was built with 'go build' directly.
+2026/02/24 18:54:18 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:54:18 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:54:23 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:54:23 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:54:28 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:54:28 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:54:33 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:54:33 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:54:40 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:54:40 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:54:45 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:54:45 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:54:47 Convoy: stranded scan failed: WARNING: This binary was built with 'go build' directly.
+2026/02/24 18:54:50 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:54:50 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:54:55 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:54:55 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:55:00 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:55:00 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:55:05 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:55:05 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:55:12 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:55:12 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:55:17 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:55:17 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:55:19 Convoy: stranded scan failed: WARNING: This binary was built with 'go build' directly.
+2026/02/24 18:55:22 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:55:22 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:55:27 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:55:27 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:55:32 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:55:32 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:55:37 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:55:37 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:55:42 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:55:42 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:55:49 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:55:49 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:55:51 Convoy: stranded scan failed: WARNING: This binary was built with 'go build' directly.
+2026/02/24 18:55:54 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:55:54 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:55:59 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:55:59 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:56:04 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:56:04 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:56:09 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:56:09 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:56:14 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:56:14 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:56:21 Heartbeat starting (recovery-focused)
+2026/02/24 18:56:21 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 18:56:21 Spawning Boot for triage...
+2026/02/24 18:56:21 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:56:21 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:56:21 Boot spawned successfully
+2026/02/24 18:56:23 Convoy: stranded scan failed: WARNING: This binary was built with 'go build' directly.
+2026/02/24 18:56:26 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:56:26 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:56:31 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:56:31 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:56:36 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:56:36 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:56:37 Mayor started successfully
+2026/02/24 18:56:37 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 18:56:39 Warning: failed to fetch deacon inbox: exit status 1
+2026/02/24 18:56:41 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:56:41 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:56:46 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:56:46 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:56:53 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:56:53 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:56:56 Convoy: stranded scan failed: WARNING: This binary was built with 'go build' directly.
+2026/02/24 18:56:58 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:56:58 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:57:03 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:57:03 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:57:07 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 18:57:07 Heartbeat complete (#2)
+2026/02/24 18:57:08 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:57:08 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:57:13 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:57:13 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:57:18 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:57:18 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:57:23 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:57:23 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:57:28 Convoy: stranded scan failed: WARNING: This binary was built with 'go build' directly.
+2026/02/24 18:57:30 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:57:30 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:57:35 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 18:57:35 Convoy: no beads stores available, event polling disabled
+2026/02/24 18:57:41 Convoy: opened 1 beads store(s): [hq]
+2026/02/24 19:00:20 Heartbeat starting (recovery-focused)
+2026/02/24 19:00:20 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 19:00:20 Spawning Boot for triage...
+2026/02/24 19:00:24 Boot spawned successfully
+2026/02/24 19:00:45 Mayor started successfully
+2026/02/24 19:00:45 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 19:01:14 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 19:01:14 Heartbeat complete (#3)
+2026/02/24 19:04:26 Heartbeat starting (recovery-focused)
+2026/02/24 19:04:26 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 19:04:26 Spawning Boot for triage...
+2026/02/24 19:04:31 Boot spawned successfully
+2026/02/24 19:04:39 Mayor started successfully
+2026/02/24 19:04:39 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 19:05:13 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 19:05:13 Heartbeat complete (#4)
+2026/02/24 19:08:26 Heartbeat starting (recovery-focused)
+2026/02/24 19:08:26 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 19:08:26 Spawning Boot for triage...
+2026/02/24 19:08:26 Boot spawned successfully
+2026/02/24 19:08:48 Mayor started successfully
+2026/02/24 19:08:48 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 19:09:21 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 19:09:21 Heartbeat complete (#5)
+2026/02/24 19:12:36 Heartbeat starting (recovery-focused)
+2026/02/24 19:12:36 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 19:12:36 Spawning Boot for triage...
+2026/02/24 19:12:36 Boot spawned successfully
+2026/02/24 19:13:00 Mayor started successfully
+2026/02/24 19:13:00 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 19:13:21 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 19:13:21 Heartbeat complete (#6)
+2026/02/24 19:16:37 Heartbeat starting (recovery-focused)
+2026/02/24 19:16:37 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 19:16:37 Spawning Boot for triage...
+2026/02/24 19:16:37 Boot spawned successfully
+2026/02/24 19:16:57 Mayor started successfully
+2026/02/24 19:16:57 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 19:17:23 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 19:17:23 Heartbeat complete (#7)
+2026/02/24 19:20:38 Heartbeat starting (recovery-focused)
+2026/02/24 19:20:38 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 19:20:38 Spawning Boot for triage...
+2026/02/24 19:20:42 Boot spawned successfully
+2026/02/24 19:21:07 Mayor started successfully
+2026/02/24 19:21:07 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 19:21:31 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 19:21:31 Heartbeat complete (#8)
+2026/02/24 19:24:47 Heartbeat starting (recovery-focused)
+2026/02/24 19:24:47 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 19:24:47 Spawning Boot for triage...
+2026/02/24 19:24:47 Boot spawned successfully
+2026/02/24 19:25:11 Mayor started successfully
+2026/02/24 19:25:11 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 19:25:41 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 19:25:41 Heartbeat complete (#9)
+2026/02/24 19:28:57 Heartbeat starting (recovery-focused)
+2026/02/24 19:28:57 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 19:28:57 Spawning Boot for triage...
+2026/02/24 19:28:58 Boot spawned successfully
+2026/02/24 19:29:23 Mayor started successfully
+2026/02/24 19:29:23 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 19:29:51 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 19:29:51 Heartbeat complete (#10)
+2026/02/24 19:33:05 Heartbeat starting (recovery-focused)
+2026/02/24 19:33:05 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 19:33:05 Spawning Boot for triage...
+2026/02/24 19:33:05 Boot spawned successfully
+2026/02/24 19:33:30 Mayor started successfully
+2026/02/24 19:33:30 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 19:33:54 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 19:33:54 Heartbeat complete (#11)
+2026/02/24 19:37:05 Heartbeat starting (recovery-focused)
+2026/02/24 19:37:05 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 19:37:05 Spawning Boot for triage...
+2026/02/24 19:37:05 Boot spawned successfully
+2026/02/24 19:37:26 Mayor started successfully
+2026/02/24 19:37:26 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 19:37:56 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 19:37:56 Heartbeat complete (#12)
+2026/02/24 19:41:09 Heartbeat starting (recovery-focused)
+2026/02/24 19:41:09 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 19:41:09 Spawning Boot for triage...
+2026/02/24 19:41:13 Boot spawned successfully
+2026/02/24 19:41:36 Mayor started successfully
+2026/02/24 19:41:36 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 19:42:02 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 19:42:02 Heartbeat complete (#13)
+2026/02/24 19:45:12 Heartbeat starting (recovery-focused)
+2026/02/24 19:45:12 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 19:45:12 Spawning Boot for triage...
+2026/02/24 19:45:16 Boot spawned successfully
+2026/02/24 19:45:35 Mayor started successfully
+2026/02/24 19:45:35 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 19:46:10 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 19:46:10 Heartbeat complete (#14)
+2026/02/24 19:49:20 Heartbeat starting (recovery-focused)
+2026/02/24 19:49:20 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 19:49:20 Spawning Boot for triage...
+2026/02/24 19:49:20 Boot spawned successfully
+2026/02/24 19:49:45 Mayor started successfully
+2026/02/24 19:49:45 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 19:50:14 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 19:50:14 Heartbeat complete (#15)
+2026/02/24 19:53:27 Heartbeat starting (recovery-focused)
+2026/02/24 19:53:27 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 19:53:27 Spawning Boot for triage...
+2026/02/24 19:53:27 Boot spawned successfully
+2026/02/24 19:53:53 Mayor started successfully
+2026/02/24 19:53:53 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 19:54:27 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 19:54:27 Heartbeat complete (#16)
+2026/02/24 19:57:08 Received signal terminated, shutting down
+2026/02/24 19:57:08 Daemon shutting down
+2026/02/24 19:57:08 Feed curator stopped
+2026/02/24 19:57:08 Convoy: closed beads store (hq)
+2026/02/24 19:57:08 Convoy manager stopped
+2026/02/24 19:57:08 KRC pruner stopped
+2026/02/24 19:57:08 Daemon stopped
+2026/02/24 19:57:28 Daemon starting (PID 163236)
+2026/02/24 19:57:28 Daemon running, recovery heartbeat interval 3m0s
+2026/02/24 19:57:28 Feed curator started
+2026/02/24 19:57:28 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 19:57:28 Convoy: no beads stores available, event polling disabled
+2026/02/24 19:57:28 Convoy manager started
+2026/02/24 19:57:28 KRC pruner started
+2026/02/24 19:57:28 Heartbeat starting (recovery-focused)
+2026/02/24 19:57:28 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 19:57:28 Spawning Boot for triage...
+2026/02/24 19:57:28 Boot spawned successfully
+2026/02/24 19:57:30 Convoy: stranded scan failed: WARNING: This binary was built with 'go build' directly.
+2026/02/24 19:57:33 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 19:57:33 Convoy: no beads stores available, event polling disabled
+2026/02/24 19:57:38 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 19:57:38 Convoy: no beads stores available, event polling disabled
+2026/02/24 19:57:45 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 19:57:45 Convoy: no beads stores available, event polling disabled
+2026/02/24 19:57:46 Mayor started successfully
+2026/02/24 19:57:46 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 19:57:47 Warning: failed to fetch deacon inbox: exit status 1
+2026/02/24 19:57:50 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 19:57:50 Convoy: no beads stores available, event polling disabled
+2026/02/24 19:57:55 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 19:57:55 Convoy: no beads stores available, event polling disabled
+2026/02/24 19:58:00 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 19:58:00 Convoy: no beads stores available, event polling disabled
+2026/02/24 19:58:02 Convoy: stranded scan failed: WARNING: This binary was built with 'go build' directly.
+2026/02/24 19:58:05 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 19:58:05 Convoy: no beads stores available, event polling disabled
+2026/02/24 19:58:10 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 19:58:10 Convoy: no beads stores available, event polling disabled
+2026/02/24 19:58:11 Scheduler dispatch: WARNING: This binary was built with 'go build' directly.
+         Use 'make build' to create a properly signed binary.
+2026/02/24 19:58:11 Heartbeat complete (#1)
+2026/02/24 19:58:15 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 19:58:15 Convoy: no beads stores available, event polling disabled
+2026/02/24 19:58:22 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 19:58:22 Convoy: no beads stores available, event polling disabled
+2026/02/24 19:58:27 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 19:58:27 Convoy: no beads stores available, event polling disabled
+2026/02/24 19:58:32 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 19:58:32 Convoy: no beads stores available, event polling disabled
+2026/02/24 19:58:34 Convoy: stranded scan failed: WARNING: This binary was built with 'go build' directly.
+2026/02/24 19:58:37 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 19:58:37 Convoy: no beads stores available, event polling disabled
+2026/02/24 19:58:42 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 19:58:42 Convoy: no beads stores available, event polling disabled
+2026/02/24 20:02:30 Daemon starting (PID 516)
+2026/02/24 20:02:30 Daemon running, recovery heartbeat interval 3m0s
+2026/02/24 20:02:30 Feed curator started
+2026/02/24 20:02:30 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 20:02:30 Convoy: no beads stores available, event polling disabled
+2026/02/24 20:02:30 Convoy manager started
+2026/02/24 20:02:30 KRC pruner started
+2026/02/24 20:02:30 Heartbeat starting (recovery-focused)
+2026/02/24 20:02:30 Deacon is in crash loop, skipping restart (use 'gt daemon clear-backoff deacon' to reset)
+2026/02/24 20:02:30 Spawning Boot for triage...
+2026/02/24 20:02:30 Boot spawned successfully
+2026/02/24 20:02:31 Convoy: stranded scan failed: WARNING: This binary was built with 'go build' directly.
+2026/02/24 20:02:35 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 20:02:35 Convoy: no beads stores available, event polling disabled
+2026/02/24 20:02:40 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 20:02:40 Convoy: no beads stores available, event polling disabled
+2026/02/24 20:02:47 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 20:02:47 Convoy: no beads stores available, event polling disabled
+2026/02/24 20:02:48 Mayor started successfully
+2026/02/24 20:02:48 Handler: failed to load rigs config: config file not found: /mnt/c/Work/ozon/mayor/rigs.json
+2026/02/24 20:02:50 Warning: failed to fetch deacon inbox: exit status 1
+2026/02/24 20:02:52 Convoy: hq beads store unavailable: Dolt server unreachable at 127.0.0.1:3307: dial tcp 127.0.0.1:3307: connect: connection refused
+2026/02/24 20:02:52 Convoy: no beads stores available, event polling disabled
+2026/02/24 20:02:57 Convoy: opened 1 beads store(s): [hq]

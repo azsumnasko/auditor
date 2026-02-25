@@ -697,7 +697,7 @@ def main() -> int:
     num_workers = int(config.get("num_workers", 14))
     prefix = config.get("worktree_prefix", "ozon-w")
     # Worktrees: sibling dirs repo_root/../ozon-w1, ... or repo_root/worktrees/w1
-    model = config.get("model", "ollama/qwen2.5-coder:7b")
+    model = config.get("model", "ollama/qwen3-coder:30b")
     aider_cmd = config.get("aider_cmd", "aider")
 
     # worktree_placement: "sibling" = repo_root/../ozon-w1, "inside" = repo_root/worktrees/w1

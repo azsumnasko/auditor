@@ -1,4 +1,4 @@
-[GAS TOWN] role:ozon/witness pid:47827 session:ozon/witness-47827
+[GAS TOWN] role:ozon/witness pid:94487 session:ozon/witness-94487
 # Witness Context
 
 > **Recovery**: Run `gt prime` after compaction, clear, or new session
@@ -294,7 +294,7 @@ Your mail address: ozon/witness
 
 Status: **No active patrol** - creating mol-witness-patrol...
 
-✓ Created and hooked patrol wisp: oz-wisp-fsqxx
+✓ Created and hooked patrol wisp: oz-wisp-twrev
 **Witness Patrol Work Loop:**
 1. Check inbox: `gt mail inbox`
 2. Check next step: `bd mol current`
@@ -310,7 +310,7 @@ Status: **No active patrol** - creating mol-witness-patrol...
      * Send handoff: `gt handoff -s "Witness patrol" -m "<observations>"`
      * Exit cleanly (daemon respawns fresh session)
 
-Current patrol ID: oz-wisp-fsqxx
+Current patrol ID: oz-wisp-twrev
 
 # Gas Town Worker Context
 

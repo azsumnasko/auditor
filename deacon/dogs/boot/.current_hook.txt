@@ -1,4 +1,4 @@
-[GAS TOWN] role:boot pid:163406 session:boot-163406
+[GAS TOWN] role:boot pid:113469 session:boot-113469
 # Boot Context
 
 > **Recovery**: Run `gt prime` after compaction, clear, or new session
@@ -198,3 +198,10 @@ Before signaling completion:
 1. Run `gt prime` (loads full context)
 2. Run `gt boot triage` immediately
 3. When triage completes, exit cleanly
+
+🪝 Hook Status: deacon/boot
+Role: boot
+
+Nothing on hook - no work slung
+
+Next: Check inbox for work assignments: gt mail inbox

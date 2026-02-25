@@ -461,6 +461,44 @@ If you copy the agent script to `~/bin/qwen-agent.sh`, you can also edit it and 
 
 If you see "daemon start failed" then "Mayor restarted with context" and then "[exited]", the Mayor session is exiting because the daemon is not running. Fix the daemon first: run `gt daemon logs` to see why it fails, address that (e.g. port in use, missing agent bead), then `gt daemon start` and `gt daemon status`. Once the daemon is running, run `gt mayor attach` again.
 
+If the daemon is running but Mayor still shows "Runtime exited, restarting with context" and "[exited]" and Aider reports **"Git repo: ../.git with 0 files"**, the agent is running in the **town** (e.g. `~/gt/mayor`) so it has no code to edit. Set **`GT_RIG_ROOT`** to your rig (the repo with the code) so the agent runs there and Aider sees files:
+
+```bash
+cd ~/gt
+export GT_RIG_ROOT="/mnt/c/Work/ozon"   # or "$HOME/gt/ozon" if the rig is under ~/gt
+gt mayor attach "your task here"
+```
+
+Use the path where your actual project (ozon) lives in WSL: `/mnt/c/Work/ozon` for the Windows folder, or `$HOME/gt/ozon` if you cloned ozon under the town.
+
+### How to see Aider logs for Mayor
+
+Aider runs inside the **Mayor tmux session**. To see its output:
+
+1. **While attached** – When you run `gt mayor attach`, you are in the Mayor session. The agent (Aider) may run in the same pane or in another pane/window. Use **Ctrl+b** then **arrow keys** to switch panes, or **Ctrl+b w** to list windows and switch. The pane where you see "Aider v0.x", "Model: ollama/qwen2.5-coder:7b", and the conversation is the Aider log.
+
+2. **Attach from another terminal** – If Mayor is already running and you want to view it from a different WSL terminal:
+   ```bash
+   tmux list-sessions    # find the Mayor session (name may be "mayor", "Mayor", or similar)
+   tmux attach -t <name> # e.g. tmux attach -t mayor
+   ```
+   Then switch panes (Ctrl+b arrow) to the one where the agent is running.
+
+3. **Daemon logs only** – `gt daemon logs` shows daemon/Mayor/Witness/Refinery messages, not the Aider conversation. For the actual Aider chat and model output, you must be in the Mayor tmux session (above).
+
+### How to know if anything is done or if it works correctly
+
+1. **"[exited]" after `gt mayor attach`** – The CLI often returns to the prompt after passing your message into the Mayor session. The **real** Aider run happens in the **Mayor tmux pane** (the one that shows "Aider v0.x", "Git repo: .git with 1,743 files", "Mayor 0:python*"). So "exited" does not mean "nothing ran" — it means "attach finished"; look at the pane where Aider is actually running.
+
+2. **Check that work happened:**
+   - **Git in the rig** – In the repo Aider was supposed to edit (e.g. `/mnt/c/Work/ozon`): run `git status`, `git diff`, `git log -3`. New or modified files and recent commits are the proof.
+   - **Aider’s own output** – In the Mayor pane you should see: repo map updates, "Add file to the chat? (Y)es...", model replies, and (if it made edits) confirmation of changes. Token counts (e.g. "15k sent, 945 received") and progress (e.g. "Updating repo map: ...") show activity.
+   - **Ollama** – If you run Ollama in a separate terminal, `POST /api/generate` requests with long durations (tens of seconds) mean the model is being used by Aider.
+
+3. **"Repo-map can't include .../crew/naskow/..."** – Aider is trying to map a path that’s missing or unreadable (e.g. deleted on disk but still in Git, or a typo like `naskow` vs `nasko`). You can add `crew/` (or the specific path) to `.aiderignore` in the repo root so Aider skips it and the warning goes away. The rest of the repo can still work.
+
+4. **Large repo (1,743 files)** – Aider’s warning suggests using `--subtree-only` and `.aiderignore` for big repos. That’s optional; without it, Aider still runs but may use more tokens and ask to add many files. To narrow scope, add directories to `.aiderignore` (e.g. `polecats/`, `crew/`) if you don’t need them for the current task.
+
 ### go install gastown fails: "invalid go version '1.25.6': must match format 1.23"
 
 The upstream `go.mod` declares `go 1.25.6` (v0.8.0) or `go 1.24.2` (v0.7.0); older Go toolchains only accept a two-part version (e.g. `1.23`). Building from source with `go 1.23` in go.mod can then fail with **"package cmp/slices/maps/log/slog is not in GOROOT"** — the code needs **Go 1.22+** standard library. So you need a newer Go.
