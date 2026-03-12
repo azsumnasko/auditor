@@ -166,7 +166,9 @@ def generate_insights_md(data, by_project, out_path):
             lines.append(f"- **Unblock the {blocked_count} blocked issues.** Oldest: " + ", ".join(f"{k} ({a:.0f}d)" for k, a in data.get("blocked_oldest", [])[:3]) + ".")
         if open_bugs:
             top_bugs = data.get("oldest_open_bugs", [])[:5]
-            lines.append("- **Triage or close oldest open bugs** (53 open; median age ~398 days). Top: " + ", ".join(b["key"] + " (" + str(round(b["age_days"])) + "d)" for b in top_bugs) + ".")
+            median_bug_age = open_bugs_age.get("p50_days")
+            age_text = f"; median age ~{median_bug_age:.0f} days" if median_bug_age is not None else ""
+            lines.append(f"- **Triage or close oldest open bugs** ({open_bugs} open{age_text}). Top: " + ", ".join(b["key"] + " (" + str(round(b["age_days"])) + "d)" for b in top_bugs) + ".")
         lines.append("")
     else:
         lines.append("- No blocked issues or open bugs in scope.")
@@ -193,8 +195,10 @@ def generate_insights_md(data, by_project, out_path):
             actions.append(f"Address oldest bugs ({bugs[0]['key']} – {bugs[0]['age_days']:.0f} days)")
         if kanban and (kanban.get("issue_count") or 0) > 0 and (kanban.get("done_count") or 0) < 10:
             actions.append(f"Kanban: only {kanban.get('done_count')} done on board – review flow and WIP limits")
-        if sprint_sum and (sprint_sum.get("total_throughput_done") or 0) == 0 and sprint_sum.get("sprint_count", 0) > 0:
-            actions.append("Scrum: no story points reported – consider enabling story points on the board")
+        proj_metrics = (data.get("by_project") or {}).get(p, {})
+        sp_history = (((proj_metrics.get("sp_trend") or {}).get("by_month")) or {})
+        if sprint_sum and sprint_sum.get("sprint_count", 0) > 0 and not sp_history:
+            actions.append("Scrum: no story point trend data in done work – consider enabling or standardizing story points on the board")
 
         if actions:
             lines.append(f"- **{p}:** " + "; ".join(actions) + ".")

@@ -1,2 +1,0 @@
-# Shell scripts must use LF so they run in WSL/Linux (e.g. qwen-agent.sh)
-*.sh text eol=lf

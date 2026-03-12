@@ -29,6 +29,34 @@ def _jql_project_list(keys):
     """Project list for JQL: quote reserved words so e.g. project key 'IN' works."""
     return ", ".join(f'"{k}"' if k.lower() in JQL_RESERVED else k for k in keys)
 
+
+def _load_board_id_overrides():
+    """
+    Optional explicit project -> board id mapping.
+
+    Set JIRA_BOARD_ID_OVERRIDES to a JSON object like:
+      {"OZN": 12, "WMS": 34}
+    """
+    raw = os.environ.get("JIRA_BOARD_ID_OVERRIDES", "").strip()
+    if not raw:
+        return {}
+    try:
+        parsed = _json.loads(raw)
+    except Exception:
+        return {}
+    overrides = {}
+    if not isinstance(parsed, dict):
+        return overrides
+    for key, value in parsed.items():
+        try:
+            overrides[str(key).upper()] = int(value)
+        except (TypeError, ValueError):
+            continue
+    return overrides
+
+
+BOARD_ID_OVERRIDES = _load_board_id_overrides()
+
 # You can tweak these to match your workflow
 DONE_CATEGORY = "done"         # Jira statusCategory key: "new", "indeterminate", "done"
 INPROGRESS_CATEGORY = "indeterminate"
@@ -135,6 +163,19 @@ class JiraClient:
         """Try to get sprint report (may include added/removed counts). Returns None if not available."""
         try:
             return self._get(f"/rest/agile/1.0/board/{board_id}/sprint/{sprint_id}")
+        except Exception:
+            return None
+
+    def get_sprint_scope_report(self, board_id, sprint_id):
+        """
+        Try the older sprint report endpoint that exposes punted/removed issues.
+        Returns None if not available in this Jira instance.
+        """
+        try:
+            return self._get(
+                "/rest/greenhopper/1.0/rapid/charts/sprintreport",
+                params={"rapidViewId": board_id, "sprintId": sprint_id},
+            )
         except Exception:
             return None
 
@@ -849,6 +890,109 @@ def _project_key(issue):
     return p.get("key", "?") if isinstance(p, dict) else "?"
 
 
+def _select_project_board(project_key, boards):
+    """
+    Choose a board for a project using explicit overrides first, then a stable fallback.
+    """
+    if not boards:
+        return None
+
+    override_id = BOARD_ID_OVERRIDES.get(project_key)
+    if override_id is not None:
+        for board in boards:
+            if board.get("id") == override_id:
+                return board
+
+    def score(board):
+        name = (board.get("name") or "").lower()
+        btype = (board.get("type") or "").lower()
+        location = board.get("location") or {}
+        location_key = (location.get("projectKey") or "").upper()
+        location_name = (location.get("projectName") or "").lower()
+
+        points = 0
+        if location_key == project_key:
+            points += 100
+        if project_key.lower() in name:
+            points += 20
+        if project_key.lower() in location_name:
+            points += 10
+        if btype == "scrum":
+            points += 3
+        elif btype == "kanban":
+            points += 2
+        return (points, -(board.get("id") or 0))
+
+    return sorted(boards, key=score, reverse=True)[0]
+
+
+def _scope_metrics(
+    *,
+    wip_list,
+    blocked_list,
+    done_list,
+    done_90_list,
+    open_bug_list,
+    created_list,
+    story_points_field,
+    now,
+    team_field_id=None,
+):
+    ages = [bug_age_days(it, now=now) for it in wip_list]
+    ages = [a for a in ages if a is not None]
+    status_dist = dict(status_distribution(wip_list))
+    ab_done = _assignee_breakdown(done_list)
+    ac_done = [v for k, v in ab_done.items() if k != "(unassigned)"]
+    tis = _time_in_status(done_90_list)
+
+    lead_vals = [lead_time_days(it) for it in done_list]
+    lead_vals = [v for v in lead_vals if v is not None]
+    cycle_vals = [cycle_time_days_from_changelog(it) for it in done_90_list]
+    cycle_vals = [v for v in cycle_vals if v is not None]
+
+    metrics = {
+        "wip_count": len(wip_list),
+        "status_distribution": status_dist,
+        "wip_by_phase": wip_by_phase(status_dist),
+        "wip_components": _component_breakdown(wip_list),
+        "wip_status_by_component": _status_by_component(wip_list),
+        "wip_aging_days": summarize_time_metrics(ages) if ages else None,
+        "blocked_count": len(blocked_list),
+        "open_bugs_count": len(open_bug_list),
+        "throughput_by_week": dict(throughput_weekly(done_list)),
+        "lead_time_days": summarize_time_metrics(lead_vals) if lead_vals else None,
+        "lead_time_distribution": lead_time_distribution(done_list),
+        "cycle_time_days": summarize_time_metrics(cycle_vals) if cycle_vals else None,
+        "wip_issuetype": _issuetype_breakdown(wip_list),
+        "done_issuetype": _issuetype_breakdown(done_list),
+        "wip_priority": _priority_breakdown(wip_list),
+        "unassigned_wip_count": _unassigned_count(wip_list),
+        "resolution_breakdown": _resolution_breakdown(done_list),
+        "resolution_by_weekday": _resolution_by_weekday(done_list),
+        "done_assignees": dict(sorted(ab_done.items(), key=lambda x: -x[1])[:20]),
+        "workload_gini": _gini_coefficient(ac_done),
+        "bulk_closure_days": _bulk_closures(done_list),
+        "status_path_analysis": _status_path_analysis(done_90_list),
+        "time_in_status": tis,
+        "closer_analysis": _closer_analysis(done_90_list),
+        "reopen_analysis": _reopen_count(done_90_list),
+        "flow_efficiency": _flow_efficiency(tis),
+        "empty_description_wip_pct": _empty_description_pct(wip_list),
+        "empty_description_done_pct": _empty_description_pct(done_list),
+        "zero_comment_done_pct": _zero_comment_pct(done_list),
+        "orphan_done_pct": _orphan_pct(done_list),
+        "wip_assignees": dict(sorted(_assignee_breakdown(wip_list).items(), key=lambda x: -x[1])[:20]),
+        "assignee_change_near_resolution": _assignee_change_near_resolution(done_90_list),
+        "comment_timing": _comment_timing(done_90_list),
+        "worklog_analysis": _worklog_analysis(done_90_list, sp_field=story_points_field),
+        "created_by_week": _created_by_week(created_list),
+        "sp_trend": _sp_trend(done_list, story_points_field),
+        "bug_creation_by_week": _bug_creation_by_week(done_list, open_bug_list),
+        "wip_teams": _team_breakdown(wip_list, team_field_id) if team_field_id else {},
+    }
+    return metrics
+
+
 # ----------------------------
 # Phase 4/5/6: New metric helpers
 # ----------------------------
@@ -1217,6 +1361,17 @@ def main():
             print(f"  {key} - {age:.1f} days")
     results["blocked_count"] = len(blocked_issues)
     results["blocked_oldest"] = [(key, round(age, 1)) for age, key, _ in sorted(blocked_with_age, reverse=True)[:10]]
+    blocked_issue_lookup = {it.get("key", "?"): it for it in blocked_issues}
+    results["blocked_oldest_details"] = [
+        {
+            "key": key,
+            "project": _project_key(blocked_issue_lookup.get(key, {})),
+            "age_days": round(age, 1),
+            "summary": str((blocked_issue_lookup.get(key, {}).get("fields") or {}).get("summary") or "")[:80],
+            "components": _issue_components(blocked_issue_lookup.get(key, {})),
+        }
+        for age, key, _ in sorted(blocked_with_age, reverse=True)[:10]
+    ]
 
     # ---------
     # 2) Throughput per week (done issues)
@@ -1274,6 +1429,7 @@ def main():
     # Phase 5a: Created vs Resolved trend
     print("\nPulling created issues (last 180d) for trend analysis...")
     jql_created = f'project in ({projects_jql}) AND created >= -180d'
+    created_issues = []
     try:
         created_issues = jira.search(jql_created, fields=["project", "issuetype", "created", "components"], max_results=10000)
         results["created_by_week"] = _created_by_week(created_issues)
@@ -1334,7 +1490,17 @@ def main():
     bug_ages.sort(reverse=True)
     results["open_bugs_count"] = len(open_bugs)
     results["open_bugs_age_days"] = summarize_time_metrics(bug_age_values)
-    results["oldest_open_bugs"] = [{"key": key, "project": proj, "age_days": round(age, 1), "summary": str(summary or "")[:80]} for age, key, summary, proj in bug_ages[:15]]
+    open_bug_lookup = {it.get("key", "?"): it for it in open_bugs}
+    results["oldest_open_bugs"] = [
+        {
+            "key": key,
+            "project": proj,
+            "age_days": round(age, 1),
+            "summary": str(summary or "")[:80],
+            "components": _issue_components(open_bug_lookup.get(key, {})),
+        }
+        for age, key, summary, proj in bug_ages[:15]
+    ]
     print("\nOldest open bugs (top 15):")
     for age, key, summary, proj in bug_ages[:15]:
         try:
@@ -1357,190 +1523,147 @@ def main():
     results["bug_creation_by_week"] = dict(bug_created_weekly)
 
     # ---------
-    # Per-project metrics (for dashboard project filter)
+    # Scoped metrics for dashboard filters
     # ---------
     by_project = {}
+    by_component = {}
+    by_project_component = defaultdict(dict)
+
     wip_by_p = defaultdict(list)
-    for it in wip_issues:
-        wip_by_p[_project_key(it)].append(it)
     blocked_by_p = defaultdict(list)
-    for it in blocked_issues:
-        blocked_by_p[_project_key(it)].append(it)
     done_by_p = defaultdict(list)
-    for it in done_issues:
-        done_by_p[_project_key(it)].append(it)
     done_90_by_p = defaultdict(list)
-    for it in done_issues_90:
-        done_90_by_p[_project_key(it)].append(it)
     open_bugs_by_p = defaultdict(list)
-    for it in open_bugs:
-        open_bugs_by_p[_project_key(it)].append(it)
+    created_by_p = defaultdict(list)
+
+    wip_by_c = defaultdict(list)
+    blocked_by_c = defaultdict(list)
+    done_by_c = defaultdict(list)
+    done_90_by_c = defaultdict(list)
+    open_bugs_by_c = defaultdict(list)
+    created_by_c = defaultdict(list)
+
+    wip_by_pc = defaultdict(lambda: defaultdict(list))
+    blocked_by_pc = defaultdict(lambda: defaultdict(list))
+    done_by_pc = defaultdict(lambda: defaultdict(list))
+    done_90_by_pc = defaultdict(lambda: defaultdict(list))
+    open_bugs_by_pc = defaultdict(lambda: defaultdict(list))
+    created_by_pc = defaultdict(lambda: defaultdict(list))
+
+    def _group_project_scope(target, issues):
+        for issue in issues:
+            target[_project_key(issue)].append(issue)
+
+    def _group_component_scope(target, issues):
+        for issue in issues:
+            for comp_name in _issue_components(issue):
+                target[comp_name].append(issue)
+
+    def _group_project_component_scope(target, issues):
+        for issue in issues:
+            project_key = _project_key(issue)
+            for comp_name in _issue_components(issue):
+                target[project_key][comp_name].append(issue)
+
+    _group_project_scope(wip_by_p, wip_issues)
+    _group_project_scope(blocked_by_p, blocked_issues)
+    _group_project_scope(done_by_p, done_issues)
+    _group_project_scope(done_90_by_p, done_issues_90)
+    _group_project_scope(open_bugs_by_p, open_bugs)
+    _group_project_scope(created_by_p, created_issues)
+
+    _group_component_scope(wip_by_c, wip_issues)
+    _group_component_scope(blocked_by_c, blocked_issues)
+    _group_component_scope(done_by_c, done_issues)
+    _group_component_scope(done_90_by_c, done_issues_90)
+    _group_component_scope(open_bugs_by_c, open_bugs)
+    _group_component_scope(created_by_c, created_issues)
+
+    _group_project_component_scope(wip_by_pc, wip_issues)
+    _group_project_component_scope(blocked_by_pc, blocked_issues)
+    _group_project_component_scope(done_by_pc, done_issues)
+    _group_project_component_scope(done_90_by_pc, done_issues_90)
+    _group_project_component_scope(open_bugs_by_pc, open_bugs)
+    _group_project_component_scope(created_by_pc, created_issues)
 
     for pk in PROJECT_KEYS:
-        wip_list = wip_by_p.get(pk, [])
-        ages = [bug_age_days(it, now=now) for it in wip_list]
-        ages = [a for a in ages if a is not None]
-        proj_status_dist = dict(status_distribution(wip_list))
-        done_list = done_by_p.get(pk, [])
-        done_90_list = done_90_by_p.get(pk, [])
-        ab_p = _assignee_breakdown(done_list)
-        ac_p = [v for k, v in ab_p.items() if k != "(unassigned)"]
-        tis_p = _time_in_status(done_90_list)
-
-        by_project[pk] = {
-            "wip_count": len(wip_list),
-            "status_distribution": proj_status_dist,
-            "wip_by_phase": wip_by_phase(proj_status_dist),
-            "wip_components": _component_breakdown(wip_list),
-            "wip_status_by_component": _status_by_component(wip_list),
-            "wip_aging_days": summarize_time_metrics(ages) if ages else None,
-            "blocked_count": len(blocked_by_p.get(pk, [])),
-            "open_bugs_count": len(open_bugs_by_p.get(pk, [])),
-            "throughput_by_week": dict(throughput_weekly(done_list)),
-            "lead_time_days": None,
-            "lead_time_distribution": lead_time_distribution(done_list),
-            "cycle_time_days": None,
-            # Phase 1
-            "wip_issuetype": _issuetype_breakdown(wip_list),
-            "done_issuetype": _issuetype_breakdown(done_list),
-            "wip_priority": _priority_breakdown(wip_list),
-            "unassigned_wip_count": _unassigned_count(wip_list),
-            "resolution_breakdown": _resolution_breakdown(done_list),
-            "resolution_by_weekday": _resolution_by_weekday(done_list),
-            "done_assignees": dict(sorted(ab_p.items(), key=lambda x: -x[1])[:20]),
-            "workload_gini": _gini_coefficient(ac_p),
-            "bulk_closure_days": _bulk_closures(done_list),
-            # Phase 2
-            "status_path_analysis": _status_path_analysis(done_90_list),
-            "time_in_status": tis_p,
-            "closer_analysis": _closer_analysis(done_90_list),
-            "reopen_analysis": _reopen_count(done_90_list),
-            "flow_efficiency": _flow_efficiency(tis_p),
-            # Phase 3
-            "empty_description_wip_pct": _empty_description_pct(wip_list),
-            "empty_description_done_pct": _empty_description_pct(done_list),
-            "zero_comment_done_pct": _zero_comment_pct(done_list),
-            "orphan_done_pct": _orphan_pct(done_list),
-            # Phase 4+
-            "wip_assignees": dict(sorted(_assignee_breakdown(wip_list).items(), key=lambda x: -x[1])[:20]),
-            "assignee_change_near_resolution": _assignee_change_near_resolution(done_90_list),
-            "comment_timing": _comment_timing(done_90_list),
-            "worklog_analysis": _worklog_analysis(done_90_list, sp_field=STORY_POINTS_FIELD),
-            "created_by_week": _created_by_week(wip_list + done_list),
-            "sp_trend": _sp_trend(done_list, STORY_POINTS_FIELD),
-            "bug_creation_by_week": _bug_creation_by_week(done_list, open_bugs_by_p.get(pk, [])),
-        }
-        lead_times_p = [lead_time_days(it) for it in done_list]
-        lead_times_p = [t for t in lead_times_p if t is not None]
-        if lead_times_p:
-            by_project[pk]["lead_time_days"] = summarize_time_metrics(lead_times_p)
-        cycle_times = [cycle_time_days_from_changelog(it) for it in done_90_list]
-        cycle_times = [t for t in cycle_times if t is not None]
-        if cycle_times:
-            by_project[pk]["cycle_time_days"] = summarize_time_metrics(cycle_times)
-    results["by_project"] = by_project
-
-    # ---------
-    # Per-component metrics (for dashboard component filter)
-    # ---------
-    wip_by_c = defaultdict(list)
-    for it in wip_issues:
-        for cn in _issue_components(it):
-            wip_by_c[cn].append(it)
-    blocked_by_c = defaultdict(list)
-    for it in blocked_issues:
-        for cn in _issue_components(it):
-            blocked_by_c[cn].append(it)
-    done_by_c = defaultdict(list)
-    for it in done_issues:
-        for cn in _issue_components(it):
-            done_by_c[cn].append(it)
-    done_90_by_c = defaultdict(list)
-    for it in done_issues_90:
-        for cn in _issue_components(it):
-            done_90_by_c[cn].append(it)
-    open_bugs_by_c = defaultdict(list)
-    for it in open_bugs:
-        for cn in _issue_components(it):
-            open_bugs_by_c[cn].append(it)
+        by_project[pk] = _scope_metrics(
+            wip_list=wip_by_p.get(pk, []),
+            blocked_list=blocked_by_p.get(pk, []),
+            done_list=done_by_p.get(pk, []),
+            done_90_list=done_90_by_p.get(pk, []),
+            open_bug_list=open_bugs_by_p.get(pk, []),
+            created_list=created_by_p.get(pk, []),
+            story_points_field=STORY_POINTS_FIELD,
+            now=now,
+            team_field_id=TEAM_FIELD_ID,
+        )
 
     all_comp_names = sorted(set(
-        list(wip_by_c) + list(blocked_by_c) + list(done_by_c)
-        + list(done_90_by_c) + list(open_bugs_by_c)
+        list(wip_by_c) + list(blocked_by_c) + list(done_by_c) +
+        list(done_90_by_c) + list(open_bugs_by_c) + list(created_by_c)
     ))
-    by_component = {}
     for cn in all_comp_names:
-        c_wip = wip_by_c.get(cn, [])
-        c_ages = [bug_age_days(it, now=now) for it in c_wip]
-        c_ages = [a for a in c_ages if a is not None]
-        c_status_dist = dict(status_distribution(c_wip))
-        c_done = done_by_c.get(cn, [])
-        c_done_90 = done_90_by_c.get(cn, [])
-        c_ab = _assignee_breakdown(c_done)
-        c_ac = [v for k, v in c_ab.items() if k != "(unassigned)"]
-        c_tis = _time_in_status(c_done_90)
+        by_component[cn] = _scope_metrics(
+            wip_list=wip_by_c.get(cn, []),
+            blocked_list=blocked_by_c.get(cn, []),
+            done_list=done_by_c.get(cn, []),
+            done_90_list=done_90_by_c.get(cn, []),
+            open_bug_list=open_bugs_by_c.get(cn, []),
+            created_list=created_by_c.get(cn, []),
+            story_points_field=STORY_POINTS_FIELD,
+            now=now,
+            team_field_id=TEAM_FIELD_ID,
+        )
 
-        by_component[cn] = {
-            "wip_count": len(c_wip),
-            "status_distribution": c_status_dist,
-            "wip_by_phase": wip_by_phase(c_status_dist),
-            "wip_aging_days": summarize_time_metrics(c_ages) if c_ages else None,
-            "blocked_count": len(blocked_by_c.get(cn, [])),
-            "open_bugs_count": len(open_bugs_by_c.get(cn, [])),
-            "throughput_by_week": dict(throughput_weekly(c_done)),
-            "lead_time_days": None,
-            "lead_time_distribution": lead_time_distribution(c_done),
-            "cycle_time_days": None,
-            "wip_issuetype": _issuetype_breakdown(c_wip),
-            "done_issuetype": _issuetype_breakdown(c_done),
-            "wip_priority": _priority_breakdown(c_wip),
-            "unassigned_wip_count": _unassigned_count(c_wip),
-            "resolution_breakdown": _resolution_breakdown(c_done),
-            "resolution_by_weekday": _resolution_by_weekday(c_done),
-            "done_assignees": dict(sorted(c_ab.items(), key=lambda x: -x[1])[:20]),
-            "workload_gini": _gini_coefficient(c_ac),
-            "bulk_closure_days": _bulk_closures(c_done),
-            "status_path_analysis": _status_path_analysis(c_done_90),
-            "time_in_status": c_tis,
-            "closer_analysis": _closer_analysis(c_done_90),
-            "reopen_analysis": _reopen_count(c_done_90),
-            "flow_efficiency": _flow_efficiency(c_tis),
-            "empty_description_wip_pct": _empty_description_pct(c_wip),
-            "empty_description_done_pct": _empty_description_pct(c_done),
-            "zero_comment_done_pct": _zero_comment_pct(c_done),
-            "orphan_done_pct": _orphan_pct(c_done),
-            "wip_assignees": dict(sorted(_assignee_breakdown(c_wip).items(), key=lambda x: -x[1])[:20]),
-            "assignee_change_near_resolution": _assignee_change_near_resolution(c_done_90),
-            "comment_timing": _comment_timing(c_done_90),
-            "worklog_analysis": _worklog_analysis(c_done_90, sp_field=STORY_POINTS_FIELD),
-            "created_by_week": _created_by_week(c_wip + c_done),
-            "sp_trend": _sp_trend(c_done, STORY_POINTS_FIELD),
-            "bug_creation_by_week": _bug_creation_by_week(c_done, open_bugs_by_c.get(cn, [])),
-        }
-        c_lead = [lead_time_days(it) for it in c_done]
-        c_lead = [t for t in c_lead if t is not None]
-        if c_lead:
-            by_component[cn]["lead_time_days"] = summarize_time_metrics(c_lead)
-        c_cycle = [cycle_time_days_from_changelog(it) for it in c_done_90]
-        c_cycle = [t for t in c_cycle if t is not None]
-        if c_cycle:
-            by_component[cn]["cycle_time_days"] = summarize_time_metrics(c_cycle)
+    for pk in PROJECT_KEYS:
+        component_names = sorted(set(
+            list(wip_by_pc.get(pk, {})) + list(blocked_by_pc.get(pk, {})) +
+            list(done_by_pc.get(pk, {})) + list(done_90_by_pc.get(pk, {})) +
+            list(open_bugs_by_pc.get(pk, {})) + list(created_by_pc.get(pk, {}))
+        ))
+        if not component_names:
+            continue
+        for cn in component_names:
+            by_project_component[pk][cn] = _scope_metrics(
+                wip_list=wip_by_pc.get(pk, {}).get(cn, []),
+                blocked_list=blocked_by_pc.get(pk, {}).get(cn, []),
+                done_list=done_by_pc.get(pk, {}).get(cn, []),
+                done_90_list=done_90_by_pc.get(pk, {}).get(cn, []),
+                open_bug_list=open_bugs_by_pc.get(pk, {}).get(cn, []),
+                created_list=created_by_pc.get(pk, {}).get(cn, []),
+                story_points_field=STORY_POINTS_FIELD,
+                now=now,
+                team_field_id=TEAM_FIELD_ID,
+            )
+
+    results["by_project"] = by_project
     results["by_component"] = by_component
+    results["by_project_component"] = {pk: dict(comp_map) for pk, comp_map in by_project_component.items()}
+    results["metric_metadata"] = {
+        "blocked_count": {"kind": "heuristic", "notes": "Derived from BLOCKED_JQL heuristic."},
+        "cycle_time_days": {"kind": "heuristic", "notes": "Computed from changelog and status-name heuristics."},
+        "created_by_week": {"kind": "exact", "window": "last_180d"},
+        "lead_time_days": {"kind": "exact", "window": "last_180d_done"},
+        "time_in_status": {"kind": "exact", "window": "last_90d_done_with_changelog"},
+    }
     print(f"\nPer-component metrics computed for {len(by_component)} components.")
+    print(f"Per project+component metrics computed for {sum(len(v) for v in by_project_component.values())} scopes.")
 
     # ---------
     # 5) Boards: Scrum (sprints + velocity) + Kanban (WIP by status)
     # ---------
-    print("\nDiscovering boards per project (first board each, you can refine later)...")
+    print("\nDiscovering boards per project (explicit override first, then scored fallback)...")
     boards = {}
     for pk in PROJECT_KEYS:
         try:
             b = jira.list_boards_for_project(pk)
             vals = b.get("values", [])
             if vals:
-                boards[pk] = vals[0]  # pick first
-                btype = vals[0].get("type", "unknown")
-                print(f"  {pk}: board {vals[0]['id']} - {vals[0]['name']} ({btype})")
+                selected_board = _select_project_board(pk, vals)
+                boards[pk] = selected_board
+                btype = selected_board.get("type", "unknown")
+                print(f"  {pk}: board {selected_board['id']} - {selected_board['name']} ({btype})")
             else:
                 print(f"  {pk}: no boards found")
         except Exception as e:
@@ -1618,7 +1741,7 @@ def main():
         removed_during_sprint = None
         report = None
         try:
-            report = jira.get_sprint_report(board_id, sprint_id)
+            report = jira.get_sprint_scope_report(board_id, sprint_id)
             if isinstance(report, dict):
                 contents = report.get("contents") or report.get("completedIssues")
                 if isinstance(contents, dict) and "issueKeysRemovedFromSprint" in contents:
@@ -1627,6 +1750,17 @@ def main():
                     removed_during_sprint = len(report["issueKeysRemovedFromSprint"])
         except Exception:
             pass
+        if removed_during_sprint is None:
+            try:
+                report = jira.get_sprint_report(board_id, sprint_id)
+                if isinstance(report, dict):
+                    contents = report.get("contents") or report.get("completedIssues")
+                    if isinstance(contents, dict) and "issueKeysRemovedFromSprint" in contents:
+                        removed_during_sprint = len(contents.get("issueKeysRemovedFromSprint") or [])
+                    elif isinstance(report.get("issueKeysRemovedFromSprint"), list):
+                        removed_during_sprint = len(report["issueKeysRemovedFromSprint"])
+            except Exception:
+                pass
         if removed_during_sprint is None and isinstance(report, dict):
             for key in ("puntedIssues", "removedIssues", "issuesNotCompletedInCurrentSprint"):
                 if isinstance(report.get(key), list):
@@ -1738,6 +1872,7 @@ def main():
                 "project": _project_key(ep),
                 "summary": (ep_fields.get("summary") or "")[:80],
                 "age_days": round(ep_age, 1) if ep_age else 0,
+                "components": _issue_components(ep),
                 "total_children": total_children,
                 "done_children": done_children,
                 "completion_pct": pct,

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Path B: Lightweight Gas Town-style dispatcher for 14 local Qwen agents.
+Path B: Lightweight Gas Town-style dispatcher for parallel coding agents.
 - Maintains a pool of worktrees (ozon-w1 .. ozon-w14).
+- Worker backend: Claude Code (claude -p) or Aider. Set "worker_backend" in dispatch_config.json.
 - Task source: Beads (bd) if installed and .beads exists; else file-based task_queue.json (no bd required).
 - When a worker exits, marks task done and assigns the next to that slot.
 - If using file queue and task_queue.json is missing, seeds from built-in list (self-improving).
@@ -313,15 +314,18 @@ def _beads_from_list(data: Any) -> list[dict[str, Any]]:
     return []
 
 
-def bd_list_open_json(repo_root: Path) -> list[dict[str, Any]]:
-    """Return open beads (no dependency check). Used when bd ready is empty."""
+def bd_list_status_json(repo_root: Path, status: str) -> list[dict[str, Any]]:
+    """Return beads for a specific status from bd list; fail-safe on timeout/errors."""
     for args in (
-        ["bd", "list", "--status", "open", "--json"],
+        ["bd", "list", "--status", status, "--json"],
         ["bd", "list", "--json"],
-        ["bd", "list", "--status", "open"],
+        ["bd", "list", "--status", status],
         ["bd", "list"],
     ):
-        r = subprocess.run(args, cwd=repo_root, capture_output=True, text=True, timeout=30, **_SUBPROCESS_ENCODING)
+        try:
+            r = subprocess.run(args, cwd=repo_root, capture_output=True, text=True, timeout=30, **_SUBPROCESS_ENCODING)
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            continue
         if r.returncode != 0:
             continue
         raw = (r.stdout or "").strip()
@@ -330,6 +334,8 @@ def bd_list_open_json(repo_root: Path) -> list[dict[str, Any]]:
         try:
             data = json.loads(raw)
             beads = _beads_from_list(data)
+            if args[1:3] == ["list", "--json"]:
+                beads = [b for b in beads if (str((next((x for x in (data if isinstance(data, list) else data.get("issues", [])) if isinstance(x, dict) and str(x.get("id") or x.get("hash") or x.get("key")) == b["id"]), {}) ).get("status", "")).lower() == status.lower())]
             if beads:
                 return beads
         except json.JSONDecodeError:
@@ -337,6 +343,11 @@ def bd_list_open_json(repo_root: Path) -> list[dict[str, Any]]:
             if beads:
                 return beads
     return []
+
+
+def bd_list_open_json(repo_root: Path) -> list[dict[str, Any]]:
+    """Return open beads (no dependency check). Used when bd ready is empty."""
+    return bd_list_status_json(repo_root, "open")
 
 
 def bd_ready_json(repo_root: Path) -> list[dict[str, Any]]:
@@ -352,16 +363,19 @@ def bd_ready_json(repo_root: Path) -> list[dict[str, Any]]:
         )
         if r.returncode == 0 and r.stdout.strip():
             return json.loads(r.stdout)
-    except (json.JSONDecodeError, FileNotFoundError):
+    except (json.JSONDecodeError, subprocess.TimeoutExpired, FileNotFoundError):
         pass
-    r = subprocess.run(
-        ["bd", "ready"],
-        cwd=repo_root,
-        capture_output=True,
-        text=True,
-        timeout=30,
-        **_SUBPROCESS_ENCODING,
-    )
+    try:
+        r = subprocess.run(
+            ["bd", "ready"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            **_SUBPROCESS_ENCODING,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return []
     if r.returncode != 0:
         return []
     return _parse_bd_bead_lines(r.stdout)
@@ -385,7 +399,19 @@ def bd_show(repo_root: Path, bead_id: str) -> str:
 def bd_claim(repo_root: Path, bead_id: str) -> bool:
     """Mark bead in_progress (claim)."""
     r = subprocess.run(
-        ["bd", "update", bead_id, "--status=in_progress"],
+        ["bd", "update", bead_id, "--status", "in_progress"],
+        cwd=repo_root,
+        capture_output=True,
+        timeout=10,
+        **_SUBPROCESS_ENCODING,
+    )
+    return r.returncode == 0
+
+
+def bd_reopen(repo_root: Path, bead_id: str) -> bool:
+    """Re-open bead for retry."""
+    r = subprocess.run(
+        ["bd", "update", bead_id, "--status", "open"],
         cwd=repo_root,
         capture_output=True,
         timeout=10,
@@ -395,7 +421,7 @@ def bd_claim(repo_root: Path, bead_id: str) -> bool:
 
 
 def bd_close(repo_root: Path, bead_id: str) -> bool:
-    """Close bead and sync."""
+    """Close bead quickly; sync is done periodically in main loop."""
     r = subprocess.run(
         ["bd", "close", bead_id],
         cwd=repo_root,
@@ -403,10 +429,18 @@ def bd_close(repo_root: Path, bead_id: str) -> bool:
         timeout=10,
         **_SUBPROCESS_ENCODING,
     )
-    if r.returncode != 0:
-        return False
-    subprocess.run(["bd", "sync"], cwd=repo_root, capture_output=True, timeout=30, **_SUBPROCESS_ENCODING)
-    return True
+    return r.returncode == 0
+
+
+def bd_sync(repo_root: Path) -> None:
+    """Best-effort periodic sync to avoid blocking task-close path."""
+    subprocess.run(
+        ["bd", "sync"],
+        cwd=repo_root,
+        capture_output=True,
+        timeout=30,
+        **_SUBPROCESS_ENCODING,
+    )
 
 
 def write_task_file(worktree_root: Path, content: str) -> None:
@@ -432,7 +466,24 @@ def ensure_worktree(
 ) -> bool:
     """Create worktree if it doesn't exist. Uses a dedicated branch per worktree so main isn't checked out twice."""
     if worktree_path.exists():
-        return True
+        # The directory can exist with stale/broken .git metadata (e.g. after prune/manual deletion).
+        # Validate it's an actual git worktree before reusing it.
+        chk = subprocess.run(
+            ["git", "rev-parse", "--is-inside-work-tree"],
+            cwd=worktree_path,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            **_SUBPROCESS_ENCODING,
+        )
+        if chk.returncode == 0 and (chk.stdout or "").strip().lower() == "true":
+            return True
+        print(f"[worktree] stale folder detected, recreating: {worktree_path}", flush=True)
+        try:
+            shutil.rmtree(worktree_path)
+        except OSError as e:
+            print(f"[worktree] failed to remove stale folder {worktree_path}: {e}", file=sys.stderr)
+            return False
     # Ensure the worktree branch exists (create from base_branch if not)
     r = subprocess.run(
         ["git", "rev-parse", "--verify", worktree_branch],
@@ -474,17 +525,31 @@ def ensure_worktree(
 def run_worker(
     worktree_root: Path,
     task_content: str,
-    aider_cmd: str,
+    worker_cmd: str,
     model: str,
+    backend: str = "aider",
 ) -> subprocess.Popen:
-    """Start Aider in worktree with task file; return Popen."""
+    """Start a coding agent in worktree with task; return Popen.
+
+    backend: "aider" (default) or "claude" (Claude Code CLI).
+    """
     write_task_file(worktree_root, task_content)
     env = os.environ.copy()
     if sys.platform == "win32":
         env.setdefault("PYTHONIOENCODING", "utf-8")
         env["_DISPATCH_CWD"] = str(worktree_root)
 
-    # --message-file: process task, then exit (no chat mode). --yes: auto-accept all prompts so we don't block headless.
+    if backend == "claude":
+        return _run_worker_claude(worktree_root, task_content, worker_cmd, model, env)
+    return _run_worker_aider(worktree_root, worker_cmd, model, env)
+
+
+def _run_worker_aider(
+    worktree_root: Path,
+    aider_cmd: str,
+    model: str,
+    env: dict[str, str],
+) -> subprocess.Popen:
     aider_args = [
         aider_cmd,
         "--model",
@@ -495,7 +560,6 @@ def run_worker(
         "--no-show-model-warnings",
     ]
     if _USE_WRAPPER_WIN:
-        # Run worker via a Python one-liner so we never attach to the real process's stdout/stderr (avoids _readerthread + cp1252 UnicodeDecodeError).
         real_cmd = aider_args
         wrapper_code = (
             "import subprocess,sys,os; "
@@ -516,6 +580,56 @@ def run_worker(
         stderr=_NULL_DEV,
         env=env,
     )
+
+
+def _run_worker_claude(
+    worktree_root: Path,
+    task_content: str,
+    claude_cmd: str,
+    model: str,
+    env: dict[str, str],
+) -> subprocess.Popen:
+    """Launch Claude Code in non-interactive print mode with full tool permissions."""
+    claude_args = [
+        claude_cmd,
+        "-p",
+        "--model", model,
+        "--dangerously-skip-permissions",
+    ]
+    if _USE_WRAPPER_WIN:
+        wrapper_code = (
+            "import subprocess,sys,os; "
+            "i=sys.argv.index('--'); "
+            "r=subprocess.run(sys.argv[i+1:], cwd=os.environ.get('_DISPATCH_CWD','.'), "
+            "input=os.environ.get('_DISPATCH_PROMPT',''), text=True, "
+            "stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); "
+            "sys.exit(r.returncode)"
+        )
+        env["_DISPATCH_PROMPT"] = task_content
+        cmd = [sys.executable, "-c", wrapper_code, "--"] + claude_args
+        return subprocess.Popen(
+            cmd,
+            cwd=None,
+            stdin=subprocess.DEVNULL,
+            stdout=_NULL_DEV,
+            stderr=_NULL_DEV,
+            env=env,
+        )
+
+    proc = subprocess.Popen(
+        claude_args,
+        cwd=worktree_root,
+        stdin=subprocess.PIPE,
+        stdout=_NULL_DEV,
+        stderr=_NULL_DEV,
+        env=env,
+    )
+    try:
+        proc.stdin.write(task_content.encode("utf-8"))
+        proc.stdin.close()
+    except OSError:
+        pass
+    return proc
 
 
 def merge_worktree_into_main(
@@ -697,8 +811,9 @@ def main() -> int:
     num_workers = int(config.get("num_workers", 14))
     prefix = config.get("worktree_prefix", "ozon-w")
     # Worktrees: sibling dirs repo_root/../ozon-w1, ... or repo_root/worktrees/w1
-    model = config.get("model", "ollama/qwen3-coder:30b")
-    aider_cmd = config.get("aider_cmd", "aider")
+    worker_backend = config.get("worker_backend", "aider")
+    model = config.get("claude_model", "sonnet") if worker_backend == "claude" else config.get("model", "ollama/qwen3-coder:30b")
+    worker_cmd = config.get("claude_cmd", "claude") if worker_backend == "claude" else config.get("aider_cmd", "aider")
 
     # worktree_placement: "sibling" = repo_root/../ozon-w1, "inside" = repo_root/worktrees/w1
     placement = config.get("worktree_placement", "sibling")
@@ -714,6 +829,12 @@ def main() -> int:
     use_merge_slot = config.get("merge_slot", True)
     auto_retry_merge_on_conflict_close = config.get("auto_retry_merge_on_conflict_close", True)
     worker_timeout_secs = int(config.get("worker_timeout_secs", 1800) or 0)  # default 30 min; 0 = no timeout
+    max_worker_retries = int(config.get("max_worker_retries", 2) or 0)
+    poll_interval_secs = float(config.get("poll_interval_secs", 0.5) or 0.5)
+    bd_sync_interval_secs = float(config.get("bd_sync_interval_secs", 30) or 30)
+    auto_unblock_in_progress = bool(config.get("auto_unblock_in_progress", True))
+    auto_unblock_interval_secs = float(config.get("auto_unblock_interval_secs", 60) or 60)
+    auto_unblock_max_items = int(config.get("auto_unblock_max_items", 10) or 10)
     # Prune stale worktrees so we can recreate if user deleted worktrees/ with Remove-Item
     prune_stale_worktrees(repo_root)
     # Each worktree gets its own branch (worker-w1, worker-w2, ...) so we don't check out main twice
@@ -725,8 +846,16 @@ def main() -> int:
 
     slots: list[dict[str, Any] | None] = [None] * num_workers
     assigned_beads: set[str] = set()
+    retry_counts: dict[str, int] = {}
+    retry_queue: list[dict[str, Any]] = []
 
     def get_next_ready_bead() -> dict[str, Any] | None:
+        # Prioritize automatic retries before fetching fresh work.
+        while retry_queue:
+            b = retry_queue.pop(0)
+            bid = b.get("id")
+            if bid and bid not in assigned_beads:
+                return b
         if beads_mode:
             beads = bd_ready_json(repo_root)
             if not beads:
@@ -783,18 +912,55 @@ def main() -> int:
             mark_task_status(repo_root, bid, "in_progress")
         content = task_content(bead)
         wt = worktree_roots[slot_idx]
-        proc = run_worker(wt, content, aider_cmd, model)
-        slots[slot_idx] = {"bead_id": bid, "process": proc, "started_at": time.monotonic()}
+        proc = run_worker(wt, content, worker_cmd, model, backend=worker_backend)
+        slots[slot_idx] = {
+            "bead_id": bid,
+            "bead_title": title,
+            "process": proc,
+            "started_at": time.monotonic(),
+            "timed_out": False,
+        }
         print(f"[w{slot_idx + 1}] started {bid}: {title}", flush=True)
         return True
 
     def on_worker_done(slot_idx: int) -> None:
         bid = slots[slot_idx]["bead_id"]
+        title = slots[slot_idx].get("bead_title", bid)
+        proc = slots[slot_idx]["process"]
+        exit_code = proc.returncode if proc.returncode is not None else proc.poll()
+        timed_out = bool(slots[slot_idx].get("timed_out"))
+
+        # Retry path for failed/timed-out workers.
+        if exit_code not in (0, None):
+            attempt = retry_counts.get(bid, 0) + 1
+            retry_counts[bid] = attempt
+            assigned_beads.discard(bid)
+            if beads_mode:
+                bd_reopen(repo_root, bid)
+            else:
+                mark_task_status(repo_root, bid, "pending")
+            slots[slot_idx] = None
+
+            if attempt <= max_worker_retries:
+                retry_queue.append({"id": bid, "title": title})
+                reason = "timeout" if timed_out else f"exit {exit_code}"
+                print(
+                    f"[w{slot_idx + 1}] retry {attempt}/{max_worker_retries} for {bid} ({reason})",
+                    flush=True,
+                )
+            else:
+                print(
+                    f"[w{slot_idx + 1}] retries exhausted for {bid}; left open/pending",
+                    flush=True,
+                )
+            return
+
         if beads_mode:
             bd_close(repo_root, bid)
         else:
             mark_task_status(repo_root, bid, "done")
         assigned_beads.discard(bid)
+        retry_counts.pop(bid, None)
         print(f"[w{slot_idx + 1}] done   {bid}", flush=True)
         slots[slot_idx] = None
         # Auto-merge this worktree's branch into main (Gas Town-style: merge slot + conflict bead + pending retry)
@@ -819,7 +985,8 @@ def main() -> int:
                         release_merge_slot(repo_root)
 
     mode_str = "Beads" if beads_mode else "task_queue.json"
-    print(f"Dispatcher: {num_workers} workers, {mode_str}. Press Ctrl+C to stop.", flush=True)
+    backend_str = f"claude ({model})" if worker_backend == "claude" else f"aider ({model})"
+    print(f"Dispatcher: {num_workers} workers, {mode_str}, backend={backend_str}. Press Ctrl+C to stop.", flush=True)
 
     # Startup check: how much ready work?
     if beads_mode:
@@ -846,12 +1013,37 @@ def main() -> int:
         assign_slot(i)
 
     last_retry_time = 0.0
+    last_bd_sync_time = 0.0
+    last_auto_unblock_time = 0.0
     try:
         while True:
             now = time.monotonic()
             if auto_retry_merge_on_conflict_close and (now - last_retry_time) >= RETRY_PENDING_INTERVAL_SECS:
                 retry_pending_merges(repo_root, worktree_roots, prefix, base_branch, beads_mode, use_merge_slot)
                 last_retry_time = now
+            if beads_mode and (now - last_bd_sync_time) >= bd_sync_interval_secs:
+                bd_sync(repo_root)
+                last_bd_sync_time = now
+            if beads_mode and auto_unblock_in_progress and (now - last_auto_unblock_time) >= auto_unblock_interval_secs:
+                ready_now = bd_ready_json(repo_root)
+                open_now = bd_list_open_json(repo_root)
+                if not ready_now and not open_now:
+                    in_prog = bd_list_status_json(repo_root, "in_progress")
+                    unblocked = 0
+                    for b in in_prog:
+                        bid = b.get("id")
+                        if not bid or bid in assigned_beads:
+                            continue
+                        if bd_reopen(repo_root, bid):
+                            unblocked += 1
+                        if unblocked >= auto_unblock_max_items:
+                            break
+                    if unblocked > 0:
+                        print(
+                            f"[auto-unblock] reopened {unblocked} in_progress bead(s) because queue was empty",
+                            flush=True,
+                        )
+                last_auto_unblock_time = now
             for i in range(num_workers):
                 if slots[i] is None:
                     assign_slot(i)
@@ -861,6 +1053,7 @@ def main() -> int:
                 if worker_timeout_secs > 0 and (now - slots[i]["started_at"]) >= worker_timeout_secs:
                     if proc.poll() is None:
                         print(f"[w{i + 1}] worker timeout ({worker_timeout_secs}s), terminating", flush=True)
+                        slots[i]["timed_out"] = True
                         proc.terminate()
                         try:
                             proc.wait(timeout=10)
@@ -869,7 +1062,7 @@ def main() -> int:
                 if proc.poll() is not None:
                     on_worker_done(i)
                     assign_slot(i)
-            time.sleep(2)
+            time.sleep(poll_interval_secs)
     except KeyboardInterrupt:
         for i in range(num_workers):
             if slots[i] and slots[i]["process"].poll() is None:
