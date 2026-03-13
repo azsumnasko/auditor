@@ -6,6 +6,7 @@
 |-------|----------|---------|
 | **Coolify / env** | `SESSION_SECRET` | Required. Secret for signing JWT session cookies. Set a long random string in production. |
 | **Coolify** (optional) | `DATA_DIR` | Override data directory; default `/data` (must match volume mount). |
+| **Coolify** (optional) | `ADMIN_EMAIL` | If set, a user who logs in with this email is promoted to admin (for bootstrapping the first admin). |
 
 Per-user Jira config is stored in the SQLite DB (`/data/app.db`); users set it via the Config page after signup/login. Reports are generated on demand (Generate report on the Dashboard); the worker polls for pending jobs and runs analytics per user.
 
@@ -72,7 +73,22 @@ If path-based routing is hard to get right, use a **subdomain** so the app is at
 
 The Dockerfile now defaults to **no** base path, so a normal deploy (no build arg) serves the app at the **root** of the domain. Use **report.clean-horzon.tech** (or report.clear-horizon.tech) as the domain in Coolify and open **https://report.clean-horzon.tech** with no path.
 
+## Admin section
+
+Admins can open **Admin** (link in the nav when you are an admin) to manage users and assets:
+
+- **Users**: list users, set role (user / admin), delete users (cascade: config, jobs, and report file).
+- **Assets**: **Configs** (per-user Jira config; token masked; optional delete), **Jobs** (list/cancel pending or running), **Reports** (list users with a report file; delete file).
+
+### First admin
+
+- **Option A (env)**: Set `ADMIN_EMAIL` to the email of the first admin. The next time that user logs in, their role is set to admin. You can then remove `ADMIN_EMAIL` or leave it (subsequent logins keep them admin).
+- **Option B (SQL)**: Run against the app DB:  
+  `UPDATE users SET role = 'admin' WHERE id = 1;`  
+  (or `WHERE email = 'your@email.com';`). Use e.g. `sqlite3 /data/app.db` inside the config-ui container or from a host volume mount.
+
 ## Security
 
 - Passwords are hashed (bcrypt); Jira token is stored in SQLite and only used by the worker; never logged or returned in API responses.
 - Session is a signed JWT in an httpOnly cookie; set `SESSION_SECRET` to a strong secret in production.
+- Admin routes (`/admin`, `/api/admin/*`) require the current user to have role `admin`; non-admins get 403 or redirect.

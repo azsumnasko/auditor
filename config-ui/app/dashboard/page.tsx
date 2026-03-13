@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import AppNav from '@/app/components/AppNav';
 
 type JobStatus = { status: string | null; jobId: number | null; errorMessage: string | null; createdAt: string | null };
 
@@ -56,21 +57,9 @@ export default function DashboardPage() {
 
   const isPending = jobStatus?.status === 'pending' || jobStatus?.status === 'running';
 
-  const handleLogout = () => {
-    fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).then(() => {
-      window.location.href = '/login';
-    });
-  };
-
   return (
     <div className="dashboard">
-      <nav className="dashboard-nav">
-        <a href="/">Config</a>
-        <span className="nav-sep">|</span>
-        <a href="/dashboard" className="nav-active">Dashboard</a>
-        <span className="nav-sep">|</span>
-        <button type="button" onClick={handleLogout}>Logout</button>
-      </nav>
+      <AppNav activePage="dashboard" />
 
       <div className="dashboard-content">
         <h1 className="dashboard-title">Dashboard</h1>

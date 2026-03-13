@@ -22,8 +22,16 @@ function initSchema(database: Database.Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      role TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('user','admin'))
     );
+  `);
+  // Migration: add role column to existing DBs that don't have it
+  const tableInfo = database.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+  if (tableInfo && !tableInfo.some((c) => c.name === 'role')) {
+    database.exec(`ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'`);
+  }
+  database.exec(`
     CREATE TABLE IF NOT EXISTS config (
       user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
       jira_base_url TEXT NOT NULL,
@@ -42,25 +50,55 @@ function initSchema(database: Database.Database) {
   `);
 }
 
-export type User = { id: number; email: string; password_hash: string; created_at: string };
+export type User = { id: number; email: string; password_hash: string; created_at: string; role: string };
 export type ConfigRow = { user_id: number; jira_base_url: string; jira_email: string; jira_token: string; jira_project_keys: string };
 export type JobRow = { id: number; user_id: number; status: string; created_at: string; updated_at: string; error_message: string | null };
 
 export function createUser(email: string, passwordHash: string): { id: number } {
   const database = getDb();
-  const stmt = database.prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)');
-  const result = stmt.run(email.toLowerCase().trim(), passwordHash);
+  const stmt = database.prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)');
+  const result = stmt.run(email.toLowerCase().trim(), passwordHash, 'user');
   return { id: result.lastInsertRowid as number };
 }
 
 export function getUserByEmail(email: string): User | undefined {
   const database = getDb();
-  return database.prepare('SELECT id, email, password_hash, created_at FROM users WHERE email = ?').get(email.toLowerCase().trim()) as User | undefined;
+  return database.prepare('SELECT id, email, password_hash, created_at, role FROM users WHERE email = ?').get(email.toLowerCase().trim()) as User | undefined;
 }
 
 export function getUserById(id: number): User | undefined {
   const database = getDb();
-  return database.prepare('SELECT id, email, password_hash, created_at FROM users WHERE id = ?').get(id) as User | undefined;
+  return database.prepare('SELECT id, email, password_hash, created_at, role FROM users WHERE id = ?').get(id) as User | undefined;
+}
+
+export type UserPublic = { id: number; email: string; role: string; created_at: string };
+
+export function getAllUsers(): UserPublic[] {
+  const database = getDb();
+  return database.prepare('SELECT id, email, role, created_at FROM users ORDER BY id').all() as UserPublic[];
+}
+
+export function updateUserRole(id: number, role: 'user' | 'admin'): void {
+  const database = getDb();
+  database.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, id);
+}
+
+export function deleteUser(id: number): void {
+  const database = getDb();
+  database.prepare('DELETE FROM users WHERE id = ?').run(id);
+}
+
+export function countAdmins(): number {
+  const database = getDb();
+  const row = database.prepare("SELECT COUNT(*) as n FROM users WHERE role = 'admin'").get() as { n: number };
+  return row?.n ?? 0;
+}
+
+/** Count admins excluding one user (for safe demotion check – avoids TOCTOU). */
+export function countOtherAdmins(excludeUserId: number): number {
+  const database = getDb();
+  const row = database.prepare("SELECT COUNT(*) as n FROM users WHERE role = 'admin' AND id != ?").get(excludeUserId) as { n: number };
+  return row?.n ?? 0;
 }
 
 export function getConfig(userId: number): ConfigRow | undefined {
@@ -125,4 +163,46 @@ export function setJobFailed(jobId: number, errorMessage: string): void {
 
 export function getConfigForUser(userId: number): ConfigRow | undefined {
   return getConfig(userId);
+}
+
+export type JobWithUser = { id: number; user_id: number; user_email: string; status: string; created_at: string; updated_at: string; error_message: string | null };
+
+const JOB_STATUSES = ['pending', 'running', 'done', 'failed'] as const;
+
+export function getAllJobs(statusFilter?: string): JobWithUser[] {
+  const database = getDb();
+  if (statusFilter && JOB_STATUSES.includes(statusFilter as (typeof JOB_STATUSES)[number])) {
+    return database.prepare(`
+      SELECT j.id, j.user_id, u.email as user_email, j.status, j.created_at, j.updated_at, j.error_message
+      FROM jobs j JOIN users u ON j.user_id = u.id
+      WHERE j.status = ?
+      ORDER BY j.created_at DESC
+    `).all(statusFilter) as JobWithUser[];
+  }
+  return database.prepare(`
+    SELECT j.id, j.user_id, u.email as user_email, j.status, j.created_at, j.updated_at, j.error_message
+    FROM jobs j JOIN users u ON j.user_id = u.id
+    ORDER BY j.created_at DESC
+  `).all() as JobWithUser[];
+}
+
+export type ConfigWithUser = { user_id: number; user_email: string; jira_base_url: string; jira_email: string; jira_token: string; jira_project_keys: string };
+
+export function getAllConfigs(): ConfigWithUser[] {
+  const database = getDb();
+  return database.prepare(`
+    SELECT c.user_id, u.email as user_email, c.jira_base_url, c.jira_email, c.jira_token, c.jira_project_keys
+    FROM config c JOIN users u ON c.user_id = u.id
+    ORDER BY c.user_id
+  `).all() as ConfigWithUser[];
+}
+
+export function deleteConfig(userId: number): void {
+  const database = getDb();
+  database.prepare('DELETE FROM config WHERE user_id = ?').run(userId);
+}
+
+export function getJobById(id: number): { id: number; user_id: number; status: string } | undefined {
+  const database = getDb();
+  return database.prepare('SELECT id, user_id, status FROM jobs WHERE id = ?').get(id) as { id: number; user_id: number; status: string } | undefined;
 }

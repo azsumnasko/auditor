@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
+import * as db from './db';
 
 const COOKIE_NAME = 'session';
 const DEFAULT_SECRET = 'dev-secret-change-in-production';
@@ -38,6 +39,16 @@ export async function getSessionUserId(): Promise<number | null> {
   } catch {
     return null;
   }
+}
+
+export type SessionUser = { id: number; email: string; role: string };
+
+export async function getSessionUser(): Promise<SessionUser | null> {
+  const userId = await getSessionUserId();
+  if (!userId) return null;
+  const user = db.getUserById(userId);
+  if (!user) return null;
+  return { id: user.id, email: user.email, role: user.role };
 }
 
 export function getSessionCookieName(): string {

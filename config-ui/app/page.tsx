@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import AppNav from '@/app/components/AppNav';
 
 type ConfigStatus = { configured: boolean; emailHint?: string } | null;
 
@@ -90,13 +91,7 @@ export default function ConfigPage() {
 
   return (
     <main className="config-page">
-      <nav className="dashboard-nav">
-        <a href="/" className="nav-active">Config</a>
-        <span className="nav-sep">|</span>
-        <a href="/dashboard">Dashboard</a>
-        <span className="nav-sep">|</span>
-        <button type="button" onClick={() => fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).then(() => { window.location.href = '/login'; })}>Logout</button>
-      </nav>
+      <AppNav activePage="config" />
       <div className="config-content">
         <h1>Jira Analytics – Config</h1>
         <p>

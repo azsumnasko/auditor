@@ -26,6 +26,10 @@ export async function POST(request: NextRequest) {
   if (!ok) {
     return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
   }
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  if (adminEmail && email === adminEmail) {
+    db.updateUserRole(user.id, 'admin');
+  }
   const token = await createSession(user.id);
   const res = NextResponse.json({ ok: true });
   res.cookies.set(getSessionCookieName(), token, {
