@@ -11,7 +11,7 @@ export default function AppNav({ activePage, showAdminLink }: { activePage: Page
     if (showAdminLink !== undefined) return;
     fetch('/api/me', { credentials: 'include' })
       .then((r) => r.ok ? r.json() : null)
-      .then((data) => setIsAdmin(data?.role === 'admin' ?? false))
+      .then((data) => setIsAdmin(data?.role === 'admin'))
       .catch(() => setIsAdmin(false));
   }, [showAdminLink]);
 
