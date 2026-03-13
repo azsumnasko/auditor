@@ -29,9 +29,9 @@ Per-user Jira config is stored in the SQLite DB (`/data/app.db`); users set it v
 
 ---
 
-## Deploy at clean-horzon.tech/report (subpath)
+## Deploy at clear-horizon.tech/report (subpath)
 
-To serve the app at **https://clean-horzon.tech/report** (repo can be on GitHub or any Git host Coolify supports):
+To serve the app at **https://clear-horizon.tech/report** (repo can be on GitHub or any Git host Coolify supports):
 
 1. **New Application** in Coolify → **Docker Compose**.
 2. **Source**: Connect your Git source (e.g. **GitHub** — connect account or paste repo URL), select branch (e.g. `main`), set compose file path to `docker-compose.yml`.
@@ -41,12 +41,12 @@ To serve the app at **https://clean-horzon.tech/report** (repo can be on GitHub 
    - Optional: `DATA_DIR` = `/data`
 5. **Environment** for **worker**: optional `DATA_DIR` = `/data`.
 6. **Domain / URL**:
-   - Domain: `clean-horzon.tech`
+   - Domain: `clear-horizon.tech`
    - Path (if your Coolify version supports it): `/report`  
-   So traffic to `https://clean-horzon.tech/report` is sent to the config-ui container (port 3001).  
-   If Coolify only has “Domain”, set the domain to `clean-horzon.tech` and in the **Application URL** or **Path** field set `/report`. Exact labels depend on your Coolify UI.
+   So traffic to `https://clear-horizon.tech/report` is sent to the config-ui container (port 3001).  
+   If Coolify only has “Domain”, set the domain to `clear-horizon.tech` and in the **Application URL** or **Path** field set `/report`. Exact labels depend on your Coolify UI.
 7. **Persistent volume**: Ensure the Compose volume `jira_data` is persisted (Coolify usually keeps named volumes).
-8. **Deploy**. After deploy, open **https://clean-horzon.tech/report** → sign up / log in, configure Jira, then use the Dashboard to generate reports.
+8. **Deploy**. After deploy, open **https://clear-horizon.tech/report** → sign up / log in, configure Jira, then use the Dashboard to generate reports.
 
 ## Security
 
