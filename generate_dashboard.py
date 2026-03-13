@@ -9,8 +9,13 @@ import os
 import sys
 import html
 
+def _output_dir():
+    return os.environ.get("OUTPUT_DIR") or os.path.dirname(__file__)
+
+
 def load_data(path=None):
-    path = path or os.path.join(os.path.dirname(__file__), "jira_analytics_latest.json")
+    if path is None:
+        path = os.path.join(_output_dir(), "jira_analytics_latest.json")
     with open(path, encoding="utf-8") as f:
         return json.load(f)
 
@@ -23,7 +28,8 @@ def main():
     data = load_data(sys.argv[1] if len(sys.argv) > 1 else None)
     data_js = json.dumps(data, ensure_ascii=False)
     run_ts = data.get("run_iso_ts", "")
-    wip = data.get("wip_count", 0)
+    # Agile-friendly naming: open_count (all not done), open_by_phase (backlog, in_progress, in_review, blocked), wip_in_flight
+    open_count = data.get("open_count", data.get("wip_count", 0))
     blocked = data.get("blocked_count", 0)
     open_bugs = data.get("open_bugs_count", 0)
     throughput = data.get("throughput_by_week", {})
@@ -38,9 +44,18 @@ def main():
     oldest_bugs = data.get("oldest_open_bugs") or []
     sprint_metrics = data.get("sprint_metrics") or []
     kanban = data.get("kanban_boards") or []
-    wip_phase = data.get("wip_by_phase") or {}
+    # Prefer open_by_phase (backlog, in_progress, in_review, blocked); fallback to wip_by_phase (not_started, review_qa)
+    obp = data.get("open_by_phase") or {}
+    wbp = data.get("wip_by_phase") or {}
+    open_phase = {
+        "backlog": obp.get("backlog", wbp.get("not_started", 0)),
+        "in_progress": obp.get("in_progress", wbp.get("in_progress", 0)),
+        "in_review": obp.get("in_review", wbp.get("review_qa", 0)),
+        "blocked": obp.get("blocked", wbp.get("blocked", 0)),
+    }
+    wip_in_flight = data.get("wip_in_flight") or (open_phase["in_progress"] + open_phase["in_review"] + open_phase["blocked"])
+    unassigned_open = data.get("unassigned_open_count", data.get("unassigned_wip_count", 0))
     lt_dist = data.get("lead_time_distribution") or {}
-    unassigned_wip = data.get("unassigned_wip_count", 0)
     flow_eff = data.get("flow_efficiency") or {}
 
     wip_assignees = data.get("wip_assignees") or {}
@@ -54,6 +69,7 @@ def main():
     epic_health = data.get("epic_health") or []
     releases = data.get("releases") or []
     releases_per_month = data.get("releases_per_month") or {}
+    total_released_versions = data.get("total_released_versions", 0)
 
     projects = data.get("projects", [])
     all_components = sorted(set(wip_comp.keys()) | set(
@@ -104,10 +120,98 @@ def main():
         )
     sprint_rows_str = "".join(sprint_rows) if sprint_rows else "<tr><td colspan=\"10\">No sprint data</td></tr>"
 
+    # Empty or bad structure: list (WIP + Done with Scope column) and breakdowns
+    empty_bad_list_wip = data.get("empty_or_bad_list_wip") or []
+    empty_bad_list_done = data.get("empty_or_bad_list_done") or []
+    empty_bad_count_wip = data.get("empty_or_bad_count_wip", 0)
+    empty_bad_count_done = data.get("empty_or_bad_count_done", 0)
+    empty_bad_pct_wip = data.get("empty_or_bad_pct_wip", 0)
+    empty_bad_pct_done = data.get("empty_or_bad_pct_done", 0)
+    empty_or_bad_rows = []
+    for row in empty_bad_list_wip:
+        empty_or_bad_rows.append(
+            f'<tr data-scope="WIP" data-project="{html.escape(row.get("project", ""))}">'
+            f'<td>{html.escape(row.get("key", ""))}</td><td>WIP</td><td>{html.escape(row.get("project", ""))}</td>'
+            f'<td>{html.escape((row.get("summary") or "")[:60])}</td><td>{html.escape(row.get("status", ""))}</td>'
+            f'<td>{html.escape(row.get("assignee_display_name", ""))}</td></tr>'
+        )
+    for row in empty_bad_list_done:
+        empty_or_bad_rows.append(
+            f'<tr data-scope="Done" data-project="{html.escape(row.get("project", ""))}">'
+            f'<td>{html.escape(row.get("key", ""))}</td><td>Done</td><td>{html.escape(row.get("project", ""))}</td>'
+            f'<td>{html.escape((row.get("summary") or "")[:60])}</td><td>{html.escape(row.get("status", ""))}</td>'
+            f'<td>{html.escape(row.get("assignee_display_name", ""))}</td></tr>'
+        )
+    empty_or_bad_rows_str = "".join(empty_or_bad_rows) if empty_or_bad_rows else "<tr><td colspan=\"6\">None</td></tr>"
+    top_teams_wip = data.get("empty_or_bad_top_teams_wip") or {}
+    top_teams_done = data.get("empty_or_bad_top_teams_done") or {}
+    top_assignees_wip = data.get("empty_or_bad_top_assignees_wip") or {}
+    top_assignees_done = data.get("empty_or_bad_top_assignees_done") or {}
+    top_components_wip = data.get("empty_or_bad_top_components_wip") or {}
+    top_components_done = data.get("empty_or_bad_top_components_done") or {}
+    top_labels_wip = data.get("empty_or_bad_top_labels_wip") or {}
+    top_labels_done = data.get("empty_or_bad_top_labels_done") or {}
+    def _top5_table(d, empty_msg="None"):
+        if not d:
+            return f"<p class=\"summary-desc\">{empty_msg}</p>"
+        rows = "".join(f"<tr><td>{html.escape(k)}</td><td>{v}</td></tr>" for k, v in sorted(d.items(), key=lambda x: -x[1]))
+        return f'<table class="summary-table" style="font-size:0.8rem"><tbody>{rows}</tbody></table>'
+    empty_bad_top_teams_wip_html = _top5_table(top_teams_wip)
+    empty_bad_top_teams_done_html = _top5_table(top_teams_done)
+    empty_bad_top_assignees_wip_html = _top5_table(top_assignees_wip)
+    empty_bad_top_assignees_done_html = _top5_table(top_assignees_done)
+    empty_bad_top_components_wip_html = _top5_table(top_components_wip)
+    empty_bad_top_components_done_html = _top5_table(top_components_done)
+    empty_bad_top_labels_wip_html = _top5_table(top_labels_wip)
+    empty_bad_top_labels_done_html = _top5_table(top_labels_done)
+
     kanban_rows = "".join(
         f'<tr data-project="{html.escape(k.get("project", ""))}"><td>{html.escape(k.get("project", ""))}</td><td>{html.escape(k.get("board_name", ""))}</td><td>{k.get("issue_count", 0)}</td><td>{k.get("done_count", 0)}</td><td>{html.escape(json.dumps(k.get("status_breakdown", {})))}</td></tr>'
         for k in kanban
     ) if kanban else "<tr><td colspan=\"5\">No Kanban boards</td></tr>"
+
+    # Releases: sort by released first, then release_date descending (null last)
+    def _release_date_key(r):
+        rd = r.get("release_date") or ""
+        if not rd or len(rd) < 10:
+            return (0, 0, 0)
+        try:
+            return (int(rd[:4]), int(rd[5:7]), int(rd[8:10]))
+        except (ValueError, TypeError):
+            return (0, 0, 0)
+    releases_sorted = sorted(releases, key=lambda r: ((0 if r.get("released") else 1), tuple(-x for x in _release_date_key(r))))
+    releases_rows = "".join(
+        f'<tr data-project="{html.escape(r.get("project", ""))}">'
+        f'<td>{html.escape(r.get("project", ""))}</td><td>{html.escape(r.get("name", ""))}</td>'
+        f'<td>{"Yes" if r.get("released") else "No"}</td><td>{html.escape(r.get("release_date") or "\u2014")}</td></tr>'
+        for r in releases_sorted
+    ) if releases else "<tr><td colspan=\"4\">No version data</td></tr>"
+    total_versions = len(releases)
+    unreleased_count = total_versions - total_released_versions
+    # Releases in last 3/6/12 months from releases_per_month (use run_iso_ts or now for "current" month)
+    from datetime import datetime
+    run_ts = data.get("run_iso_ts", "") or ""
+    try:
+        ref_year = int(run_ts[:4]) if len(run_ts) >= 4 else datetime.now().year
+        ref_month = int(run_ts[5:7]) if len(run_ts) >= 7 else datetime.now().month
+    except (ValueError, TypeError):
+        ref_year, ref_month = datetime.now().year, datetime.now().month
+
+    def _releases_in_months(n):
+        total = 0
+        for i in range(n):
+            m = ref_month - i
+            y = ref_year
+            while m < 1:
+                m += 12
+                y -= 1
+            key = f"{y}-{m:02d}"
+            total += releases_per_month.get(key, 0)
+        return total
+
+    releases_last_3 = _releases_in_months(3)
+    releases_last_6 = _releases_in_months(6)
+    releases_last_12 = _releases_in_months(12)
 
     status_labels = list(status_dist.keys())
     status_values = list(status_dist.values())
@@ -215,27 +319,32 @@ def main():
   <p class="meta" id="filterScopeSummary">Scope: all projects and all components. Metrics are exact.</p>
 
   <div class="cards">
-    <div class="card"><div class="value" id="cardWip">{wip}</div><div class="label">WIP (not done)</div></div>
-    <div class="card"><div class="value" id="cardNotStarted" style="color: var(--muted)">{wip_phase.get('not_started', 0)}</div><div class="label">Not Started</div></div>
-    <div class="card"><div class="value" id="cardInProgress" style="color: var(--accent)">{wip_phase.get('in_progress', 0)}</div><div class="label">In Progress</div></div>
-    <div class="card"><div class="value" id="cardReviewQa" style="color: var(--orange)">{wip_phase.get('review_qa', 0)}</div><div class="label">Review / QA</div></div>
-    <div class="card"><div class="value" id="cardBlocked" style="color: var(--red)">{blocked}</div><div class="label">Blocked / On Hold</div></div>
-    <div class="card"><div class="value" id="cardUnassigned" style="color: #e3b341">{unassigned_wip}</div><div class="label">Unassigned WIP</div></div>
+    <div class="card"><div class="value" id="cardOpen">{open_count}</div><div class="label">Open (not done)</div></div>
+    <div class="card"><div class="value" id="cardWipInFlight" style="color: var(--accent)">{wip_in_flight}</div><div class="label">WIP (in flight)</div></div>
+    <div class="card"><div class="value" id="cardBacklog" style="color: var(--muted)">{open_phase.get('backlog', 0)}</div><div class="label">Backlog</div></div>
+    <div class="card"><div class="value" id="cardInProgress" style="color: var(--accent)">{open_phase.get('in_progress', 0)}</div><div class="label">In progress</div></div>
+    <div class="card"><div class="value" id="cardInReview" style="color: var(--orange)">{open_phase.get('in_review', 0)}</div><div class="label">In review</div></div>
+    <div class="card"><div class="value" id="cardBlocked" style="color: var(--red)">{blocked}</div><div class="label">Blocked</div></div>
+    <div class="card"><div class="value" id="cardUnassigned" style="color: #e3b341">{unassigned_open}</div><div class="label">Unassigned open</div></div>
     <div class="card"><div class="value" id="cardOpenBugs">{open_bugs}</div><div class="label">Open bugs</div></div>
     <div class="card"><div class="value" id="cardDone4Weeks" style="color: var(--green)">{last_4_weeks}</div><div class="label">Done (last 4 wk)</div></div>
-    <div class="card"><div class="value" id="cardWipMedian">{round(wip_aging.get('p50_days', 0))}</div><div class="label">WIP median age (d)</div></div>
+    <div class="card"><div class="value" id="cardOpenMedian">{round(wip_aging.get('p50_days', 0))}</div><div class="label">Open median age (d)</div></div>
     <div class="card"><div class="value" id="cardLeadTime">{round(lead.get('avg_days', 0), 1) if lead.get('avg_days') is not None else '\u2014'}</div><div class="label">Lead time avg (d)</div></div>
     <div class="card"><div class="value" id="cardCycleTime">{round(cycle.get('avg_days', 0), 1) if cycle.get('avg_days') is not None else '\u2014'}</div><div class="label">Cycle time avg (d)</div></div>
     <div class="card"><div class="value" id="cardFlowEff" style="color: var(--orange)">{flow_eff.get('efficiency_pct', 0)}%</div><div class="label">Flow efficiency</div></div>
+    <div class="card"><div class="value" id="cardEmptyBadWip" style="color: var(--orange)">{empty_bad_count_wip}</div><div class="label">Empty/bad open</div></div>
+    <div class="card"><div class="value" id="cardEmptyBadDone" style="color: var(--orange)">{empty_bad_count_done}</div><div class="label">Empty/bad Done</div></div>
+    <div class="card"><div class="value" id="cardReleasedTotal" style="color: var(--green)">{total_released_versions}</div><div class="label">Released (total)</div></div>
+    <div class="card"><div class="value" id="cardUnreleasedVersions" style="color: #e3b341">{unreleased_count}</div><div class="label">Unreleased versions</div></div>
   </div>
 
   <div class="grid2">
     <section>
-      <h2>Status distribution (WIP)</h2>
+      <h2>Status distribution (Open)</h2>
       <div class="chart-wrap"><canvas id="chartStatus"></canvas></div>
     </section>
     <section>
-      <h2>WIP by component (top 15)</h2>
+      <h2>Open by component (top 15)</h2>
       <div class="chart-wrap"><canvas id="chartComponents"></canvas></div>
     </section>
   </div>
@@ -377,6 +486,57 @@ def main():
   </section>
 
   <section>
+    <h2>Empty or bad structure</h2>
+    <p class="summary-desc">Tickets with no/empty description (or, if configured, bad summary / no labels / no component). Counts and breakdowns by team, assignee, component, and label.</p>
+    <div class="summary-stats">
+      <span>Open: <strong>{empty_bad_count_wip}</strong> ({empty_bad_pct_wip}%)</span>
+      <span>Done: <strong>{empty_bad_count_done}</strong> ({empty_bad_pct_done}%)</span>
+    </div>
+    <div class="filter"><input type="text" id="filterEmptyBad" placeholder="Filter by key, project, assignee\u2026" /></div>
+    <div class="table-wrap">
+      <table id="tableEmptyBad">
+        <thead><tr><th data-sort="key">Key</th><th data-sort="scope">Scope</th><th data-sort="project">Project</th><th>Summary</th><th data-sort="status">Status</th><th data-sort="assignee">Assignee</th></tr></thead>
+        <tbody>{empty_or_bad_rows_str}</tbody>
+      </table>
+    </div>
+    <h3 style="font-size:1rem; margin-top:1.5rem; color: var(--muted);">Top offenders (top 5 by count)</h3>
+    <div class="grid3" style="margin-top:0.5rem;">
+      <div>
+        <h4 style="font-size:0.9rem;">By team (WIP)</h4>
+        {empty_bad_top_teams_wip_html}
+      </div>
+      <div>
+        <h4 style="font-size:0.9rem;">By team (Done)</h4>
+        {empty_bad_top_teams_done_html}
+      </div>
+      <div>
+        <h4 style="font-size:0.9rem;">By assignee (WIP)</h4>
+        {empty_bad_top_assignees_wip_html}
+      </div>
+      <div>
+        <h4 style="font-size:0.9rem;">By assignee (Done)</h4>
+        {empty_bad_top_assignees_done_html}
+      </div>
+      <div>
+        <h4 style="font-size:0.9rem;">By component (WIP)</h4>
+        {empty_bad_top_components_wip_html}
+      </div>
+      <div>
+        <h4 style="font-size:0.9rem;">By component (Done)</h4>
+        {empty_bad_top_components_done_html}
+      </div>
+      <div>
+        <h4 style="font-size:0.9rem;">By label (WIP)</h4>
+        {empty_bad_top_labels_wip_html}
+      </div>
+      <div>
+        <h4 style="font-size:0.9rem;">By label (Done)</h4>
+        {empty_bad_top_labels_done_html}
+      </div>
+    </div>
+  </section>
+
+  <section>
     <h2>Blocked issues (oldest)</h2>
     <div class="table-wrap">
       <table id="tableBlocked">
@@ -432,6 +592,19 @@ def main():
             f'<td>{e.get("completion_pct",0)}%</td><td>{"Yes" if e.get("stale") else ""}</td></tr>'
             for e in sorted(epic_health, key=lambda x: (-1 if x.get("stale") else 0, -(x.get("age_days") or 0)))
         ) if epic_health else "<tr><td colspan='8'>No epic data</td></tr>"}</tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Releases / versions</h2>
+    <p class="summary-desc">Total versions: {total_versions} | Released: {total_released_versions} | Unreleased: {unreleased_count} | Last 3 mo: {releases_last_3} | Last 6 mo: {releases_last_6} | Last 12 mo: {releases_last_12}</p>
+    <div class="chart-wrap"><canvas id="chartReleasesPerMonth"></canvas></div>
+    <div class="filter"><input type="text" id="filterReleases" placeholder="Filter by project\u2026" /></div>
+    <div class="table-wrap">
+      <table id="tableReleases">
+        <thead><tr><th data-sort="project">Project</th><th data-sort="name">Version name</th><th data-sort="released">Released</th><th data-sort="release_date">Release date</th></tr></thead>
+        <tbody>{releases_rows}</tbody>
       </table>
     </div>
   </section>
@@ -498,7 +671,11 @@ def main():
         cycle,
         last_4_weeks: s.last_4_weeks != null ? s.last_4_weeks : sumLastWeeks(s.throughput_by_week || {{}}, 4),
         wip_median: scopeMeta && scopeMeta.nonAdditiveExact && wipAging && wipAging.p50_days != null ? Math.round(wipAging.p50_days) : null,
-        wip_by_phase: s.wip_by_phase || phaseFromStatusDist(s.status_distribution || {{}}),
+        open_by_phase: s.open_by_phase || phaseFromStatusDist(s.status_distribution || {{}}),
+        wip_by_phase: s.wip_by_phase || s.open_by_phase || phaseFromStatusDist(s.status_distribution || {{}}),
+        open_count: s.open_count != null ? s.open_count : s.wip_count,
+        wip_in_flight: s.wip_in_flight,
+        unassigned_open_count: s.unassigned_open_count != null ? s.unassigned_open_count : s.unassigned_wip_count,
         scope_meta: scopeMeta || {{}},
       }});
     }}
@@ -628,12 +805,20 @@ def main():
       options: {{ responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
     }});
 
-    const phaseData = DATA.wip_by_phase || {{}};
+    const rpm = DATA.releases_per_month || {{}};
+    const rpmKeys = Object.keys(rpm).sort().slice(-24);
+    const chartReleasesPerMonth = new Chart(document.getElementById('chartReleasesPerMonth'), {{
+      type: 'bar',
+      data: {{ labels: rpmKeys, datasets: [{{ label: 'Releases', data: rpmKeys.map(k => rpm[k] || 0), backgroundColor: 'rgba(63,185,80,0.6)' }}] }},
+      options: {{ responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
+    }});
+
+    const phaseData = DATA.open_by_phase || DATA.wip_by_phase || {{}};
     const chartPhase = new Chart(document.getElementById('chartPhase'), {{
       type: 'doughnut',
       data: {{
-        labels: ['Not Started','In Progress','Review / QA','Blocked / On Hold'],
-        datasets: [{{ data: [phaseData.not_started||0, phaseData.in_progress||0, phaseData.review_qa||0, phaseData.blocked||0],
+        labels: ['Backlog','In progress','In review','Blocked'],
+        datasets: [{{ data: [phaseData.backlog||phaseData.not_started||0, phaseData.in_progress||0, phaseData.in_review||phaseData.review_qa||0, phaseData.blocked||0],
           backgroundColor: ['rgba(139,148,158,0.6)','rgba(88,166,255,0.6)','rgba(210,153,34,0.6)','rgba(248,81,73,0.6)'],
           borderColor: ['#8b949e','#58a6ff','#d29922','#f85149'], borderWidth: 1 }}]
       }},
@@ -804,8 +989,8 @@ def main():
     // Defect density by component (5c)
     const bc = DATA.by_component || {{}};
     const ddItems = Object.entries(bc)
-      .filter(([,m]) => (m.wip_count||0) > 0)
-      .map(([name, m]) => [name, Math.round((m.open_bugs_count||0) / (m.wip_count||1) * 1000) / 10])
+      .filter(([,m]) => ((m.open_count != null ? m.open_count : m.wip_count)||0) > 0)
+      .map(([name, m]) => [name, Math.round((m.open_bugs_count||0) / ((m.open_count != null ? m.open_count : m.wip_count)||1) * 1000) / 10])
       .sort((a,b) => b[1] - a[1])
       .slice(0, 15);
     const chartDefectDensity = new Chart(document.getElementById('chartDefectDensity'), {{
@@ -927,20 +1112,21 @@ def main():
 
       const graveyards = [];
       for (const [proj, pm] of Object.entries(bp)) {{
-        const ph = pm.wip_by_phase || {{}};
-        const total = (ph.not_started||0) + (ph.in_progress||0) + (ph.review_qa||0) + (ph.blocked||0);
-        if (total >= 20 && (ph.not_started||0) / total > 0.85)
-          graveyards.push(`${{proj}} (${{ph.not_started}}/${{total}})`);
+        const ph = pm.open_by_phase || pm.wip_by_phase || {{}};
+        const backlog = ph.backlog != null ? ph.backlog : (ph.not_started||0);
+        const total = backlog + (ph.in_progress||0) + (ph.in_review||ph.review_qa||0) + (ph.blocked||0);
+        if (total >= 20 && backlog / total > 0.85)
+          graveyards.push(`${{proj}} (${{backlog}}/${{total}})`);
       }}
       if (graveyards.length > 0)
-        sev('orange', `${{graveyards.length}} project(s) with > 85% WIP in "Not Started"`,
+        sev('orange', `${{graveyards.length}} project(s) with > 85% open in Backlog`,
           graveyards.join('; ') + '. These backlogs are graveyards.');
 
       const blockedCount = D.blocked_count || 0;
-      const wipCount = D.wip_count || 1;
-      const blockedPct = Math.round(blockedCount / wipCount * 1000) / 10;
-      if (blockedPct < 1 && wipCount > 50)
-        sev('yellow', `Only ${{blockedCount}} blocked issues (${{blockedPct}}% of ${{wipCount}} WIP)`,
+      const openCount = D.open_count != null ? D.open_count : (D.wip_count || 1);
+      const blockedPct = Math.round(blockedCount / openCount * 1000) / 10;
+      if (blockedPct < 1 && openCount > 50)
+        sev('yellow', `Only ${{blockedCount}} blocked issues (${{blockedPct}}% of ${{openCount}} open)`,
           'In orgs with cross-team dependencies, 5\\u201315% blocked is normal. Very low rates usually mean blockers are not tracked.');
 
       const oldBugs = (D.oldest_open_bugs || []).filter(b => b.age_days > 365);
@@ -993,14 +1179,14 @@ def main():
         sev('yellow', `${{Math.round(priMax/priTotal*100)}}% of WIP has the same priority`,
           'Priority field is not being used for triage.');
 
-      const unassigned = D.unassigned_wip_count || 0;
-      const unaPct = wipCount ? Math.round(unassigned / wipCount * 100) : 0;
+      const unassigned = D.unassigned_open_count != null ? D.unassigned_open_count : (D.unassigned_wip_count || 0);
+      const unaPct = openCount ? Math.round(unassigned / openCount * 100) : 0;
       if (unaPct > 50)
-        sev('orange', `${{unaPct}}% of WIP is unassigned (${{unassigned}}/${{wipCount}})`,
+        sev('orange', `${{unaPct}}% of open is unassigned (${{unassigned}}/${{openCount}})`,
           'Majority of open issues have no owner.');
-      else if (unaPct > 30 && wipCount > 30)
-        sev('yellow', `${{unaPct}}% of WIP is unassigned (${{unassigned}}/${{wipCount}})`,
-          'Significant portion of WIP has no assignee.');
+      else if (unaPct > 30 && openCount > 30)
+        sev('yellow', `${{unaPct}}% of open is unassigned (${{unassigned}}/${{openCount}})`,
+          'Significant portion of open has no assignee.');
 
       const dow = D.resolution_by_weekday || {{}};
       const dowTotal = Object.values(dow).reduce((a,v) => a+v, 0);
@@ -1080,6 +1266,16 @@ def main():
         sev('orange', `${{edp}}% of done issues have no description`,
           'Issues are closed without descriptions, suggesting retroactive logging.');
 
+      const eobDonePct = D.empty_or_bad_pct_done ?? 0;
+      const eobDoneCount = D.empty_or_bad_count_done ?? 0;
+      if (eobDonePct > 40 && eobDoneCount > 10)
+        sev('orange', `${{eobDoneCount}} done issues (${{eobDonePct}}%) have empty or bad structure`,
+          'Tickets closed with no/empty description or bad structure. Track improvement over time.');
+      const eobWip = D.empty_or_bad_count_wip ?? 0;
+      if (eobWip > 100)
+        sev('yellow', `${{eobWip}} WIP issues have empty or bad structure`,
+          'Many open tickets lack description or have bad structure. Consider cleanup.');
+
       const zcp = D.zero_comment_done_pct;
       if (zcp != null && zcp > 60)
         sev('yellow', `${{zcp}}% of done issues have zero comments`,
@@ -1148,6 +1344,38 @@ def main():
         sev('orange', `${{staleEpics}} stale epics (>6 months old, <20% complete)`,
           'Long-running epics with little progress suggest abandoned or poorly managed initiatives.');
 
+      // Phase 6d2: Release-related flags
+      const releasesList = D.releases || [];
+      const totalReleasedVersions = D.total_released_versions || 0;
+      const totalVersions = releasesList.length;
+      const unreleased = totalVersions - totalReleasedVersions;
+      const releasedWithDate = releasesList.filter(r => r.released && r.release_date);
+      let latestReleaseDate = null;
+      if (releasedWithDate.length > 0) {{
+        const dates = releasedWithDate.map(r => r.release_date).filter(Boolean);
+        if (dates.length) latestReleaseDate = dates.sort().pop();
+      }}
+      if (latestReleaseDate) {{
+        const relDate = new Date(latestReleaseDate);
+        const now = new Date();
+        const daysSince = Math.floor((now - relDate) / (24 * 60 * 60 * 1000));
+        if (daysSince > 90)
+          sev('orange', 'No release in the last 90 days',
+            'Consider shipping a version or archiving unreleased versions.');
+      }}
+      if (unreleased > 10)
+        sev('yellow', `Many unreleased versions (${{unreleased}})`,
+          'Review and either release or archive.');
+      const rpm = D.releases_per_month || {{}};
+      const monthKeys = Object.keys(rpm).sort();
+      if (monthKeys.length >= 6) {{
+        const last3 = monthKeys.slice(-3).reduce((s, k) => s + (rpm[k] || 0), 0);
+        const prev3 = monthKeys.slice(-6, -3).reduce((s, k) => s + (rpm[k] || 0), 0);
+        if (prev3 > 0 && last3 < prev3 * 0.5)
+          sev('yellow', 'Release cadence has slowed (last 3 months vs previous 3)',
+            'Consider keeping a steady release cadence or communicating a change in strategy.');
+      }}
+
       // Phase 6e: SP vs worklog correlation
       if (wla.sp_worklog_correlation != null && wla.sp_worklog_correlation < 0.3 && wla.sp_worklog_pairs_count >= 10)
         sev('yellow', `Story points vs worklog correlation is only ${{wla.sp_worklog_correlation}} (weak)`,
@@ -1198,12 +1426,12 @@ def main():
         score += Math.min((ca.closer_not_assignee_pct||0) / 80 * 10, 10);
         score += Math.min((pm.empty_description_done_pct||0) / 60 * 10, 10);
         score += Math.min((pm.zero_comment_done_pct||0) / 80 * 5, 5);
-        const wipCount = pm.wip_count || 1;
-        const unaPct = (pm.unassigned_wip_count||0) / wipCount * 100;
+        const openCount = (pm.open_count != null ? pm.open_count : pm.wip_count) || 1;
+        const unaPct = ((pm.unassigned_open_count != null ? pm.unassigned_open_count : pm.unassigned_wip_count)||0) / openCount * 100;
         score += Math.min(unaPct / 60 * 5, 5);
-        const blkPct = (pm.blocked_count||0) / wipCount * 100;
-        if (wipCount > 20 && blkPct < 2) score += 5;
-        else if (wipCount > 20 && blkPct < 5) score += 2;
+        const blkPct = (pm.blocked_count||0) / openCount * 100;
+        if (openCount > 20 && blkPct < 2) score += 5;
+        else if (openCount > 20 && blkPct < 5) score += 2;
         // Phase 4 new signals
         const acnr = pm.assignee_change_near_resolution || {{}};
         score += Math.min((acnr.changed_pct||0) / 30 * 5, 5);
@@ -1249,6 +1477,7 @@ def main():
       if (!metricsList || !metricsList.length) return null;
       const statusMerge = {{}}, compMerge = {{}}, statusByCompMerge = {{}};
       let wip = 0, blocked = 0, openBugs = 0, unassigned = 0;
+      let openBacklog = 0, openInProgress = 0, openInReview = 0, openBlocked = 0, wipInFlightSum = 0;
       const throughputMerge = {{}};
       let wipAgingWeight = 0, wipAgingSum = 0;
       let leadCount = 0, leadSum = 0, cycleCount = 0, cycleSum = 0;
@@ -1271,11 +1500,24 @@ def main():
       const spTrendMonthMerge = {{}};
       for (const m of metricsList) {{
         if (!m) continue;
-        wip += m.wip_count || 0;
-        wipTotal += m.wip_count || 0;
+        const mOpen = m.open_count != null ? m.open_count : (m.wip_count || 0);
+        wip += mOpen;
+        wipTotal += m.wip_count || mOpen || 0;
         blocked += m.blocked_count || 0;
         openBugs += m.open_bugs_count || 0;
-        unassigned += m.unassigned_wip_count || 0;
+        const mUna = m.unassigned_open_count != null ? m.unassigned_open_count : (m.unassigned_wip_count || 0);
+        unassigned += mUna;
+        const obp = m.open_by_phase || {{}};
+        const wbp = m.wip_by_phase || {{}};
+        const mBacklog = obp.backlog != null ? obp.backlog : (wbp.not_started || 0);
+        const mInProg = (obp.in_progress != null ? obp.in_progress : wbp.in_progress) || 0;
+        const mInRev = obp.in_review != null ? obp.in_review : (wbp.review_qa || 0);
+        const mBlocked = (obp.blocked != null ? obp.blocked : wbp.blocked) || 0;
+        openBacklog += mBacklog;
+        openInProgress += mInProg;
+        openInReview += mInRev;
+        openBlocked += mBlocked;
+        wipInFlightSum += m.wip_in_flight != null ? m.wip_in_flight : (mInProg + mInRev + mBlocked);
         for (const [st, cnt] of Object.entries(m.status_distribution || {{}}))
           statusMerge[st] = (statusMerge[st] || 0) + cnt;
         for (const [c, cnt] of Object.entries(m.wip_components || {{}}))
@@ -1354,6 +1596,8 @@ def main():
       const spaPSorted = Object.entries(spaPathsMerge).sort((a,b)=>b[1]-a[1]).slice(0,15);
       const bulkF = Object.entries(bulkMap).filter(([,c])=>c>10).sort(([a],[b])=>a.localeCompare(b)).map(([date,count])=>({{date,count}}));
       return normalizeMetrics({{
+        open_count: wip, open_by_phase: {{ backlog: openBacklog, in_progress: openInProgress, in_review: openInReview, blocked: openBlocked }},
+        wip_in_flight: wipInFlightSum, unassigned_open_count: unassigned,
         wip_count: wip, blocked_count: blocked, open_bugs_count: openBugs, unassigned_wip_count: unassigned,
         status_distribution: statusMerge, wip_status_by_component: statusByCompMerge,
         wip_components: Object.fromEntries(compTop),
@@ -1431,10 +1675,10 @@ def main():
       }}
       const compItems = Object.entries(comp).sort((a, b) => b[1] - a[1]).slice(0, 15);
       const wipFromComp = compItems.reduce((a, [, v]) => a + v, 0);
-      const wip = (selectedComponents && selectedComponents.length) ? wipFromComp : (d.wip_count || 0);
+      const openCount = (selectedComponents && selectedComponents.length) ? wipFromComp : (d.open_count != null ? d.open_count : d.wip_count || 0);
       const blocked = d.blocked_count || 0;
       const openBugs = d.open_bugs_count || 0;
-      const unassigned = d.unassigned_wip_count || 0;
+      const unassigned = d.unassigned_open_count != null ? d.unassigned_open_count : (d.unassigned_wip_count || 0);
       const last4 = d.last_4_weeks || 0;
       const wipAging = d.wip_aging_days || {{}};
       const median = d.wip_median != null ? d.wip_median : '\u2014';
@@ -1459,17 +1703,22 @@ def main():
         statusDist = d.status_distribution || {{}};
       }}
 
-      // Phase from filtered status dist
-      const phase = phaseFromStatusDist(statusDist);
-      el('cardNotStarted', phase.not_started || 0);
+      // Phase: prefer open_by_phase (backlog, in_review), else from status dist (not_started, review_qa)
+      const obp = d.open_by_phase || {{}};
+      const phase = d.open_by_phase ? obp : phaseFromStatusDist(statusDist);
+      const backlog = phase.backlog != null ? phase.backlog : (phase.not_started || 0);
+      const inReview = phase.in_review != null ? phase.in_review : (phase.review_qa || 0);
+      const wipInFlight = d.wip_in_flight != null ? d.wip_in_flight : ((phase.in_progress||0) + inReview + (phase.blocked||0));
+      el('cardOpen', openCount);
+      el('cardWipInFlight', wipInFlight);
+      el('cardBacklog', backlog);
       el('cardInProgress', phase.in_progress || 0);
-      el('cardReviewQa', phase.review_qa || 0);
-      el('cardWip', wip);
+      el('cardInReview', inReview);
       el('cardBlocked', blocked);
       el('cardUnassigned', unassigned);
       el('cardOpenBugs', openBugs);
       el('cardDone4Weeks', last4);
-      el('cardWipMedian', median);
+      el('cardOpenMedian', median);
       const leadAvg = (d.lead||{{}}).avg_days;
       const cycleAvg = (d.cycle||{{}}).avg_days;
       el('cardLeadTime', leadAvg != null ? leadAvg.toFixed(1) : '\u2014');
@@ -1496,8 +1745,8 @@ def main():
       const summaryEl = document.getElementById('leadCycleSummary');
       if (summaryEl) summaryEl.innerHTML = `<span>Lead (created\u2192resolved):</span> ${{leadStr}} &nbsp;|&nbsp; <span>Cycle (in progress\u2192resolved):</span> ${{cycleStr}} &nbsp;|&nbsp; <span>Exactness:</span> ${{scopeMeta.nonAdditiveExact ? 'exact' : 'additive only'}}`;
 
-      // Phase chart
-      chartPhase.data.datasets[0].data = [phase.not_started||0, phase.in_progress||0, phase.review_qa||0, phase.blocked||0];
+      // Phase chart (Backlog, In progress, In review, Blocked)
+      chartPhase.data.datasets[0].data = [backlog, phase.in_progress||0, inReview, phase.blocked||0];
       chartPhase.update();
 
       // Lead time distribution chart
@@ -1515,7 +1764,7 @@ def main():
       const wipItD = d.wip_issuetype || {{}};
       const doneItD = d.done_issuetype || {{}};
       const allTypesD = [...new Set([...Object.keys(wipItD), ...Object.keys(doneItD)])];
-      chartIssueTypes.data.labels = ['WIP','Done (180d)'];
+      chartIssueTypes.data.labels = ['Open','Done (180d)'];
       chartIssueTypes.data.datasets = allTypesD.map((t,i) => ({{ label: t, data: [wipItD[t]||0, doneItD[t]||0], backgroundColor: itColors[i % itColors.length] }}));
       chartIssueTypes.update();
 
@@ -1572,6 +1821,8 @@ def main():
       // Flow efficiency card
       const feD = d.flow_efficiency || {{}};
       el('cardFlowEff', (feD.efficiency_pct||0) + '%');
+      el('cardEmptyBadWip', d.empty_or_bad_count_wip ?? 0);
+      el('cardEmptyBadDone', d.empty_or_bad_count_done ?? 0);
 
       // Created vs Resolved chart
       const cbwD = d.created_by_week || {{}};
@@ -1612,8 +1863,8 @@ def main():
         return fake;
       }})() : (DATA.by_component||{{}});
       const ddI2 = Object.entries(ddSrc)
-        .filter(([,mm]) => (mm.wip_count||0) > 0)
-        .map(([n, mm]) => [n, Math.round((mm.open_bugs_count||0) / (mm.wip_count||1) * 1000) / 10])
+        .filter(([,mm]) => ((mm.open_count != null ? mm.open_count : mm.wip_count)||0) > 0)
+        .map(([n, mm]) => [n, Math.round((mm.open_bugs_count||0) / ((mm.open_count != null ? mm.open_count : mm.wip_count)||1) * 1000) / 10])
         .sort((a,b) => b[1] - a[1]).slice(0, 15);
       chartDefectDensity.data.labels = ddI2.map(d => d[0]);
       chartDefectDensity.data.datasets[0].data = ddI2.map(d => d[1]);
@@ -1706,7 +1957,7 @@ def main():
         const componentOk = !compSel || !compSel.length || !rowComponents.length || compSel.some(c => rowComponents.includes(c));
         tr.style.display = (projectOk && componentOk) ? '' : 'none';
       }};
-      ['tableBlocked', 'tableBugs', 'tableSprints', 'tableKanban', 'tableEpics'].forEach(tableId => {{
+      ['tableBlocked', 'tableBugs', 'tableSprints', 'tableKanban', 'tableEpics', 'tableReleases', 'tableEmptyBad'].forEach(tableId => {{
         const t = document.getElementById(tableId);
         if (t && t.tBodies[0]) t.tBodies[0].querySelectorAll('tr').forEach(show);
       }});
@@ -1802,9 +2053,13 @@ def main():
 
     setupFilter('filterBugs', 'tableBugs');
     setupFilter('filterSprints', 'tableSprints');
+    setupFilter('filterReleases', 'tableReleases');
+    setupFilter('filterEmptyBad', 'tableEmptyBad');
     setupSort('tableBugs');
     setupSort('tableSprints');
     setupSort('tableEpics');
+    setupSort('tableReleases');
+    setupSort('tableEmptyBad');
 
     // ---------- Evidence Export (Phase 4b) ----------
     function exportEvidence() {{
@@ -1823,8 +2078,11 @@ def main():
       for (const [pk, s] of Object.entries(ps)) md += `| ${{pk}} | ${{s}} |\\n`;
       md += '\\n## Key Metrics\\n\\n';
       md += `| Metric | Value |\\n|--------|-------|\\n`;
-      md += `| WIP (not done) | ${{d.wip_count}} |\\n`;
-      md += `| Unassigned WIP | ${{d.unassigned_wip_count||0}} (${{d.wip_count ? Math.round((d.unassigned_wip_count||0)/d.wip_count*100) : 0}}%) |\\n`;
+      const openCountExport = d.open_count != null ? d.open_count : d.wip_count;
+      const unassignedOpenExport = d.unassigned_open_count != null ? d.unassigned_open_count : (d.unassigned_wip_count||0);
+      md += `| Open (not done) | ${{openCountExport}} |\\n`;
+      md += `| WIP (in flight) | ${{d.wip_in_flight != null ? d.wip_in_flight : (openCountExport - ((d.open_by_phase||{{}}).backlog||(d.wip_by_phase||{{}}).not_started||0))}} |\\n`;
+      md += `| Unassigned open | ${{unassignedOpenExport}} (${{openCountExport ? Math.round(unassignedOpenExport/openCountExport*100) : 0}}%) |\\n`;
       md += `| Blocked | ${{d.blocked_count}} |\\n`;
       md += `| Open Bugs | ${{d.open_bugs_count}} |\\n`;
       md += `| Lead Time Avg | ${{d.lead_time_days?.avg_days?.toFixed(1) || '-'}} days |\\n`;
@@ -1834,6 +2092,8 @@ def main():
       md += `| Closer != Assignee | ${{d.closer_analysis?.closer_not_assignee_pct || 0}}% |\\n`;
       md += `| Reopen Rate | ${{d.reopen_analysis?.reopened_pct || 0}}% |\\n`;
       md += `| Empty Descriptions (done) | ${{d.empty_description_done_pct || 0}}% |\\n`;
+      md += `| Empty or bad structure (open) | ${{d.empty_or_bad_count_wip ?? 0}} (${{d.empty_or_bad_pct_wip ?? 0}}%) |\\n`;
+      md += `| Empty or bad structure (Done) | ${{d.empty_or_bad_count_done ?? 0}} (${{d.empty_or_bad_pct_done ?? 0}}%) |\\n`;
       md += `| Zero Comments (done) | ${{d.zero_comment_done_pct || 0}}% |\\n`;
       md += `| Workload Gini | ${{d.workload_gini || 0}} |\\n`;
       md += `| Assignee Change Near Resolution | ${{(d.assignee_change_near_resolution||{{}}).changed_pct || 0}}% |\\n`;
@@ -1843,7 +2103,7 @@ def main():
       md += `| Open Epics | ${{d.open_epics_count || 0}} |\\n`;
       md += `| Stale Epics | ${{d.stale_epics_count || 0}} |\\n`;
       md += `| SP Inflation Detected | ${{(d.sp_trend||{{}}).inflation_detected ? 'Yes' : 'No'}} |\\n`;
-      md += `| Avg WIP per Person | ${{d.avg_wip_per_assignee || 0}} |\\n`;
+      md += `| Avg open per person | ${{d.avg_wip_per_assignee || 0}} |\\n`;
       md += '\\n## Audit Flags\\n\\n';
       const sevEmoji = {{ red: '[RED]', orange: '[ORANGE]', yellow: '[YELLOW]' }};
       for (const f of flags) {{
@@ -1866,7 +2126,7 @@ def main():
 </body>
 </html>"""
 
-    out_path = os.path.join(os.path.dirname(__file__), "jira_dashboard.html")
+    out_path = os.path.join(_output_dir(), "jira_dashboard.html")
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(html_out)
     print(f"Written: {out_path}")

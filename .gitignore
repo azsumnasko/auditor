@@ -40,3 +40,7 @@ Thumbs.db
 .runtime/
 .claude/commands/
 .logs/
+
+# Config UI (Next.js)
+config-ui/node_modules/
+config-ui/.next/

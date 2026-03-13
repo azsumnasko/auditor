@@ -1,0 +1,27 @@
+services:
+  config-ui:
+    build:
+      context: config-ui
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - jira_data:/data
+    environment:
+      - DATA_DIR=/data
+      - NODE_ENV=production
+      - SESSION_SECRET=${SESSION_SECRET:-change-me-in-production}
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    volumes:
+      - jira_data:/data
+    environment:
+      - DATA_DIR=/data
+    restart: unless-stopped
+
+volumes:
+  jira_data:

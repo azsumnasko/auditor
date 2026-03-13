@@ -6,9 +6,10 @@ from datetime import datetime, timezone, timedelta
 from collections import Counter, defaultdict
 
 # Load .env if present (keeps token out of terminal history)
+# Set DOTENV_PATH (e.g. /data/.env) in Docker to load from shared volume.
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv(os.environ.get("DOTENV_PATH", ".env"))
 except ImportError:
     pass
 
@@ -20,7 +21,19 @@ from dateutil import parser as dtparser
 # ----------------------------
 # Config
 # ----------------------------
-PROJECT_KEYS = ["OZN", "PMBK", "WMS", "O3", "UP", "RMA", "MA", "LSH", "IN", "HELP", "EBK", "PBI", "BA"]
+def _load_project_keys():
+    """
+    Project keys to analyze. Set JIRA_PROJECT_KEYS to a comma-separated list, e.g.:
+      JIRA_PROJECT_KEYS=BETTY,OZN,WMS
+    Defaults to BETTY if unset.
+    """
+    raw = os.environ.get("JIRA_PROJECT_KEYS", "BETTY").strip()
+    if not raw:
+        return ["BETTY"]
+    return [k.strip() for k in raw.split(",") if k.strip()]
+
+
+PROJECT_KEYS = _load_project_keys()
 
 # JQL reserved words that must be quoted when used as project keys (e.g. "IN")
 JQL_RESERVED = frozenset({"in", "and", "or", "not", "null", "empty", "order", "by", "asc", "desc"})
@@ -69,6 +82,14 @@ BLOCKED_JQL = '(labels = blocked OR status = Blocked OR status = "Blocked")'
 # Example: Bugs created within N days after a "Deployment" issue is done, or incidents labeled "change-failure".
 # We'll provide a framework and you can set the JQL rule.
 CFR_FAILURE_JQL = '(project in ({projects}) AND issuetype in (Incident, Bug) AND labels = change-failure)'
+
+# Empty or bad structure report: description is "empty" if null, len(strip) < this, or ADF content empty.
+EMPTY_OR_BAD_DESCRIPTION_MIN_LEN = 20
+# Optional bad structure: treat as bad if summary missing or length (after strip) below this (0 = disabled).
+EMPTY_OR_BAD_SUMMARY_MIN_LENGTH = int(os.environ.get("JIRA_EMPTY_BAD_SUMMARY_MIN_LEN", "0"))
+# Optional: treat no labels / no component as bad structure (for separate tracking).
+EMPTY_OR_BAD_IF_NO_LABELS = os.environ.get("JIRA_EMPTY_BAD_IF_NO_LABELS", "").strip().lower() in ("1", "true", "yes")
+EMPTY_OR_BAD_IF_NO_COMPONENT = os.environ.get("JIRA_EMPTY_BAD_IF_NO_COMPONENT", "").strip().lower() in ("1", "true", "yes")
 
 
 # ----------------------------
@@ -153,7 +174,8 @@ class JiraClient:
             data = self._get(f"/rest/agile/1.0/sprint/{sprint_id}/issue", params=params)
             issues = data.get("issues", [])
             all_issues.extend(issues)
-            if len(all_issues) >= max_results or start_at + len(issues) >= data.get("total", 0) or not issues:
+            total = data.get("total")
+            if len(all_issues) >= max_results or not issues or (total is not None and start_at + len(issues) >= total):
                 break
             start_at += len(issues)
             time.sleep(0.1)
@@ -193,7 +215,8 @@ class JiraClient:
             data = self._get(f"/rest/agile/1.0/board/{board_id}/issue", params=params)
             issues = data.get("issues", [])
             all_issues.extend(issues)
-            if len(all_issues) >= max_results or start_at + len(issues) >= data.get("total", 0) or not issues:
+            total = data.get("total")
+            if len(all_issues) >= max_results or not issues or (total is not None and start_at + len(issues) >= total):
                 break
             start_at += len(issues)
             time.sleep(0.1)
@@ -250,7 +273,7 @@ def get_team_field_id(jira: JiraClient):
         fid, name = f.get("id"), (f.get("name") or "")
         if fid is None or not name:
             continue
-        if fid.startswith("customfield_") and "team" in name.lower():
+        if str(fid).startswith("customfield_") and "team" in name.lower():
             return (fid, name)
     return (None, None)
 
@@ -261,7 +284,7 @@ def get_sprint_field_id(jira: JiraClient):
         fid, name = f.get("id"), (f.get("name") or "")
         if fid is None or not name:
             continue
-        if fid.startswith("customfield_") and "sprint" in name.lower():
+        if str(fid).startswith("customfield_") and "sprint" in name.lower():
             return (fid, name)
     return (None, None)
 
@@ -478,6 +501,19 @@ def wip_by_phase(status_dist):
     for status_name, count in status_dist.items():
         phases[_classify_phase(status_name)] += count
     return phases
+
+
+def open_by_phase_from_status_dist(status_dist):
+    """Return (open_by_phase, wip_in_flight). Agile-friendly keys: backlog, in_progress, in_review, blocked."""
+    wp = wip_by_phase(status_dist)
+    open_by_phase = {
+        "backlog": wp.get("not_started", 0),
+        "in_progress": wp.get("in_progress", 0),
+        "in_review": wp.get("review_qa", 0),
+        "blocked": wp.get("blocked", 0),
+    }
+    wip_in_flight = open_by_phase["in_progress"] + open_by_phase["in_review"] + open_by_phase["blocked"]
+    return open_by_phase, wip_in_flight
 
 
 # ----------------------------
@@ -885,6 +921,115 @@ def _orphan_pct(issues):
     return round(orphan / len(issues) * 100, 1)
 
 
+def _is_empty_description(issue, min_len=20):
+    """True if issue has no or effectively empty description (reuse _empty_description_pct logic)."""
+    desc = (issue.get("fields") or {}).get("description")
+    if desc is None:
+        return True
+    if isinstance(desc, str) and len(desc.strip()) < min_len:
+        return True
+    if isinstance(desc, dict):
+        content = desc.get("content") or []
+        if not content:
+            return True
+    return False
+
+
+def _is_empty_or_bad_structure(
+    issue,
+    summary_min_length=0,
+    bad_if_no_labels=False,
+    bad_if_no_component=False,
+    description_min_len=None,
+):
+    """True if issue is in scope: empty description or (when enabled) bad summary/labels/component."""
+    if description_min_len is None:
+        description_min_len = EMPTY_OR_BAD_DESCRIPTION_MIN_LEN
+    if _is_empty_description(issue, min_len=description_min_len):
+        return True
+    if summary_min_length > 0:
+        summary = (issue.get("fields") or {}).get("summary")
+        if summary is None or (isinstance(summary, str) and len(summary.strip()) < summary_min_length):
+            return True
+    if bad_if_no_labels:
+        labels = (issue.get("fields") or {}).get("labels")
+        if not labels or (isinstance(labels, list) and len(labels) == 0):
+            return True
+    if bad_if_no_component:
+        comps = (issue.get("fields") or {}).get("components")
+        if not comps or (isinstance(comps, list) and len(comps) == 0):
+            return True
+    return False
+
+
+def _filter_empty_or_bad(
+    issues,
+    summary_min_length=None,
+    bad_if_no_labels=None,
+    bad_if_no_component=None,
+):
+    """Return (list of issues that are empty or bad, list of their keys)."""
+    if summary_min_length is None:
+        summary_min_length = EMPTY_OR_BAD_SUMMARY_MIN_LENGTH
+    if bad_if_no_labels is None:
+        bad_if_no_labels = EMPTY_OR_BAD_IF_NO_LABELS
+    if bad_if_no_component is None:
+        bad_if_no_component = EMPTY_OR_BAD_IF_NO_COMPONENT
+    out = []
+    keys = []
+    for it in issues:
+        if _is_empty_or_bad_structure(
+            it,
+            summary_min_length=summary_min_length,
+            bad_if_no_labels=bad_if_no_labels,
+            bad_if_no_component=bad_if_no_component,
+        ):
+            out.append(it)
+            keys.append(it.get("key") or "?")
+    return out, keys
+
+
+def _empty_or_bad_list_details(issues, summary_max_len=60):
+    """Return list of dicts: key, project, summary (truncated), status, assignee_display_name."""
+    rows = []
+    for it in issues:
+        fields = it.get("fields") or {}
+        key = it.get("key") or "?"
+        proj = _project_key(it)
+        summary = (fields.get("summary") or "").strip()
+        if len(summary) > summary_max_len:
+            summary = summary[: summary_max_len - 1] + "\u2026"
+        st = fields.get("status")
+        status_name = st.get("name") if isinstance(st, dict) else ""
+        assignee = fields.get("assignee")
+        assignee_name = (assignee.get("displayName") or assignee.get("name") or "(unassigned)") if isinstance(assignee, dict) else "(unassigned)"
+        rows.append({
+            "key": key,
+            "project": proj,
+            "summary": summary,
+            "status": status_name,
+            "assignee_display_name": assignee_name,
+        })
+    return rows
+
+
+def _label_breakdown(issues):
+    """Return dict: label name -> issue count. An issue can appear under multiple labels. '(no label)' for none."""
+    c = Counter()
+    for it in issues:
+        labels = (it.get("fields") or {}).get("labels")
+        if not labels or (isinstance(labels, list) and len(labels) == 0):
+            c["(no label)"] += 1
+            continue
+        for lab in labels:
+            if isinstance(lab, str):
+                c[lab] += 1
+            elif isinstance(lab, dict):
+                c[lab.get("name") or lab.get("value") or "?"] += 1
+        # If it has labels, we don't add to (no label); we've already counted each label.
+    return dict(c)
+
+
 def _project_key(issue):
     p = (issue.get("fields") or {}).get("project")
     return p.get("key", "?") if isinstance(p, dict) else "?"
@@ -950,10 +1095,16 @@ def _scope_metrics(
     cycle_vals = [cycle_time_days_from_changelog(it) for it in done_90_list]
     cycle_vals = [v for v in cycle_vals if v is not None]
 
+    wp = wip_by_phase(status_dist)
+    open_by_phase, wip_in_flight = open_by_phase_from_status_dist(status_dist)
+    unassigned_open = _unassigned_count(wip_list)
     metrics = {
-        "wip_count": len(wip_list),
+        "open_count": len(wip_list),
+        "open_by_phase": open_by_phase,
+        "wip_in_flight": wip_in_flight,
+        "wip_count": len(wip_list),  # backward compatibility
         "status_distribution": status_dist,
-        "wip_by_phase": wip_by_phase(status_dist),
+        "wip_by_phase": wp,  # backward compatibility
         "wip_components": _component_breakdown(wip_list),
         "wip_status_by_component": _status_by_component(wip_list),
         "wip_aging_days": summarize_time_metrics(ages) if ages else None,
@@ -966,7 +1117,8 @@ def _scope_metrics(
         "wip_issuetype": _issuetype_breakdown(wip_list),
         "done_issuetype": _issuetype_breakdown(done_list),
         "wip_priority": _priority_breakdown(wip_list),
-        "unassigned_wip_count": _unassigned_count(wip_list),
+        "unassigned_open_count": unassigned_open,
+        "unassigned_wip_count": unassigned_open,  # backward compatibility
         "resolution_breakdown": _resolution_breakdown(done_list),
         "resolution_by_weekday": _resolution_by_weekday(done_list),
         "done_assignees": dict(sorted(ab_done.items(), key=lambda x: -x[1])[:20]),
@@ -1287,11 +1439,11 @@ def main():
     if STORY_POINTS_FIELD:
         fields_with_team.append(STORY_POINTS_FIELD)
 
-    print("\nPulling current (not done) issues for status distribution & WIP aging...")
+    print("\nPulling current (not done) issues for status distribution & Open aging...")
     jql_wip = f'project in ({projects_jql}) AND statusCategory != {DONE_CATEGORY}'
     wip_issues = jira.search(jql_wip, fields=fields_with_team, max_results=5000)
 
-    print(f"WIP issues pulled: {len(wip_issues)}")
+    print(f"Open issues pulled: {len(wip_issues)}")
     status_dist = status_distribution(wip_issues)
     status_cat = categorize_status(wip_issues)
 
@@ -1306,43 +1458,69 @@ def main():
     for k, v in status_cat.items():
         print(f"  {k}: {v}")
 
-    print("\nTop statuses (WIP):")
+    print("\nTop statuses (Open):")
     for st, cnt in status_dist.most_common(15):
         print(f"  {st}: {cnt}")
 
     wip_aging = summarize_time_metrics(wip_ages)
-    results["wip_count"] = len(wip_issues)
+    status_dist_dict = dict(status_dist)
+    wp = wip_by_phase(status_dist_dict)
+    open_by_phase, wip_in_flight = open_by_phase_from_status_dist(status_dist_dict)
+    results["open_count"] = len(wip_issues)
+    results["open_by_phase"] = open_by_phase
+    results["wip_in_flight"] = wip_in_flight
+    results["wip_count"] = len(wip_issues)  # backward compatibility
     results["status_category"] = dict(status_cat)
     results["status_distribution"] = dict(status_dist)
-    results["wip_by_phase"] = wip_by_phase(dict(status_dist))
+    results["wip_by_phase"] = wp  # backward compatibility
     results["wip_aging_days"] = wip_aging
     results["wip_components"] = _component_breakdown(wip_issues)
     if TEAM_FIELD_ID:
         results["wip_teams"] = _team_breakdown(wip_issues, TEAM_FIELD_ID)
     else:
         results["wip_teams"] = {}
-    print("\nAging WIP summary (days since created):", wip_aging)
+    print("\nAging Open summary (days since created):", wip_aging)
+    print(f"WIP (in flight): {wip_in_flight}")
     if results["wip_components"]:
-        print("WIP by component:", dict(sorted(results["wip_components"].items(), key=lambda x: -x[1])[:10]))
+        print("Open by component:", dict(sorted(results["wip_components"].items(), key=lambda x: -x[1])[:10]))
     if results["wip_teams"]:
-        print("WIP by team:", dict(sorted(results["wip_teams"].items(), key=lambda x: -x[1])[:10]))
+        print("Open by team:", dict(sorted(results["wip_teams"].items(), key=lambda x: -x[1])[:10]))
 
-    # Phase 1 WIP metrics
+    # Phase 1 Open/WIP metrics
     results["wip_status_by_component"] = _status_by_component(wip_issues)
     results["wip_issuetype"] = _issuetype_breakdown(wip_issues)
     results["wip_priority"] = _priority_breakdown(wip_issues)
-    results["unassigned_wip_count"] = _unassigned_count(wip_issues)
-    print(f"Unassigned WIP: {results['unassigned_wip_count']} / {len(wip_issues)}")
+    unassigned_open = _unassigned_count(wip_issues)
+    results["unassigned_open_count"] = unassigned_open
+    results["unassigned_wip_count"] = unassigned_open  # backward compatibility
+    print(f"Unassigned open: {results['unassigned_open_count']} / {len(wip_issues)}")
 
     # Phase 3 WIP metrics
     results["empty_description_wip_pct"] = _empty_description_pct(wip_issues)
 
-    # Phase 6a: WIP by assignee
+    # Empty or bad structure (WIP): count, list, breakdowns
+    empty_bad_wip_list, empty_bad_wip_keys = _filter_empty_or_bad(wip_issues)
+    results["empty_or_bad_count_wip"] = len(empty_bad_wip_keys)
+    results["empty_or_bad_pct_wip"] = round(len(empty_bad_wip_keys) / len(wip_issues) * 100, 1) if wip_issues else 0
+    results["empty_or_bad_ticket_keys_wip"] = empty_bad_wip_keys
+    results["empty_or_bad_list_wip"] = _empty_or_bad_list_details(empty_bad_wip_list)
+    results["empty_or_bad_by_team_wip"] = _team_breakdown(empty_bad_wip_list, TEAM_FIELD_ID) if TEAM_FIELD_ID else {}
+    results["empty_or_bad_by_assignee_wip"] = _assignee_breakdown(empty_bad_wip_list)
+    results["empty_or_bad_by_component_wip"] = _component_breakdown(empty_bad_wip_list)
+    results["empty_or_bad_by_label_wip"] = _label_breakdown(empty_bad_wip_list)
+    _top5 = lambda d: dict(sorted((d or {}).items(), key=lambda x: -x[1])[:5])
+    results["empty_or_bad_top_teams_wip"] = _top5(results["empty_or_bad_by_team_wip"])
+    results["empty_or_bad_top_assignees_wip"] = _top5(results["empty_or_bad_by_assignee_wip"])
+    results["empty_or_bad_top_components_wip"] = _top5(results["empty_or_bad_by_component_wip"])
+    results["empty_or_bad_top_labels_wip"] = _top5(results["empty_or_bad_by_label_wip"])
+    print(f"Empty or bad structure (WIP): {results['empty_or_bad_count_wip']} / {len(wip_issues)} ({results['empty_or_bad_pct_wip']}%)")
+
+    # Phase 6a: Open by assignee
     wip_ab = _assignee_breakdown(wip_issues)
     results["wip_assignees"] = dict(sorted(wip_ab.items(), key=lambda x: -x[1])[:30])
     wip_per_person = [v for k, v in wip_ab.items() if k != "(unassigned)"]
     results["avg_wip_per_assignee"] = round(sum(wip_per_person) / len(wip_per_person), 1) if wip_per_person else 0
-    print(f"WIP assignees: {len(wip_ab)}, avg WIP/person: {results['avg_wip_per_assignee']}")
+    print(f"Open assignees: {len(wip_ab)}, avg open/person: {results['avg_wip_per_assignee']}")
 
     print("\nPulling blockers (heuristic JQL)...")
     blocked_jql = f'project in ({projects_jql}) AND statusCategory != {DONE_CATEGORY} AND {BLOCKED_JQL}'
@@ -1353,7 +1531,7 @@ def main():
         # Show top 10 oldest blocked
         for it in blocked_issues:
             age = bug_age_days(it, now=now)
-            blocked_with_age.append((age or -1, it["key"], it["fields"].get("summary", "") or ""))
+            blocked_with_age.append((age or -1, it.get("key", "?"), (it.get("fields") or {}).get("summary", "") or ""))
 
         blocked_with_age.sort(reverse=True)
         print("Oldest blocked issues (top 10):")
@@ -1420,6 +1598,22 @@ def main():
     print(f"Empty description (done): {results['empty_description_done_pct']}%")
     print(f"Zero comments (done): {results['zero_comment_done_pct']}%")
     print(f"Orphan issues (done): {results['orphan_done_pct']}%")
+
+    # Empty or bad structure (Done): count, list, breakdowns
+    empty_bad_done_list, empty_bad_done_keys = _filter_empty_or_bad(done_issues)
+    results["empty_or_bad_count_done"] = len(empty_bad_done_keys)
+    results["empty_or_bad_pct_done"] = round(len(empty_bad_done_keys) / len(done_issues) * 100, 1) if done_issues else 0
+    results["empty_or_bad_ticket_keys_done"] = empty_bad_done_keys
+    results["empty_or_bad_list_done"] = _empty_or_bad_list_details(empty_bad_done_list)
+    results["empty_or_bad_by_team_done"] = _team_breakdown(empty_bad_done_list, TEAM_FIELD_ID) if TEAM_FIELD_ID else {}
+    results["empty_or_bad_by_assignee_done"] = _assignee_breakdown(empty_bad_done_list)
+    results["empty_or_bad_by_component_done"] = _component_breakdown(empty_bad_done_list)
+    results["empty_or_bad_by_label_done"] = _label_breakdown(empty_bad_done_list)
+    results["empty_or_bad_top_teams_done"] = _top5(results["empty_or_bad_by_team_done"])
+    results["empty_or_bad_top_assignees_done"] = _top5(results["empty_or_bad_by_assignee_done"])
+    results["empty_or_bad_top_components_done"] = _top5(results["empty_or_bad_by_component_done"])
+    results["empty_or_bad_top_labels_done"] = _top5(results["empty_or_bad_by_label_done"])
+    print(f"Empty or bad structure (done): {results['empty_or_bad_count_done']} / {len(done_issues)} ({results['empty_or_bad_pct_done']}%)")
 
     # Phase 4a: Story point inflation
     results["sp_trend"] = _sp_trend(done_issues, STORY_POINTS_FIELD)
@@ -1954,7 +2148,7 @@ def main():
         if isinstance(obj, float) and math.isnan(obj):
             return None
         raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
-    out_dir = os.path.dirname(os.path.abspath(__file__))
+    out_dir = os.environ.get("OUTPUT_DIR", os.path.dirname(os.path.abspath(__file__)))
     latest_path = os.path.join(out_dir, "jira_analytics_latest.json")
     ts_path = os.path.join(out_dir, f"jira_analytics_{run_ts.replace(':', '-')}.json")
     for path in (latest_path, ts_path):

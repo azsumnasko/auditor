@@ -7,6 +7,7 @@ import json
 import os
 import sys
 from collections import defaultdict
+from datetime import datetime
 
 def project_from_key(key):
     if not key or "-" not in key:
@@ -100,6 +101,23 @@ def generate_insights_md(data, by_project, out_path):
     last_weeks = sorted(throughput.keys())[-4:] if throughput else []
     recent_throughput = sum(throughput.get(w, 0) for w in last_weeks)
 
+    releases = data.get("releases") or []
+    releases_per_month = data.get("releases_per_month") or {}
+    total_released_versions = data.get("total_released_versions", 0)
+    try:
+        ref_year = int(run_ts[:4]) if len(run_ts) >= 4 else datetime.now().year
+        ref_month = int(run_ts[5:7]) if len(run_ts) >= 7 else datetime.now().month
+    except (ValueError, TypeError):
+        ref_year, ref_month = datetime.now().year, datetime.now().month
+    releases_last_12 = 0
+    for i in range(12):
+        m, y = ref_month - i, ref_year
+        while m < 1:
+            m += 12
+            y -= 1
+        key = f"{y}-{m:02d}"
+        releases_last_12 += releases_per_month.get(key, 0)
+
     lines = [
         "# Jira insights and next best actions",
         f"*Generated from run: {run_ts}*",
@@ -111,6 +129,7 @@ def generate_insights_md(data, by_project, out_path):
         f"- **Blocked:** {blocked_count} issues",
         f"- **Open bugs:** {open_bugs} · median age **{open_bugs_age.get('p50_days', 0):.0f}** days",
         f"- **Throughput (last 4 weeks):** {recent_throughput} issues done",
+        f"- **Released versions:** {total_released_versions} total; {releases_last_12} released in the last 12 months",
         "",
         "---",
         "## By project",
@@ -145,6 +164,10 @@ def generate_insights_md(data, by_project, out_path):
         if kanban:
             k = kanban
             proj_lines.append(f"- **Kanban:** {k.get('issue_count', 0)} on board, {k.get('done_count', 0)} done — {json.dumps(k.get('status_breakdown', {}))}")
+        proj_releases = [r for r in releases if r.get("project") == p]
+        if proj_releases:
+            proj_released = sum(1 for r in proj_releases if r.get("released"))
+            proj_lines.append(f"- **Versions:** {len(proj_releases)} total, {proj_released} released")
 
         if proj_lines:
             lines.extend(proj_lines)
@@ -210,6 +233,35 @@ def generate_insights_md(data, by_project, out_path):
         f"- **WIP is aging** (median {wip_aging.get('p50_days', 0):.0f} days). Consider limiting WIP and finishing started work before pulling new items.",
         "- **Throughput last 4 weeks:** use weekly trend to spot drops and align capacity.",
         "",
+        "### 4. Releases and versions",
+        "",
+    ])
+
+    # Release-related next best actions
+    released_with_date = [r for r in releases if r.get("released") and r.get("release_date")]
+    latest_release_date = None
+    if released_with_date:
+        dates = sorted(r.get("release_date") for r in released_with_date if r.get("release_date"))
+        if dates:
+            latest_release_date = dates[-1]
+    no_release_90_days = False
+    if latest_release_date:
+        try:
+            latest = datetime.strptime(latest_release_date[:10], "%Y-%m-%d")
+            now = datetime.now()
+            no_release_90_days = (now - latest).days > 90
+        except (ValueError, TypeError):
+            pass
+    unreleased_count = len(releases) - total_released_versions
+
+    if no_release_90_days:
+        lines.append("- **No release in the last 90 days.** Consider scheduling a release or cleaning up unreleased versions.")
+    if unreleased_count > 10:
+        lines.append(f"- **Many unreleased versions ({unreleased_count}).** Review and either release or archive.")
+    lines.append("- **Releases per month:** consider keeping a steady cadence where possible.")
+    lines.append("")
+
+    lines.extend([
         "---",
         "*Re-run `./run_jira_analytics.ps1` and this script to refresh. Use `@jira_analytics_latest.json` or `@by_project.json` in Cursor for follow-up questions.*",
         "",
