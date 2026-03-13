@@ -990,12 +990,13 @@ def _filter_empty_or_bad(
 
 
 def _empty_or_bad_list_details(issues, summary_max_len=60):
-    """Return list of dicts: key, project, summary (truncated), status, assignee_display_name."""
+    """Return list of dicts: key, project, type (issuetype), summary (truncated), status, assignee_display_name."""
     rows = []
     for it in issues:
         fields = it.get("fields") or {}
         key = it.get("key") or "?"
         proj = _project_key(it)
+        type_name = (fields.get("issuetype") or {}).get("name") or ""
         summary = (fields.get("summary") or "").strip()
         if len(summary) > summary_max_len:
             summary = summary[: summary_max_len - 1] + "\u2026"
@@ -1006,6 +1007,7 @@ def _empty_or_bad_list_details(issues, summary_max_len=60):
         rows.append({
             "key": key,
             "project": proj,
+            "type": type_name,
             "summary": summary,
             "status": status_name,
             "assignee_display_name": assignee_name,

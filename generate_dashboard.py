@@ -132,6 +132,7 @@ def main():
         empty_or_bad_rows.append(
             f'<tr data-scope="WIP" data-project="{html.escape(row.get("project", ""))}">'
             f'<td>{html.escape(row.get("key", ""))}</td><td>WIP</td><td>{html.escape(row.get("project", ""))}</td>'
+            f'<td>{html.escape(row.get("type", ""))}</td>'
             f'<td>{html.escape((row.get("summary") or "")[:60])}</td><td>{html.escape(row.get("status", ""))}</td>'
             f'<td>{html.escape(row.get("assignee_display_name", ""))}</td></tr>'
         )
@@ -139,10 +140,11 @@ def main():
         empty_or_bad_rows.append(
             f'<tr data-scope="Done" data-project="{html.escape(row.get("project", ""))}">'
             f'<td>{html.escape(row.get("key", ""))}</td><td>Done</td><td>{html.escape(row.get("project", ""))}</td>'
+            f'<td>{html.escape(row.get("type", ""))}</td>'
             f'<td>{html.escape((row.get("summary") or "")[:60])}</td><td>{html.escape(row.get("status", ""))}</td>'
             f'<td>{html.escape(row.get("assignee_display_name", ""))}</td></tr>'
         )
-    empty_or_bad_rows_str = "".join(empty_or_bad_rows) if empty_or_bad_rows else "<tr><td colspan=\"6\">None</td></tr>"
+    empty_or_bad_rows_str = "".join(empty_or_bad_rows) if empty_or_bad_rows else "<tr><td colspan=\"7\">None</td></tr>"
     top_teams_wip = data.get("empty_or_bad_top_teams_wip") or {}
     top_teams_done = data.get("empty_or_bad_top_teams_done") or {}
     top_assignees_wip = data.get("empty_or_bad_top_assignees_wip") or {}
@@ -492,10 +494,10 @@ def main():
       <span>Open: <strong>{empty_bad_count_wip}</strong> ({empty_bad_pct_wip}%)</span>
       <span>Done: <strong>{empty_bad_count_done}</strong> ({empty_bad_pct_done}%)</span>
     </div>
-    <div class="filter"><input type="text" id="filterEmptyBad" placeholder="Filter by key, project, assignee\u2026" /></div>
+    <div class="filter"><input type="text" id="filterEmptyBad" placeholder="Filter by key, project, assignee, type\u2026" /></div>
     <div class="table-wrap">
       <table id="tableEmptyBad">
-        <thead><tr><th data-sort="key">Key</th><th data-sort="scope">Scope</th><th data-sort="project">Project</th><th>Summary</th><th data-sort="status">Status</th><th data-sort="assignee">Assignee</th></tr></thead>
+        <thead><tr><th data-sort="key">Key</th><th data-sort="scope">Scope</th><th data-sort="project">Project</th><th data-sort="type">Type</th><th>Summary</th><th data-sort="status">Status</th><th data-sort="assignee">Assignee</th></tr></thead>
         <tbody>{empty_or_bad_rows_str}</tbody>
       </table>
     </div>

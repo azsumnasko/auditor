@@ -1,105 +1,153 @@
-# Code Review: Multi-tenant Jira Analytics SaaS
+# Senior-Level Code Review — Auditor
 
-Senior dev and product-manager review with applied fixes.
-
----
-
-## Security
-
-### 1. SESSION_SECRET in production (fixed)
-- **Finding**: Default `dev-secret-change-in-production` was used when unset, allowing predictable sessions in production.
-- **Fix**: In `lib/auth.ts`, `getSecret()` throws at runtime in production if `SESSION_SECRET` is unset or equals the default. First login/signup or any session read will fail until a proper secret is set.
-- **Recommendation**: Set `SESSION_SECRET` in Coolify (and in `.env` locally for production builds).
-
-### 2. Worker job claim race (fixed)
-- **Finding**: Two worker instances could SELECT the same pending job before either committed UPDATE, leading to duplicate runs or inconsistent state.
-- **Fix**: In `worker/run_next_job.py`, job claim runs inside `BEGIN IMMEDIATE` so the row is locked until commit. Only one worker can claim a given job.
-
-### 3. Dashboard report path (fixed)
-- **Finding**: Report path was built from `userId` without ensuring the resolved path stays under `DATA_DIR/users`.
-- **Fix**: In `app/dashboard/report/route.ts`, `userId` is validated as a positive integer and the resolved path is checked to be under `USERS_DIR` before reading the file.
-
-### 4. Jira token storage
-- **Recommendation**: Consider encrypting `jira_token` in the `config` table with a key from env (e.g. `ENCRYPTION_KEY`) for defense in depth. Not applied; optional follow-up.
+**Scope:** `jira_analytics.py`, `generate_dashboard.py`, tests, and recent “ticket type” change.  
+**Date:** 2026-03-13
 
 ---
 
-## API consistency
+## 1. Executive Summary
 
-### 5. JSON error shape (fixed)
-- **Finding**: Some routes returned plain text (e.g. `"Unauthorized"`) or inconsistent bodies, making client handling harder.
-- **Fix**: All API error responses now use a JSON body `{ error: "<message>" }` with appropriate status codes. Client code (login, signup, config, dashboard) updated to use `data.error` where applicable.
+The codebase delivers a Jira analytics pipeline and single-file HTML dashboard with clear separation between data (JSON) and presentation. The recent addition of **ticket type** to the “Empty or bad structure” table is implemented correctly and consistently. The review identifies one **defensive bug** in the new code, several **security and maintainability** improvements, and concrete **testing and structure** recommendations.
 
-### 6. One pending/running job per user (fixed)
-- **Finding**: Users could spam “Generate report” and create many pending jobs, overloading the worker and confusing the UI.
-- **Fix**: `POST /api/reports/generate` checks for an existing job in `pending` or `running` for the current user; if found, returns `409` with message “A report is already generating. Wait for it to finish.”
+**Verdict:** Ship the ticket-type feature with the small robustness fix below; address security and structure in follow-up work.
 
 ---
 
-## Product and UX
+## 2. Recent Change: Ticket Type Column
 
-### 7. Config page 401 redirect (fixed)
-- **Finding**: If the session expired while on the config page, the config fetch returned 401 but the user stayed on the page with no feedback.
-- **Fix**: On `401` from `GET /api/config`, the client redirects to `/login?from=/` so the user can sign in again.
+### What was done well
 
-### 8. Login/signup navigation (fixed)
-- **Finding**: Auth pages had no link back to the app root, so the product felt disconnected.
-- **Fix**: Added “Jira Analytics” link to `/` on both login and signup pages.
+- **Single source of truth:** Type is added in `_empty_or_bad_list_details()` in `jira_analytics.py` and consumed in `generate_dashboard.py`; no duplicated logic.
+- **Consistent escaping:** `row.get("type", "")` is passed through `html.escape()` in both WIP and Done row builders — no XSS from type.
+- **Column count:** Colspan updated from 6 to 7 for the “None” row; header and body stay in sync.
+- **Sorting/filtering:** `data-sort="type"` and filter placeholder updated so the new column participates in existing UX.
 
-### 9. Email validation (fixed)
-- **Finding**: Only presence and length were checked; invalid formats were accepted.
-- **Fix**: Signup and login now validate email with a simple regex `^[^\s@]+@[^\s@]+\.[^\s@]+$`. Signup already stored email lowercased via `getUserByEmail`; login now lowercases before lookup.
+### Defensive fix (recommended)
 
----
+In `jira_analytics.py`, `issuetype` can be missing or non-dict in some Jira responses. The current code is safe when `itype` is `None` but is slightly brittle if the API returns an unexpected type:
 
-## Data and reliability
+```python
+# Current (correct but brittle)
+itype = fields.get("issuetype")
+type_name = itype.get("name") if isinstance(itype, dict) else ""
+```
 
-### 10. SQLite WAL mode (fixed)
-- **Finding**: Default delete mode can block readers during writes; with both Next.js and the worker using the same DB, concurrency is important.
-- **Fix**: In `lib/db.ts`, `initSchema` runs `PRAGMA journal_mode = WAL` so reads are not blocked by a single writer.
+**Recommendation:** Make it defensive and consistent with other optional objects:
 
----
+```python
+itype = fields.get("issuetype")
+type_name = (itype.get("name") if isinstance(itype, dict) else None) or ""
+```
 
-## Optional items implemented (after review)
+Or more idiomatically:
 
-### Rate limiting (report generation)
-- **Per-user limit**: Max **10 report generations per hour** (jobs created in the last 60 minutes).
-- **Implementation**: `lib/db.ts` adds `countJobsCreatedInLastHour(userId)`; `POST /api/reports/generate` returns **429** with message `Rate limit: max 10 reports per hour. Try again later.` when the count is at or above the limit.
-- **UI**: Dashboard shows the rate-limit (and other generate) errors inline below the button instead of only in an alert.
+```python
+type_name = (fields.get("issuetype") or {}).get("name") or ""
+```
 
-### Stale job cleanup
-- **Behaviour**: Jobs stuck in `running` for more than **1 hour** are marked `failed` with message *"Stale (run exceeded 1 hour(s)); you can generate again."*
-- **Implementation**: In `worker/run_next_job.py`, `cleanup_stale_running_jobs(conn)` runs at the start of each poll cycle (before claiming a job). Uses `updated_at < datetime('now', '-1 hours')` so users can generate again.
-
----
-
-## Recommendations not implemented
-
-- **Token encryption**: Encrypt `jira_token` at rest in the config table using an env-based key.
-- **Audit log**: Log config changes and report generation (user id, timestamp) for support and compliance.
-- **E2E tests**: Add a minimal Playwright (or similar) flow: signup → login → config → generate report → view dashboard.
+This avoids any possibility of `AttributeError` if `issuetype` is e.g. a string or list in an edge case.
 
 ---
 
-## Additional fixes (second pass)
+## 3. Architecture & Structure
 
-- **Open redirect**: Login page now validates `from` query param — only allows relative paths (starts with `/`, not `//`) before redirecting after login.
-- **Session payload validation**: `getSessionUserId()` now validates `sub` is a string and that the parsed id is a positive integer; otherwise returns `null`.
-- **Config API**: Server-side validation for JIRA Base URL (valid URL); max lengths enforced (JIRA_BASE_URL 2048, JIRA_EMAIL 256, JIRA_TOKEN 2048, JIRA_PROJECT_KEYS 500).
-- **Login API**: Email format validation added (same regex as signup) for consistency.
-- **Signup API**: Unique constraint on email is caught (better-sqlite3 `SQLITE_CONSTRAINT_UNIQUE` or message contains `UNIQUE`); returns 409 "Email already registered" instead of 500.
-- **Dashboard report 404**: Explicit `Content-Type: text/plain; charset=utf-8` on 404 response.
+### Strengths
+
+- **Pipeline separation:** Analytics → JSON → HTML generation is clear; `generate_dashboard.py` is a pure function of the JSON (no Jira calls).
+- **Configuration via env:** `JIRA_*`, `OUTPUT_DIR`, `DOTENV_PATH`, etc. keep secrets and environment out of code.
+- **JQL safety:** Project keys are passed through `_jql_project_list()` with quoting for reserved words; JQL is not built from raw user input.
+
+### Concerns
+
+- **Oversized `main()` in `jira_analytics.py`:** `main()` is ~760 lines (from ~1402 to end of file). It mixes orchestration, I/O, and business logic. This hurts readability, testability, and reuse.
+  - **Suggestion:** Extract phases into named functions (e.g. `_phase_wip_metrics()`, `_phase_done_metrics()`, `_phase_cfr()`, `_write_results()`) and have `main()` call them in order. Each phase can then be unit-tested or reused (e.g. for incremental runs).
+
+- **Monolithic HTML in `generate_dashboard.py`:** The script builds one large HTML string (2000+ lines). This works but makes targeted changes and reuse harder.
+  - **Suggestion:** Consider splitting into sections (e.g. “empty or bad” section, “bugs” section) as builder functions or a small template list, and compose the final string. Same for the embedded JavaScript.
+
+- **Duplicate dashboard sources:** `jira_dashboard.html` is generated by `generate_dashboard.py`; the repo also contains a pre-rendered `jira_dashboard.html`. That’s fine, but any manual edits to the HTML will be overwritten on the next run. Document “generated file — do not edit” in a header or README if not already.
 
 ---
 
-## Files changed (summary)
+## 4. Security
 
-| Area        | Files |
-|------------|--------|
-| Auth        | `config-ui/lib/auth.ts` (getSecret, production check) |
-| Middleware  | `config-ui/middleware.ts` (JSON 401 body) |
-| DB          | `config-ui/lib/db.ts` (WAL, `countJobsCreatedInLastHour`) |
-| API routes  | `config-ui/app/api/config/route.ts`, `auth/login`, `auth/signup`, `reports/generate`, `reports/status` (JSON errors, rate limit 10/hr, email validation) |
-| Dashboard   | `config-ui/app/dashboard/report/route.ts` (path validation, JSON errors) |
-| Worker      | `worker/run_next_job.py` (atomic job claim, `cleanup_stale_running_jobs` before claim) |
-| UI          | `config-ui/app/page.tsx` (401 redirect, error from JSON), `login/page.tsx`, `signup/page.tsx` (nav, error message), `dashboard/page.tsx` (error message, inline generate error) |
+### Good practices
+
+- **HTML escaping:** User- and Jira-sourced values in the “Empty or bad structure” table (key, project, type, summary, status, assignee) are escaped with `html.escape()` before insertion into HTML.
+- **Credentials:** Jira credentials from env; dotenv used so tokens are not in shell history.
+- **No eval/exec:** No dynamic code execution on dashboard or analytics data.
+
+### Issues to fix
+
+- **Incomplete escaping in JS-driven HTML (XSS):** In both `jira_dashboard.html` and `generate_dashboard.py`, `pathsTb.innerHTML` is set with:
+  - `p.path.replace(/</g,'&lt;')` — only `<` is escaped. Characters such as `>`, `"`, `'`, and `&` are not. A path like `"><img src=x onerror=alert(1)>` could break context and execute script.
+  - **Fix:** Escape for HTML attribute/text context (e.g. `&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`, `"` → `&quot;`, `'` → `&#39;`), or use a small helper and use it for any dynamic content injected into the DOM. Prefer encoding the whole string rather than ad-hoc `replace`.
+
+- **SESSION_SECRET default in `docker-compose.yml`:** `SESSION_SECRET=${SESSION_SECRET:-change-me-in-production}` is documented as “change in production” but is a dangerous default if the service is ever exposed.
+  - **Recommendation:** Fail fast in production if `SESSION_SECRET` is unset or equals the default (e.g. in config-ui startup), and document in README/deploy docs.
+
+---
+
+## 5. Reliability & Error Handling
+
+- **Jira client:** `_get()` raises `RuntimeError` on 4xx/5xx; callers do not always catch. For a batch/CLI job this is acceptable, but long-running or automated runs might benefit from retries with backoff for 5xx and rate limits.
+- **CFR query:** CFR failure JQL is wrapped in try/except and stored as `cfr_error`; good for resilience when the JQL or schema differs.
+- **Pagination:** Search and sprint issue methods paginate correctly and respect `max_results`; `time.sleep(0.1)` between pages is a simple rate-limit measure.
+- **JSON serialization:** `_json_default` handling of NaN is correct for writing analytics JSON.
+
+---
+
+## 6. Maintainability & DRY
+
+- **Empty-or-bad row building:** The two loops (WIP and Done) in `generate_dashboard.py` differ only by scope label and `data-scope`. A single helper (e.g. `def _empty_bad_row(row, scope):`) would remove duplication and keep the 7-column layout in one place.
+- **Magic numbers:** Values like `summary_max_len=60`, `[:60]` for summary in HTML, and various colspans are repeated. Centralizing (e.g. `SUMMARY_DISPLAY_LEN = 60`) would make future changes (e.g. longer summaries) easier.
+- **Table column count:** The number 7 is now implicit in the colspan and in the number of `<td>`s. A comment or constant (e.g. `EMPTY_BAD_TABLE_COLUMNS = 7`) next to the table definition would reduce the risk of adding a column and forgetting to update the “None” row.
+
+---
+
+## 7. Testing
+
+- **Coverage gap:** There are no tests for `_empty_or_bad_list_details`, `_filter_empty_or_bad`, or `_is_empty_or_bad_structure`. The ticket-type change is in this path; a regression (e.g. wrong field name or missing type) would not be caught by tests.
+- **Existing tests:** `test_jira_dashboard_plan.py` uses `make_issue()` which already includes `issuetype`; that fixture could be reused to add a test that `_empty_or_bad_list_details` returns a `"type"` key equal to the issue type name, and that missing/odd `issuetype` yields `""`.
+
+**Suggested test (conceptual):**
+
+```python
+def test_empty_or_bad_list_details_includes_type(self):
+    issues = [
+        make_issue(key="X-1", issuetype="Task"),
+        make_issue(key="X-2", issuetype="Bug"),
+        make_issue(key="X-3", issuetype="Story"),
+    ]
+    rows = jira_analytics._empty_or_bad_list_details(issues)
+    self.assertEqual([r["type"] for r in rows], ["Task", "Bug", "Story"])
+```
+
+Add a case with `issuetype=None` or missing to assert `type_name == ""`.
+
+---
+
+## 8. Performance
+
+- **In-memory:** All issues are loaded into memory; for very large Jira instances (tens of thousands of issues) this could be heavy. Pagination is already in place; streaming or chunked processing would be a later optimization if needed.
+- **Dashboard generation:** Single-pass string building is fine for a 2000-line HTML file; no change required unless the output grows much larger.
+
+---
+
+## 9. Recommendations Summary
+
+| Priority | Item | Action |
+|----------|------|--------|
+| **P0** | Defensive `issuetype` handling | Use `(fields.get("issuetype") or {}).get("name") or ""` in `_empty_or_bad_list_details`. |
+| **P1** | XSS in paths table | Escape full HTML context for `p.path` (and any other JS-injected content) in dashboard HTML/JS. |
+| **P2** | Tests for empty/bad path | Add tests for `_empty_or_bad_list_details` (including type) and optionally `_filter_empty_or_bad`. |
+| **P2** | Split `main()` | Extract phases into functions; keep `main()` as a short orchestrator. |
+| **P3** | DRY row building | Single helper for empty-or-bad table rows in `generate_dashboard.py`. |
+| **P3** | Constants | Introduce `SUMMARY_DISPLAY_LEN`, document or constant for empty-bad column count. |
+| **P3** | SESSION_SECRET | Fail if default in production; document in README/deploy. |
+
+---
+
+## 10. Conclusion
+
+The ticket-type feature is implemented correctly and fits the existing patterns. Applying the P0 defensive fix and, over time, the P1–P3 items will improve robustness, security, and maintainability without blocking the current release.
