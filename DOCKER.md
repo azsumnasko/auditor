@@ -31,13 +31,11 @@ Per-user Jira config is stored in the SQLite DB (`/data/app.db`); users set it v
 
 ## Deploy at clean-horzon.tech/report (subpath)
 
-To serve the app at **https://clean-horzon.tech/report**:
+To serve the app at **https://clean-horzon.tech/report** (repo can be on GitHub or any Git host Coolify supports):
 
 1. **New Application** in Coolify → **Docker Compose**.
-2. **Source**: Connect this repo, branch (e.g. `main`), compose file `docker-compose.yml`.
-3. **Build arguments** (for the **config-ui** service): add  
-   `NEXT_PUBLIC_BASE_PATH` = `/report`  
-   so the app is built with base path `/report` (links and API routes will use `/report`).
+2. **Source**: Connect your Git source (e.g. **GitHub** — connect account or paste repo URL), select branch (e.g. `main`), set compose file path to `docker-compose.yml`.
+3. The **config-ui** image is built with base path `/report` by default (no build arg needed in Coolify). To serve at domain root instead, you’d need to pass build arg `NEXT_PUBLIC_BASE_PATH` = empty (if your UI supports it).
 4. **Environment** for **config-ui**:  
    - `SESSION_SECRET` = (generate a long random string)  
    - Optional: `DATA_DIR` = `/data`
