@@ -6,8 +6,8 @@ COPY package.json ./
 RUN npm install
 
 FROM base AS builder
-# Default /report for subpath deploy (e.g. clear-horizon.tech/report). Override with build arg to use root.
-ARG NEXT_PUBLIC_BASE_PATH=/report
+# Empty = serve at root (e.g. report.clean-horzon.tech). Set to /report for subpath (e.g. clean-horzon.tech/report).
+ARG NEXT_PUBLIC_BASE_PATH=
 ENV NEXT_PUBLIC_BASE_PATH=${NEXT_PUBLIC_BASE_PATH}
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
