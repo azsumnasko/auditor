@@ -13,7 +13,7 @@ Per-user Jira config is stored in the SQLite DB (`/data/app.db`); users set it v
 
 1. From repo root: `docker compose up --build`
 2. Set `SESSION_SECRET` (e.g. `export SESSION_SECRET=your-secret`) or use the default for dev.
-3. Open http://localhost:3000 → Sign up, then log in.
+3. Open http://localhost:3001 → Sign up, then log in.
 4. On Config page, fill and save your Jira settings.
 5. On Dashboard, click **Generate report**; wait for the worker to pick up the job (polls every 60s). View the report in the same page or open `/dashboard/report`.
 
@@ -24,7 +24,7 @@ Per-user Jira config is stored in the SQLite DB (`/data/app.db`); users set it v
 3. Set env vars for **config-ui**: `SESSION_SECRET` (required). Optionally `DATA_DIR`.
 4. Set env for **worker**: optionally `DATA_DIR` (default `/data`).
 5. Deploy; Coolify will build both `config-ui` and `worker` and create the shared volume.
-6. Point your domain or port to the **config-ui** service (port 3000). Do not expose the worker.
+6. Point your domain or port to the **config-ui** service (port 3001). Do not expose the worker.
 7. Users sign up, configure Jira, and generate reports on demand from the Dashboard.
 
 ---
@@ -43,7 +43,7 @@ To serve the app at **https://clean-horzon.tech/report** (repo can be on GitHub 
 6. **Domain / URL**:
    - Domain: `clean-horzon.tech`
    - Path (if your Coolify version supports it): `/report`  
-   So traffic to `https://clean-horzon.tech/report` is sent to the config-ui container (port 3000).  
+   So traffic to `https://clean-horzon.tech/report` is sent to the config-ui container (port 3001).  
    If Coolify only has “Domain”, set the domain to `clean-horzon.tech` and in the **Application URL** or **Path** field set `/report`. Exact labels depend on your Coolify UI.
 7. **Persistent volume**: Ensure the Compose volume `jira_data` is persisted (Coolify usually keeps named volumes).
 8. **Deploy**. After deploy, open **https://clean-horzon.tech/report** → sign up / log in, configure Jira, then use the Dashboard to generate reports.
