@@ -6,7 +6,7 @@ COPY package.json ./
 RUN npm install
 
 FROM base AS builder
-# Empty = serve at root (e.g. report.clean-horzon.tech). Set to /report for subpath (e.g. clean-horzon.tech/report).
+# Empty = serve at root (e.g. report.clear-horizon.tech). Set to /report for subpath (e.g. clear-horizon.tech/report).
 ARG NEXT_PUBLIC_BASE_PATH=
 ENV NEXT_PUBLIC_BASE_PATH=${NEXT_PUBLIC_BASE_PATH}
 WORKDIR /app

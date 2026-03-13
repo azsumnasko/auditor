@@ -89,21 +89,25 @@ export default function ConfigPage() {
   };
 
   return (
-    <main>
-      <nav style={{ marginBottom: '1rem' }}>
-        <a href="/">Config</a> | <a href="/dashboard">Dashboard</a> |{' '}
+    <main className="config-page">
+      <nav className="dashboard-nav">
+        <a href="/" className="nav-active">Config</a>
+        <span className="nav-sep">|</span>
+        <a href="/dashboard">Dashboard</a>
+        <span className="nav-sep">|</span>
         <button type="button" onClick={() => fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).then(() => { window.location.href = '/login'; })}>Logout</button>
       </nav>
-      <h1>Jira Analytics – Config</h1>
-      <p>
-        <a href="/dashboard">Open dashboard</a> (after saving config, generate report on demand)
-      </p>
-      {status && (
-        <p style={{ color: '#666' }}>
-          {status.configured ? 'Config saved. Worker will use these values.' : 'Not configured yet.'}
+      <div className="config-content">
+        <h1>Jira Analytics – Config</h1>
+        <p>
+          <a href="/dashboard">Open dashboard</a> (after saving config, generate report on demand)
         </p>
-      )}
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {status && (
+          <p className="text-muted">
+            {status.configured ? 'Config saved. Worker will use these values.' : 'Not configured yet.'}
+          </p>
+        )}
+        <form onSubmit={handleSubmit} className="config-form">
         <label>
           JIRA Base URL
           <input
@@ -112,7 +116,7 @@ export default function ConfigPage() {
             onChange={(e) => setForm((f) => ({ ...f, JIRA_BASE_URL: e.target.value }))}
             placeholder="https://company.atlassian.net"
             required
-            style={{ display: 'block', width: '100%', marginTop: 2, padding: 6 }}
+            className="config-input"
           />
         </label>
         <label>
@@ -123,7 +127,7 @@ export default function ConfigPage() {
             onChange={(e) => setForm((f) => ({ ...f, JIRA_EMAIL: e.target.value }))}
             placeholder="you@company.com"
             required
-            style={{ display: 'block', width: '100%', marginTop: 2, padding: 6 }}
+            className="config-input"
           />
         </label>
         <label>
@@ -135,7 +139,7 @@ export default function ConfigPage() {
             placeholder="••••••••"
             required
             autoComplete="off"
-            style={{ display: 'block', width: '100%', marginTop: 2, padding: 6 }}
+            className="config-input"
           />
         </label>
         <label>
@@ -146,15 +150,16 @@ export default function ConfigPage() {
             onChange={(e) => setForm((f) => ({ ...f, JIRA_PROJECT_KEYS: e.target.value }))}
             placeholder="BETTY,OZN"
             required
-            style={{ display: 'block', width: '100%', marginTop: 2, padding: 6 }}
+            className="config-input"
           />
         </label>
-        {error && <p style={{ color: 'crimson' }}>{error}</p>}
-        {saved && <p style={{ color: 'green' }}>Saved.</p>}
-        <button type="submit" disabled={loading} style={{ padding: '8px 12px', cursor: loading ? 'wait' : 'pointer' }}>
+        {error && <p className="text-error">{error}</p>}
+        {saved && <p className="text-success">Saved.</p>}
+        <button type="submit" disabled={loading} className="btn-primary">
           {loading ? 'Saving…' : 'Save'}
         </button>
       </form>
+      </div>
     </main>
   );
 }

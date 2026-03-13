@@ -1,0 +1,229 @@
+/* Report-consistent dark theme */
+:root {
+  --bg-primary: #0d1117;
+  --bg-card: #161b22;
+  --bg-elevated: #21262d;
+  --border: #30363d;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --accent-blue: #58a6ff;
+  --accent-green: #3fb950;
+  --accent-yellow: #d29922;
+  --accent-red: #f85149;
+  --radius: 8px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+}
+
+a {
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+h1, h2, h3 {
+  font-weight: 600;
+  margin: 0 0 0.5em;
+  color: var(--text-primary);
+}
+
+h1 { font-size: 1.5rem; }
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  padding: 8px 16px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+button:hover:not(:disabled) {
+  background: var(--bg-card);
+  border-color: var(--text-secondary);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-secondary);
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+}
+
+/* Utility classes for dashboard / report consistency */
+.text-success { color: var(--accent-green); }
+.text-error { color: var(--accent-red); }
+.text-muted { color: var(--text-secondary); }
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+}
+
+/* Dashboard — report-consistent layout */
+.dashboard {
+  min-height: 100vh;
+  padding: 0 1.5rem 2rem;
+}
+
+.dashboard-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 0;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.dashboard-nav a {
+  color: var(--text-secondary);
+}
+
+.dashboard-nav a:hover {
+  color: var(--text-primary);
+}
+
+.dashboard-nav .nav-active {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.dashboard-nav .nav-sep {
+  color: var(--border);
+  user-select: none;
+}
+
+.dashboard-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dashboard-title {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.dashboard-actions {
+  margin-bottom: 1.25rem;
+}
+
+.dashboard-actions-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.dashboard-actions-row .msg-inline {
+  margin-left: 0.25rem;
+}
+
+.dashboard-actions .report-ready {
+  margin: 0.75rem 0 0;
+}
+
+.report-container {
+  overflow: hidden;
+  padding: 0;
+  min-height: 600px;
+}
+
+.report-container.card {
+  padding: 0;
+}
+
+.report-iframe {
+  display: block;
+  width: 100%;
+  min-height: 600px;
+  border: none;
+  background: var(--bg-primary);
+}
+
+.report-placeholder {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.btn-primary {
+  background: var(--accent-blue);
+  color: #fff;
+  border-color: var(--accent-blue);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #4c9aed;
+  border-color: #4c9aed;
+  color: #fff;
+}
+
+/* Config page — same nav and theme */
+.config-page {
+  min-height: 100vh;
+  padding: 0 1.5rem 2rem;
+}
+
+.config-content {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.config-form label {
+  display: block;
+}
+
+.config-input {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+}

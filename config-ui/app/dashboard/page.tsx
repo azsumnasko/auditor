@@ -56,43 +56,70 @@ export default function DashboardPage() {
 
   const isPending = jobStatus?.status === 'pending' || jobStatus?.status === 'running';
 
+  const handleLogout = () => {
+    fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).then(() => {
+      window.location.href = '/login';
+    });
+  };
+
   return (
-    <main>
-      <nav style={{ marginBottom: '1rem' }}>
-        <a href="/">Config</a> | <a href="/dashboard">Dashboard</a> |{' '}
-        <button type="button" onClick={() => fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).then(() => { window.location.href = '/login'; })}>Logout</button>
+    <div className="dashboard">
+      <nav className="dashboard-nav">
+        <a href="/">Config</a>
+        <span className="nav-sep">|</span>
+        <a href="/dashboard" className="nav-active">Dashboard</a>
+        <span className="nav-sep">|</span>
+        <button type="button" onClick={handleLogout}>Logout</button>
       </nav>
-      <h1>Dashboard</h1>
-      <p>
-        <button onClick={handleGenerate} disabled={generating || isPending} style={{ padding: '8px 12px', cursor: generating || isPending ? 'wait' : 'pointer' }}>
-          {isPending ? 'Generating…' : generating ? 'Starting…' : 'Generate report'}
-        </button>
-        {jobStatus?.status === 'failed' && jobStatus.errorMessage && (
-          <span style={{ color: 'crimson', marginLeft: 8 }}>Error: {jobStatus.errorMessage}</span>
+
+      <div className="dashboard-content">
+        <h1 className="dashboard-title">Dashboard</h1>
+
+        <section className="card dashboard-actions">
+          <div className="dashboard-actions-row">
+            <button
+              onClick={handleGenerate}
+              disabled={generating || isPending}
+              className="btn-primary"
+            >
+              {isPending ? 'Generating…' : generating ? 'Starting…' : 'Generate report'}
+            </button>
+            {jobStatus?.status === 'failed' && jobStatus.errorMessage && (
+              <span className="text-error msg-inline">Error: {jobStatus.errorMessage}</span>
+            )}
+            {generateError && (
+              <span className="text-error msg-inline">{generateError}</span>
+            )}
+          </div>
+          {jobStatus?.status === 'done' && (
+            <p className="report-ready text-success">
+              Report ready. View below or <a href="/dashboard/report" target="_blank" rel="noopener">open in new tab</a>.
+            </p>
+          )}
+        </section>
+
+        <section className="report-container card">
+          <iframe
+            src="/dashboard/report"
+            title="Jira report"
+            className="report-iframe"
+            onLoad={(e) => {
+              const iframe = e.currentTarget;
+              try {
+                setReportExists(iframe.contentWindow?.document.body?.innerHTML?.length ? true : false);
+              } catch {
+                setReportExists(false);
+              }
+            }}
+          />
+        </section>
+
+        {reportExists === false && !isPending && jobStatus?.status !== 'done' && (
+          <p className="text-muted report-placeholder">
+            No report yet. Configure Jira on the Config page, then click Generate report.
+          </p>
         )}
-        {generateError && (
-          <span style={{ color: 'crimson', marginLeft: 8 }}>{generateError}</span>
-        )}
-      </p>
-      {jobStatus?.status === 'done' && (
-        <p style={{ color: 'green' }}>Report ready. View below or <a href="/dashboard/report" target="_blank" rel="noopener">open in new tab</a>.</p>
-      )}
-      <iframe
-        src="/dashboard/report"
-        title="Jira report"
-        style={{ width: '100%', minHeight: 600, border: '1px solid #ccc' }}
-        onLoad={(e) => {
-          const iframe = e.currentTarget;
-          try {
-            setReportExists(iframe.contentWindow?.document.body?.innerHTML?.length ? true : false);
-          } catch {
-            setReportExists(false);
-          }
-        }}
-      />
-      {reportExists === false && !isPending && jobStatus?.status !== 'done' && (
-        <p style={{ color: '#666' }}>No report yet. Configure Jira on the Config page, then click Generate report.</p>
-      )}
-    </main>
+      </div>
+    </div>
   );
 }
