@@ -3,19 +3,22 @@
 import { useState, useEffect } from 'react';
 import AppNav from '@/app/components/AppNav';
 
-type ConfigStatus = { configured: boolean; emailHint?: string } | null;
+type ConfigStatus = { configured: boolean; tokenSaved?: boolean } | null;
 
 export default function ConfigPage() {
   const [status, setStatus] = useState<ConfigStatus>(null);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [changingToken, setChangingToken] = useState(false);
   const [form, setForm] = useState({
     JIRA_BASE_URL: '',
     JIRA_EMAIL: '',
     JIRA_TOKEN: '',
     JIRA_PROJECT_KEYS: '',
   });
+
+  const tokenSaved = status?.tokenSaved ?? false;
 
   useEffect(() => {
     fetch('/api/config', { credentials: 'include' })
@@ -29,16 +32,19 @@ export default function ConfigPage() {
       .then((data) => {
         if (data == null) return;
         setStatus(data);
-        if (data?.JIRA_BASE_URL || data?.JIRA_PROJECT_KEYS) {
+        if (data?.JIRA_BASE_URL || data?.JIRA_PROJECT_KEYS || data?.JIRA_EMAIL) {
           setForm((f) => ({
             ...f,
             JIRA_BASE_URL: data.JIRA_BASE_URL ?? f.JIRA_BASE_URL,
+            JIRA_EMAIL: data.JIRA_EMAIL ?? f.JIRA_EMAIL,
             JIRA_PROJECT_KEYS: data.JIRA_PROJECT_KEYS ?? f.JIRA_PROJECT_KEYS,
           }));
         }
       })
       .catch(() => setStatus({ configured: false }));
   }, []);
+
+  const tokenRequired = !tokenSaved || changingToken;
 
   const validate = (): string | null => {
     const url = form.JIRA_BASE_URL.trim();
@@ -49,7 +55,7 @@ export default function ConfigPage() {
       return 'JIRA Base URL must be a valid URL (e.g. https://company.atlassian.net)';
     }
     if (!form.JIRA_EMAIL.trim()) return 'JIRA Email is required';
-    if (!form.JIRA_TOKEN.trim()) return 'JIRA Token is required';
+    if (tokenRequired && !form.JIRA_TOKEN.trim()) return 'JIRA Token is required';
     if (!form.JIRA_PROJECT_KEYS.trim()) return 'At least one project key is required';
     return null;
   };
@@ -65,23 +71,28 @@ export default function ConfigPage() {
     setSaved(false);
     setLoading(true);
     try {
+      const payload: Record<string, string> = {
+        JIRA_BASE_URL: form.JIRA_BASE_URL.trim(),
+        JIRA_EMAIL: form.JIRA_EMAIL.trim(),
+        JIRA_PROJECT_KEYS: form.JIRA_PROJECT_KEYS.trim(),
+      };
+      if (tokenRequired) {
+        payload.JIRA_TOKEN = form.JIRA_TOKEN.trim();
+      }
       const res = await fetch('/api/config', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          JIRA_BASE_URL: form.JIRA_BASE_URL.trim(),
-          JIRA_EMAIL: form.JIRA_EMAIL.trim(),
-          JIRA_TOKEN: form.JIRA_TOKEN.trim(),
-          JIRA_PROJECT_KEYS: form.JIRA_PROJECT_KEYS.trim(),
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || (typeof data === 'string' ? data : `Save failed: ${res.status}`));
       }
       setSaved(true);
-      setStatus({ configured: true });
+      setStatus({ configured: true, tokenSaved: true });
+      setChangingToken(false);
+      setForm((f) => ({ ...f, JIRA_TOKEN: '' }));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed');
     } finally {
@@ -127,15 +138,24 @@ export default function ConfigPage() {
         </label>
         <label>
           JIRA API Token
-          <input
-            type="password"
-            value={form.JIRA_TOKEN}
-            onChange={(e) => setForm((f) => ({ ...f, JIRA_TOKEN: e.target.value }))}
-            placeholder="••••••••"
-            required
-            autoComplete="off"
-            className="config-input"
-          />
+          {tokenSaved && !changingToken ? (
+            <div className="token-saved-row">
+              <span className="text-success">API token is saved</span>
+              <button type="button" className="btn-link" onClick={() => setChangingToken(true)}>
+                Change
+              </button>
+            </div>
+          ) : (
+            <input
+              type="password"
+              value={form.JIRA_TOKEN}
+              onChange={(e) => setForm((f) => ({ ...f, JIRA_TOKEN: e.target.value }))}
+              placeholder="••••••••"
+              required={tokenRequired}
+              autoComplete="off"
+              className="config-input"
+            />
+          )}
         </label>
         <label>
           Project keys (comma-separated)

@@ -119,6 +119,17 @@ export function upsertConfig(userId: number, jiraBaseUrl: string, jiraEmail: str
   `).run(userId, jiraBaseUrl, jiraEmail, jiraToken, jiraProjectKeys);
 }
 
+export function updateConfigKeepToken(userId: number, jiraBaseUrl: string, jiraEmail: string, jiraProjectKeys: string): void {
+  const database = getDb();
+  database.prepare(`
+    UPDATE config SET
+      jira_base_url = ?,
+      jira_email = ?,
+      jira_project_keys = ?
+    WHERE user_id = ?
+  `).run(jiraBaseUrl, jiraEmail, jiraProjectKeys, userId);
+}
+
 export function createJob(userId: number): number {
   const database = getDb();
   const result = database.prepare('INSERT INTO jobs (user_id, status) VALUES (?, ?)').run(userId, 'pending');

@@ -27,6 +27,7 @@ def escape_js(s):
 def main():
     data = load_data(sys.argv[1] if len(sys.argv) > 1 else None)
     data_js = json.dumps(data, ensure_ascii=False)
+    jira_base_url = (data.get("jira_base_url") or "").rstrip("/")
     run_ts = data.get("run_iso_ts", "")
     # Agile-friendly naming: open_count (all not done), open_by_phase (backlog, in_progress, in_review, blocked), wip_in_flight
     open_count = data.get("open_count", data.get("wip_count", 0))
@@ -72,6 +73,8 @@ def main():
     total_released_versions = data.get("total_released_versions", 0)
 
     projects = data.get("projects", [])
+    teams = data.get("teams") or sorted((data.get("wip_teams") or {}).keys())
+    wip_teams = data.get("wip_teams") or {}
     all_components = sorted(set(wip_comp.keys()) | set(
         c for p in (data.get("by_project") or {}).values()
         for c in (p.get("wip_components") or {}).keys()
@@ -79,17 +82,25 @@ def main():
     def project_from_key(key):
         return key.split("-", 1)[0] if key and "-" in str(key) else ""
 
+    def link_key(key):
+        k = html.escape(str(key))
+        if jira_base_url and k:
+            return f'<a href="{html.escape(jira_base_url)}/browse/{k}" target="_blank" style="color:var(--accent)">{k}</a>'
+        return k
+
     blocked_rows = "".join(
         f'<tr data-project="{html.escape(str(b.get("project", project_from_key(b.get("key", "")) or "")))}" '
-        f'data-components="{html.escape("|".join(b.get("components", [])))}"><td>{html.escape(str(b.get("key", "")))}</td><td>{round(float(b.get("age_days", 0)), 1)}</td></tr>'
+        f'data-components="{html.escape("|".join(b.get("components", [])))}" data-team="{html.escape(b.get("team", ""))}">'
+        f'<td>{link_key(b.get("key", ""))}</td><td>{round(float(b.get("age_days", 0)), 1)}</td></tr>'
         for b in blocked_oldest_details
     ) if blocked_oldest_details else "".join(
-        f'<tr data-project="{html.escape(project_from_key(b[0]))}"><td>{html.escape(str(b[0]))}</td><td>{round(float(b[1]), 1)}</td></tr>'
+        f'<tr data-project="{html.escape(project_from_key(b[0]))}"><td>{link_key(b[0])}</td><td>{round(float(b[1]), 1)}</td></tr>'
         for b in blocked_oldest
     ) if blocked_oldest else "<tr><td colspan=\"2\">None</td></tr>"
 
     bugs_rows = "".join(
-        f'<tr data-project="{html.escape(b.get("project", ""))}" data-components="{html.escape("|".join(b.get("components", [])))}"><td>{html.escape(b.get("key", ""))}</td><td>{html.escape(b.get("project", ""))}</td><td>{round(float(b.get("age_days", 0)), 1)}</td><td>{html.escape((b.get("summary") or "")[:60])}</td></tr>'
+        f'<tr data-project="{html.escape(b.get("project", ""))}" data-components="{html.escape("|".join(b.get("components", [])))}" data-team="{html.escape(b.get("team", ""))}">'
+        f'<td>{link_key(b.get("key", ""))}</td><td>{html.escape(b.get("project", ""))}</td><td>{round(float(b.get("age_days", 0)), 1)}</td><td>{html.escape((b.get("summary") or "")[:60])}</td></tr>'
         for b in oldest_bugs
     ) if oldest_bugs else "<tr><td colspan=\"4\">None</td></tr>"
 
@@ -105,7 +116,7 @@ def main():
         a_d_str = str(a_d) if a_d is not None else "\u2014"
         sprint_components = sorted((s.get("component_breakdown") or {}).keys())
         sprint_rows.append(
-            f'<tr data-project="{html.escape(s.get("project", ""))}" data-components="{html.escape("|".join(sprint_components))}">'
+            f'<tr data-project="{html.escape(s.get("project", ""))}" data-components="{html.escape("|".join(sprint_components))}" data-date="{html.escape(str(s.get("end", "") or s.get("start", "") or ""))[:10]}">'
             f'<td>{html.escape(s.get("project", ""))}</td>'
             f'<td>{html.escape(s.get("sprint_name", ""))}</td>'
             f'<td>{s.get("throughput_issues", 0)}</td>'
@@ -130,16 +141,16 @@ def main():
     empty_or_bad_rows = []
     for row in empty_bad_list_wip:
         empty_or_bad_rows.append(
-            f'<tr data-scope="WIP" data-project="{html.escape(row.get("project", ""))}">'
-            f'<td>{html.escape(row.get("key", ""))}</td><td>WIP</td><td>{html.escape(row.get("project", ""))}</td>'
+            f'<tr data-scope="WIP" data-project="{html.escape(row.get("project", ""))}" data-team="{html.escape(row.get("team", ""))}">'
+            f'<td>{link_key(row.get("key", ""))}</td><td>WIP</td><td>{html.escape(row.get("project", ""))}</td>'
             f'<td>{html.escape(row.get("type", ""))}</td>'
             f'<td>{html.escape((row.get("summary") or "")[:60])}</td><td>{html.escape(row.get("status", ""))}</td>'
             f'<td>{html.escape(row.get("assignee_display_name", ""))}</td></tr>'
         )
     for row in empty_bad_list_done:
         empty_or_bad_rows.append(
-            f'<tr data-scope="Done" data-project="{html.escape(row.get("project", ""))}">'
-            f'<td>{html.escape(row.get("key", ""))}</td><td>Done</td><td>{html.escape(row.get("project", ""))}</td>'
+            f'<tr data-scope="Done" data-project="{html.escape(row.get("project", ""))}" data-team="{html.escape(row.get("team", ""))}">'
+            f'<td>{link_key(row.get("key", ""))}</td><td>Done</td><td>{html.escape(row.get("project", ""))}</td>'
             f'<td>{html.escape(row.get("type", ""))}</td>'
             f'<td>{html.escape((row.get("summary") or "")[:60])}</td><td>{html.escape(row.get("status", ""))}</td>'
             f'<td>{html.escape(row.get("assignee_display_name", ""))}</td></tr>'
@@ -183,7 +194,7 @@ def main():
             return (0, 0, 0)
     releases_sorted = sorted(releases, key=lambda r: ((0 if r.get("released") else 1), tuple(-x for x in _release_date_key(r))))
     releases_rows = "".join(
-        f'<tr data-project="{html.escape(r.get("project", ""))}">'
+        f'<tr data-project="{html.escape(r.get("project", ""))}" data-date="{html.escape(r.get("release_date") or "")}">'
         f'<td>{html.escape(r.get("project", ""))}</td><td>{html.escape(r.get("name", ""))}</td>'
         f'<td>{"Yes" if r.get("released") else "No"}</td><td>{html.escape(r.get("release_date") or "\u2014")}</td></tr>'
         for r in releases_sorted
@@ -300,6 +311,16 @@ def main():
     .gaming-detail {{ font-size: 0.85rem; }}
     .export-btn {{ background: var(--accent); color: #0f1419; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; }}
     .export-btn:hover {{ opacity: 0.85; }}
+    .time-btn {{ background: none; border: 1px solid transparent; color: var(--muted); padding: 0.3rem 0.7rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; }}
+    .time-btn:hover {{ color: var(--text); background: rgba(88,166,255,0.1); }}
+    .time-btn.active {{ background: var(--accent); color: #0f1419; border-color: var(--accent); }}
+    .time-input {{ background: var(--bg); border: 1px solid #30363d; color: var(--text); padding: 0.3rem 0.5rem; border-radius: 6px; font-size: 0.8rem; width: 130px; }}
+    .tab-bar {{ display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 1.5rem; padding: 0.4rem; background: var(--card); border-radius: 8px; border: 1px solid #30363d; }}
+    .tab-btn {{ background: none; border: none; color: var(--muted); padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: background 0.15s, color 0.15s; }}
+    .tab-btn:hover {{ color: var(--text); background: rgba(88,166,255,0.1); }}
+    .tab-btn.active {{ background: var(--accent); color: #0f1419; }}
+    .tab-panel {{ display: none; }}
+    .tab-panel.active {{ display: block; }}
   </style>
 </head>
 <body>
@@ -318,8 +339,38 @@ def main():
     <label><input type="checkbox" id="componentAll" checked /> All</label>
     {''.join(f'<label><input type="checkbox" class="component-cb" value="{html.escape(c)}" /> {html.escape(c)}</label>' for c in all_components)}
   </div>
-  <p class="meta" id="filterScopeSummary">Scope: all projects and all components. Metrics are exact.</p>
+  {''.join([
+      '<div class="project-filter" id="teamFilterBar">',
+      '<span class="pf-label">Team:</span>',
+      '<label><input type="checkbox" id="teamAll" checked /> All</label>',
+      ''.join(f'<label><input type="checkbox" class="team-cb" value="{html.escape(t)}" /> {html.escape(t)}</label>' for t in teams),
+      '</div>',
+  ]) if teams else ''}
+  <p class="meta" id="filterScopeSummary">Scope: all projects, all components{', all teams' if teams else ''}. Metrics are exact.</p>
 
+  <div class="project-filter" id="timeFilterBar">
+    <span class="pf-label">Time:</span>
+    <button class="time-btn active" data-range="all">All time</button>
+    <button class="time-btn" data-range="30">Last 30d</button>
+    <button class="time-btn" data-range="90">Last 90d</button>
+    <button class="time-btn" data-range="180">Last 6mo</button>
+    <input type="date" id="timeFrom" class="time-input" title="From" />
+    <span class="pf-label">&ndash;</span>
+    <input type="date" id="timeTo" class="time-input" title="To" />
+  </div>
+
+  <div class="tab-bar" id="tabBar">
+    <button class="tab-btn active" data-tab="overview">Overview</button>
+    <button class="tab-btn" data-tab="flow">Flow</button>
+    <button class="tab-btn" data-tab="sprints">Sprints</button>
+    <button class="tab-btn" data-tab="people">People &amp; Teams</button>
+    <button class="tab-btn" data-tab="quality">Quality</button>
+    <button class="tab-btn" data-tab="releases">Releases</button>
+    <button class="tab-btn" data-tab="audit">Audit</button>
+  </div>
+
+  <!-- ===== OVERVIEW TAB ===== -->
+  <div class="tab-panel active" id="panel-overview">
   <div class="cards">
     <div class="card"><div class="value" id="cardOpen">{open_count}</div><div class="label">Open (not done)</div></div>
     <div class="card"><div class="value" id="cardWipInFlight" style="color: var(--accent)">{wip_in_flight}</div><div class="label">WIP (in flight)</div></div>
@@ -339,7 +390,6 @@ def main():
     <div class="card"><div class="value" id="cardReleasedTotal" style="color: var(--green)">{total_released_versions}</div><div class="label">Released (total)</div></div>
     <div class="card"><div class="value" id="cardUnreleasedVersions" style="color: #e3b341">{unreleased_count}</div><div class="label">Unreleased versions</div></div>
   </div>
-
   <div class="grid2">
     <section>
       <h2>Status distribution (Open)</h2>
@@ -350,7 +400,6 @@ def main():
       <div class="chart-wrap"><canvas id="chartComponents"></canvas></div>
     </section>
   </div>
-
   <div class="grid2">
     <section>
       <h2>WIP by phase</h2>
@@ -362,7 +411,27 @@ def main():
       <div class="chart-wrap"><canvas id="chartLtDist"></canvas></div>
     </section>
   </div>
+  </div>
 
+  <!-- ===== FLOW TAB ===== -->
+  <div class="tab-panel" id="panel-flow">
+  <section>
+    <h2>Throughput by week (issues resolved)</h2>
+    <div class="chart-wrap" style="max-width: 900px; height: 220px;"><canvas id="chartThroughput"></canvas></div>
+  </section>
+  <section>
+    <h2>Created vs Resolved trend (by week)</h2>
+    <p class="summary-desc">Net positive (created > resolved) means backlog is growing.</p>
+    <div class="chart-wrap" style="max-width: 900px; height: 260px;"><canvas id="chartCreatedResolved"></canvas></div>
+  </section>
+  <section>
+    <h2>Lead time &amp; cycle time (days)</h2>
+    <p class="summary-desc">Lead = created \u2192 resolved. Cycle = first in progress \u2192 resolved (from changelog).</p>
+    <div class="summary-stats" id="leadCycleSummary">
+      <span>Lead (created\u2192resolved):</span> count {lead.get('count', '\u2014')}, avg {round(lead.get('avg_days', 0), 1) if lead.get('avg_days') is not None else '\u2014'}, p50 {round(lead.get('p50_days', 0), 1) if lead.get('p50_days') is not None else '\u2014'} &nbsp;|&nbsp;
+      <span>Cycle (in progress\u2192resolved):</span> count {cycle.get('count', '\u2014')}, avg {round(cycle.get('avg_days', 0), 1) if cycle.get('avg_days') is not None else '\u2014'}, p85 {round(cycle.get('p85_days', 0), 1) if cycle.get('p85_days') is not None else '\u2014'}
+    </div>
+  </section>
   <div class="grid3">
     <section>
       <h2>Resolution types (last 180d)</h2>
@@ -377,30 +446,41 @@ def main():
       <div class="chart-wrap"><canvas id="chartPriority"></canvas></div>
     </section>
   </div>
-
-  <div class="grid2">
-    <section>
-      <h2>Resolutions by day of week</h2>
-      <div class="chart-wrap"><canvas id="chartDow"></canvas></div>
-    </section>
-    <section>
-      <h2>Top assignees (resolved last 180d)</h2>
-      <p class="summary-desc">Gini coefficient: <strong id="giniValue">{data.get('workload_gini', 0)}</strong> (0 = equal, 1 = one person does all)</p>
-      <div class="chart-wrap"><canvas id="chartAssignees"></canvas></div>
-    </section>
+  <section>
+    <h2>Resolutions by day of week</h2>
+    <div class="chart-wrap"><canvas id="chartDow"></canvas></div>
+  </section>
   </div>
 
+  <!-- ===== SPRINTS TAB ===== -->
+  <div class="tab-panel" id="panel-sprints">
   <section>
-    <h2>Throughput by week (issues resolved)</h2>
-    <div class="chart-wrap" style="max-width: 900px; height: 220px;"><canvas id="chartThroughput"></canvas></div>
+    <h2>Sprint metrics</h2>
+    <div class="filter"><input type="text" id="filterSprints" placeholder="Filter by project\u2026" /></div>
+    <div class="table-wrap">
+      <table id="tableSprints">
+        <thead><tr><th data-sort="project">Project</th><th data-sort="sprint_name">Sprint</th><th data-sort="throughput_issues">Done</th><th data-sort="total_issues">Total</th><th data-sort="assignee_count">People</th><th>Commit ratio</th><th data-sort="added_after_sprint_start">Added late</th><th>Added+Done</th><th>Removed</th><th>Last-day %</th></tr></thead>
+        <tbody>{sprint_rows_str}</tbody>
+      </table>
+    </div>
   </section>
-
   <section>
-    <h2>Created vs Resolved trend (by week)</h2>
-    <p class="summary-desc">Net positive (created > resolved) means backlog is growing.</p>
-    <div class="chart-wrap" style="max-width: 900px; height: 260px;"><canvas id="chartCreatedResolved"></canvas></div>
+    <h2>Sprint scope change (added after sprint start)</h2>
+    <div class="chart-wrap" style="max-width: 900px; height: 220px;"><canvas id="chartAddedLate"></canvas></div>
   </section>
+  <section>
+    <h2>Kanban boards</h2>
+    <div class="table-wrap">
+      <table id="tableKanban">
+        <thead><tr><th>Project</th><th>Board</th><th>Issues</th><th>Done</th><th>Status breakdown</th></tr></thead>
+        <tbody>{kanban_rows}</tbody>
+      </table>
+    </div>
+  </section>
+  </div>
 
+  <!-- ===== PEOPLE & TEAMS TAB ===== -->
+  <div class="tab-panel" id="panel-people">
   <div class="grid2">
     <section>
       <h2>WIP by assignee (top 20)</h2>
@@ -408,53 +488,26 @@ def main():
       <div class="chart-wrap"><canvas id="chartWipAssignees"></canvas></div>
     </section>
     <section>
-      <h2>Bug creation rate (by week)</h2>
-      <div class="chart-wrap"><canvas id="chartBugCreation"></canvas></div>
+      <h2>Top assignees (resolved last 180d)</h2>
+      <p class="summary-desc">Gini coefficient: <strong id="giniValue">{data.get('workload_gini', 0)}</strong> (0 = equal, 1 = one person does all)</p>
+      <div class="chart-wrap"><canvas id="chartAssignees"></canvas></div>
     </section>
   </div>
-
   <div class="grid2">
     <section>
-      <h2>Defect density by component</h2>
-      <p class="summary-desc">Open bugs / WIP count per component. Higher = more bugs relative to active work.</p>
-      <div class="chart-wrap"><canvas id="chartDefectDensity"></canvas></div>
+      <h2>WIP by team</h2>
+      <div class="chart-wrap"><canvas id="chartWipTeams"></canvas></div>
     </section>
+    <section id="sectionTeamThroughput">
+      <h2>Sprint throughput by team</h2>
+      <div class="chart-wrap"><canvas id="chartTeamThroughput"></canvas></div>
+    </section>
+  </div>
+  <div class="grid2">
     <section>
       <h2>Focus factor (WIP per assignee distribution)</h2>
       <p class="summary-desc">Low focus = person juggling many issues. Avg WIP/person: <strong id="avgWipPP2">{avg_wip_pp}</strong></p>
       <div class="chart-wrap"><canvas id="chartFocusFactor"></canvas></div>
-    </section>
-  </div>
-
-  <div class="grid2">
-    <section>
-      <h2>Story point trend (avg SP/issue by month)</h2>
-      <p class="summary-desc">Rising average may signal point inflation for velocity padding.</p>
-      <div class="chart-wrap"><canvas id="chartSpTrend"></canvas></div>
-    </section>
-    <section>
-      <h2>Worklog by day of week</h2>
-      <p class="summary-desc">Weekend %: <strong id="weekendPct">{worklog_analysis.get('weekend_pct', 0)}%</strong>, SP-worklog correlation: <strong id="spCorr">{worklog_analysis.get('sp_worklog_correlation', 'N/A')}</strong></p>
-      <div class="chart-wrap"><canvas id="chartWorklogDow"></canvas></div>
-    </section>
-  </div>
-
-  <section>
-    <h2>Resolutions per day (bulk closure detection)</h2>
-    <p class="summary-desc">Spikes indicate batch closure. Horizontal line = 10 issues/day threshold.</p>
-    <div class="chart-wrap" style="max-width: 900px; height: 220px;"><canvas id="chartBulkClosure"></canvas></div>
-  </section>
-
-  <section>
-    <h2>Sprint scope change (added after sprint start)</h2>
-    <div class="chart-wrap" style="max-width: 900px; height: 220px;"><canvas id="chartAddedLate"></canvas></div>
-  </section>
-
-  <div class="grid2">
-    <section>
-      <h2>Median time in status (last 90d, hours)</h2>
-      <p class="summary-desc">Near-zero time in active statuses = retroactive status changes.</p>
-      <div class="chart-wrap"><canvas id="chartTimeInStatus"></canvas></div>
     </section>
     <section>
       <h2>Top issue closers</h2>
@@ -462,31 +515,21 @@ def main():
       <div class="chart-wrap"><canvas id="chartClosers"></canvas></div>
     </section>
   </div>
+  </div>
 
-  <section>
-    <h2>Most common status paths (last 90d)</h2>
-    <p class="summary-desc" id="skipDesc">Status skip rate: <strong>{spa.get('skip_pct', 0)}%</strong> ({spa.get('skip_count', 0)}/{spa.get('total', 0)} issues never entered an active work status).</p>
-    <div class="table-wrap">
-      <table><thead><tr><th>Status Path</th><th>Count</th></tr></thead>
-      <tbody id="pathsTbody">{paths_rows}</tbody></table>
-    </div>
-  </section>
-
-  <section>
-    <h2>Lead time &amp; cycle time (days)</h2>
-    <p class="summary-desc">Lead = created \u2192 resolved. Cycle = first in progress \u2192 resolved (from changelog).</p>
-    <div class="summary-stats" id="leadCycleSummary">
-      <span>Lead (created\u2192resolved):</span> count {lead.get('count', '\u2014')}, avg {round(lead.get('avg_days', 0), 1) if lead.get('avg_days') is not None else '\u2014'}, p50 {round(lead.get('p50_days', 0), 1) if lead.get('p50_days') is not None else '\u2014'} &nbsp;|&nbsp;
-      <span>Cycle (in progress\u2192resolved):</span> count {cycle.get('count', '\u2014')}, avg {round(cycle.get('avg_days', 0), 1) if cycle.get('avg_days') is not None else '\u2014'}, p85 {round(cycle.get('p85_days', 0), 1) if cycle.get('p85_days') is not None else '\u2014'}
-    </div>
-  </section>
-
-  <section>
-    <h2>Potential Issues (Audit Flags)</h2>
-    <p class="summary-desc">Automated checks for data quality, process health, and potential gaming.</p>
-    <div id="auditFlags" class="audit-flags"></div>
-  </section>
-
+  <!-- ===== QUALITY TAB ===== -->
+  <div class="tab-panel" id="panel-quality">
+  <div class="grid2">
+    <section>
+      <h2>Bug creation rate (by week)</h2>
+      <div class="chart-wrap"><canvas id="chartBugCreation"></canvas></div>
+    </section>
+    <section>
+      <h2>Defect density by component</h2>
+      <p class="summary-desc">Open bugs / WIP count per component. Higher = more bugs relative to active work.</p>
+      <div class="chart-wrap"><canvas id="chartDefectDensity"></canvas></div>
+    </section>
+  </div>
   <section>
     <h2>Empty or bad structure</h2>
     <p class="summary-desc">Tickets with no/empty description (or, if configured, bad summary / no labels / no component). Counts and breakdowns by team, assignee, component, and label.</p>
@@ -537,7 +580,6 @@ def main():
       </div>
     </div>
   </section>
-
   <section>
     <h2>Blocked issues (oldest)</h2>
     <div class="table-wrap">
@@ -547,7 +589,6 @@ def main():
       </table>
     </div>
   </section>
-
   <section>
     <h2>Oldest open bugs</h2>
     <div class="filter"><input type="text" id="filterBugs" placeholder="Filter by project or key\u2026" /></div>
@@ -558,46 +599,10 @@ def main():
       </table>
     </div>
   </section>
+  </div>
 
-  <section>
-    <h2>Sprint metrics</h2>
-    <div class="filter"><input type="text" id="filterSprints" placeholder="Filter by project\u2026" /></div>
-    <div class="table-wrap">
-      <table id="tableSprints">
-        <thead><tr><th data-sort="project">Project</th><th data-sort="sprint_name">Sprint</th><th data-sort="throughput_issues">Done</th><th data-sort="total_issues">Total</th><th data-sort="assignee_count">People</th><th>Commit ratio</th><th data-sort="added_after_sprint_start">Added late</th><th>Added+Done</th><th>Removed</th><th>Last-day %</th></tr></thead>
-        <tbody>{sprint_rows_str}</tbody>
-      </table>
-    </div>
-  </section>
-
-  <section>
-    <h2>Kanban boards</h2>
-    <div class="table-wrap">
-      <table id="tableKanban">
-        <thead><tr><th>Project</th><th>Board</th><th>Issues</th><th>Done</th><th>Status breakdown</th></tr></thead>
-        <tbody>{kanban_rows}</tbody>
-      </table>
-    </div>
-  </section>
-
-  <section>
-    <h2>Epic health (open epics)</h2>
-    <p class="summary-desc" id="epicHealthSummary">Open: {data.get('open_epics_count', 0)} | Stale (>6mo, <20% done): <strong style="color:var(--red)">{data.get('stale_epics_count', 0)}</strong> | Avg completion: {data.get('avg_epic_completion_pct', 0)}%</p>
-    <div class="table-wrap">
-      <table id="tableEpics">
-        <thead><tr><th data-sort="project">Project</th><th data-sort="key">Key</th><th>Summary</th><th data-sort="age_days">Age (d)</th><th data-sort="total_children">Children</th><th data-sort="done_children">Done</th><th data-sort="completion_pct">%</th><th>Stale</th></tr></thead>
-        <tbody>{''.join(
-            f'<tr data-project="{html.escape(e.get("project",""))}" data-components="{html.escape("|".join(e.get("components", [])))}" style="{"color:var(--red)" if e.get("stale") else ""}">'
-            f'<td>{html.escape(e.get("project",""))}</td><td>{html.escape(e.get("key",""))}</td>'
-            f'<td>{html.escape((e.get("summary",""))[:50])}</td><td>{e.get("age_days",0)}</td>'
-            f'<td>{e.get("total_children",0)}</td><td>{e.get("done_children",0)}</td>'
-            f'<td>{e.get("completion_pct",0)}%</td><td>{"Yes" if e.get("stale") else ""}</td></tr>'
-            for e in sorted(epic_health, key=lambda x: (-1 if x.get("stale") else 0, -(x.get("age_days") or 0)))
-        ) if epic_health else "<tr><td colspan='8'>No epic data</td></tr>"}</tbody>
-      </table>
-    </div>
-  </section>
-
+  <!-- ===== RELEASES TAB ===== -->
+  <div class="tab-panel" id="panel-releases">
   <section>
     <h2>Releases / versions</h2>
     <p class="summary-desc">Total versions: {total_versions} | Released: {total_released_versions} | Unreleased: {unreleased_count} | Last 3 mo: {releases_last_3} | Last 6 mo: {releases_last_6} | Last 12 mo: {releases_last_12}</p>
@@ -610,9 +615,155 @@ def main():
       </table>
     </div>
   </section>
+  </div>
+
+  <!-- ===== AUDIT TAB ===== -->
+  <div class="tab-panel" id="panel-audit">
+  <section>
+    <h2>Potential Issues (Audit Flags)</h2>
+    <p class="summary-desc">Automated checks for data quality, process health, and potential gaming.</p>
+    <div id="auditFlags" class="audit-flags"></div>
+  </section>
+  <section>
+    <h2>Epic health (open epics)</h2>
+    <p class="summary-desc" id="epicHealthSummary">Open: {data.get('open_epics_count', 0)} | Stale (>6mo, <20% done): <strong style="color:var(--red)">{data.get('stale_epics_count', 0)}</strong> | Avg completion: {data.get('avg_epic_completion_pct', 0)}%</p>
+    <div class="table-wrap">
+      <table id="tableEpics">
+        <thead><tr><th data-sort="project">Project</th><th data-sort="key">Key</th><th>Summary</th><th data-sort="age_days">Age (d)</th><th data-sort="total_children">Children</th><th data-sort="done_children">Done</th><th data-sort="completion_pct">%</th><th>Stale</th></tr></thead>
+        <tbody>{''.join(
+            f'<tr data-project="{html.escape(e.get("project",""))}" data-components="{html.escape("|".join(e.get("components", [])))}" style="{"color:var(--red)" if e.get("stale") else ""}">'
+            f'<td>{html.escape(e.get("project",""))}</td><td>{link_key(e.get("key",""))}</td>'
+            f'<td>{html.escape((e.get("summary",""))[:50])}</td><td>{e.get("age_days",0)}</td>'
+            f'<td>{e.get("total_children",0)}</td><td>{e.get("done_children",0)}</td>'
+            f'<td>{e.get("completion_pct",0)}%</td><td>{"Yes" if e.get("stale") else ""}</td></tr>'
+            for e in sorted(epic_health, key=lambda x: (-1 if x.get("stale") else 0, -(x.get("age_days") or 0)))
+        ) if epic_health else "<tr><td colspan='8'>No epic data</td></tr>"}</tbody>
+      </table>
+    </div>
+  </section>
+  <div class="grid2">
+    <section>
+      <h2>Median time in status (last 90d, hours)</h2>
+      <p class="summary-desc">Near-zero time in active statuses = retroactive status changes.</p>
+      <div class="chart-wrap"><canvas id="chartTimeInStatus"></canvas></div>
+    </section>
+    <section>
+      <h2>Story point trend (avg SP/issue by month)</h2>
+      <p class="summary-desc">Rising average may signal point inflation for velocity padding.</p>
+      <div class="chart-wrap"><canvas id="chartSpTrend"></canvas></div>
+    </section>
+  </div>
+  <section>
+    <h2>Most common status paths (last 90d)</h2>
+    <p class="summary-desc" id="skipDesc">Status skip rate: <strong>{spa.get('skip_pct', 0)}%</strong> ({spa.get('skip_count', 0)}/{spa.get('total', 0)} issues never entered an active work status).</p>
+    <div class="table-wrap">
+      <table><thead><tr><th>Status Path</th><th>Count</th></tr></thead>
+      <tbody id="pathsTbody">{paths_rows}</tbody></table>
+    </div>
+  </section>
+  <div class="grid2">
+    <section>
+      <h2>Worklog by day of week</h2>
+      <p class="summary-desc">Weekend %: <strong id="weekendPct">{worklog_analysis.get('weekend_pct', 0)}%</strong>, SP-worklog correlation: <strong id="spCorr">{worklog_analysis.get('sp_worklog_correlation', 'N/A')}</strong></p>
+      <div class="chart-wrap"><canvas id="chartWorklogDow"></canvas></div>
+    </section>
+    <section>
+      <h2>Resolutions per day (bulk closure detection)</h2>
+      <p class="summary-desc">Spikes indicate batch closure. Horizontal line = 10 issues/day threshold.</p>
+      <div class="chart-wrap" style="max-width: 900px; height: 220px;"><canvas id="chartBulkClosure"></canvas></div>
+    </section>
+  </div>
+  </div>
 
   <script>
     const DATA = {data_js};
+    const JIRA_BASE = (DATA.jira_base_url || '').replace(/\\/+$/, '');
+    function linkKey(key) {{
+      if (!key) return '';
+      const k = String(key).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      if (JIRA_BASE) return '<a href="' + JIRA_BASE + '/browse/' + encodeURIComponent(key) + '" target="_blank" style="color:var(--accent)">' + k + '</a>';
+      return k;
+    }}
+
+    // Tab switching
+    (function() {{
+      const bar = document.getElementById('tabBar');
+      const panels = document.querySelectorAll('.tab-panel');
+      const btns = bar.querySelectorAll('.tab-btn');
+      function activate(tabId) {{
+        btns.forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+        panels.forEach(p => p.classList.toggle('active', p.id === 'panel-' + tabId));
+        history.replaceState(null, '', '#' + tabId);
+        window.dispatchEvent(new Event('resize'));
+      }}
+      bar.addEventListener('click', e => {{
+        const btn = e.target.closest('.tab-btn');
+        if (btn) activate(btn.dataset.tab);
+      }});
+      const hash = location.hash.replace('#', '');
+      if (hash && document.getElementById('panel-' + hash)) activate(hash);
+    }})();
+
+    // Time range filter state
+    window._timeRange = {{ from: null, to: null }};
+    (function() {{
+      const btns = document.querySelectorAll('.time-btn');
+      const fromEl = document.getElementById('timeFrom');
+      const toEl = document.getElementById('timeTo');
+      function setRange(fromDate, toDate) {{
+        window._timeRange = {{ from: fromDate, to: toDate }};
+        if (typeof applyProjectFilter === 'function') applyProjectFilter();
+        else if (typeof window.applyTimeFilter === 'function') window.applyTimeFilter();
+      }}
+      btns.forEach(btn => {{
+        btn.addEventListener('click', function() {{
+          btns.forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          const r = this.dataset.range;
+          if (r === 'all') {{
+            fromEl.value = '';
+            toEl.value = '';
+            setRange(null, null);
+          }} else {{
+            const d = new Date();
+            d.setDate(d.getDate() - parseInt(r));
+            const iso = d.toISOString().slice(0, 10);
+            fromEl.value = iso;
+            toEl.value = '';
+            setRange(iso, null);
+          }}
+        }});
+      }});
+      function onCustomChange() {{
+        btns.forEach(b => b.classList.remove('active'));
+        setRange(fromEl.value || null, toEl.value || null);
+      }}
+      fromEl.addEventListener('change', onCustomChange);
+      toEl.addEventListener('change', onCustomChange);
+    }})();
+
+    function filterWeekKeys(keys, values) {{
+      const tr = window._timeRange;
+      if (!tr.from && !tr.to) return {{ keys, values }};
+      const fk = [], fv = [];
+      for (let i = 0; i < keys.length; i++) {{
+        const k = keys[i];
+        if (tr.from && k < tr.from) continue;
+        if (tr.to && k > tr.to) continue;
+        fk.push(k); fv.push(values[i]);
+      }}
+      return {{ keys: fk, values: fv }};
+    }}
+
+    function isDateInRange(dateStr) {{
+      const tr = window._timeRange;
+      if (!tr.from && !tr.to) return true;
+      if (!dateStr) return true;
+      const d = dateStr.slice(0, 10);
+      if (tr.from && d < tr.from) return false;
+      if (tr.to && d > tr.to) return false;
+      return true;
+    }}
 
     Chart.defaults.color = '#8b949e';
     Chart.defaults.borderColor = '#30363d';
@@ -976,6 +1127,44 @@ def main():
       options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
     }});
 
+    // WIP by Team chart
+    const wipTeams = DATA.wip_teams || {{}};
+    const wipTeamItems = Object.entries(wipTeams).sort((a,b) => b[1] - a[1]).slice(0, 20);
+    const chartWipTeamsEl = document.getElementById('chartWipTeams');
+    let chartWipTeams = null;
+    if (chartWipTeamsEl) {{
+      chartWipTeams = new Chart(chartWipTeamsEl, {{
+        type: 'bar',
+        data: {{
+          labels: wipTeamItems.map(t => t[0]),
+          datasets: [{{ label: 'WIP issues', data: wipTeamItems.map(t => t[1]), backgroundColor: 'rgba(88,166,255,0.6)' }}]
+        }},
+        options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
+      }});
+    }}
+
+    // Sprint throughput by team chart
+    const sprintTeamData = {{}};
+    (DATA.sprint_metrics || []).forEach(s => {{
+      const tb = s.team_breakdown || {{}};
+      for (const [team, count] of Object.entries(tb)) {{
+        sprintTeamData[team] = (sprintTeamData[team] || 0) + count;
+      }}
+    }});
+    const teamThrItems = Object.entries(sprintTeamData).sort((a,b) => b[1] - a[1]).slice(0, 20);
+    const chartTeamThrEl = document.getElementById('chartTeamThroughput');
+    let chartTeamThroughput = null;
+    if (chartTeamThrEl) {{
+      chartTeamThroughput = new Chart(chartTeamThrEl, {{
+        type: 'bar',
+        data: {{
+          labels: teamThrItems.map(t => t[0]),
+          datasets: [{{ label: 'Issues in sprints', data: teamThrItems.map(t => t[1]), backgroundColor: 'rgba(63,185,80,0.6)' }}]
+        }},
+        options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
+      }});
+    }}
+
     // Bug creation rate (5b)
     const bugWeek = DATA.bug_creation_by_week || {{}};
     const bugWeeks = Object.keys(bugWeek).sort().slice(-16);
@@ -1134,10 +1323,10 @@ def main():
       const oldBugs = (D.oldest_open_bugs || []).filter(b => b.age_days > 365);
       if (oldBugs.length >= 5)
         sev('red', `${{oldBugs.length}} open bugs older than 1 year`,
-          `Oldest: ${{oldBugs.slice(0,5).map(b => b.key+' ('+Math.round(b.age_days)+'d)').join(', ')}}.`);
+          `Oldest: ${{oldBugs.slice(0,5).map(b => linkKey(b.key)+' ('+Math.round(b.age_days)+'d)').join(', ')}}.`);
       else if (oldBugs.length > 0)
         sev('orange', `${{oldBugs.length}} open bug(s) older than 1 year`,
-          oldBugs.map(b => b.key+' ('+Math.round(b.age_days)+'d)').join(', '));
+          oldBugs.map(b => linkKey(b.key)+' ('+Math.round(b.age_days)+'d)').join(', '));
 
       const bugAge = D.open_bugs_age_days || {{}};
       if (bugAge.p50_days != null && bugAge.p50_days > 180)
@@ -1472,6 +1661,12 @@ def main():
       const allCb = document.getElementById('componentAll');
       if (allCb && allCb.checked) return null;
       const checked = Array.from(document.querySelectorAll('.component-cb:checked')).map(cb => cb.value);
+      return checked.length ? checked : null;
+    }}
+    function getSelectedTeams() {{
+      const allCb = document.getElementById('teamAll');
+      if (!allCb || allCb.checked) return null;
+      const checked = Array.from(document.querySelectorAll('.team-cb:checked')).map(cb => cb.value);
       return checked.length ? checked : null;
     }}
 
@@ -1949,6 +2144,7 @@ def main():
       const scopeMeta = scoped.scope_meta || {{}};
       const effectiveProj = scopeMeta.effectiveProjects || null;
       const compSel = scopeMeta.components || null;
+      const teamSel = getSelectedTeams();
       window._currentScopeData = scoped;
       window._currentScopeMeta = scopeMeta;
 
@@ -1957,7 +2153,10 @@ def main():
         const projectOk = effectiveProj === null || effectiveProj.includes(tr.dataset.project);
         const rowComponents = (tr.dataset.components || '').split('|').filter(Boolean);
         const componentOk = !compSel || !compSel.length || !rowComponents.length || compSel.some(c => rowComponents.includes(c));
-        tr.style.display = (projectOk && componentOk) ? '' : 'none';
+        const rowTeam = tr.dataset.team || '';
+        const teamOk = !teamSel || !teamSel.length || (rowTeam && teamSel.includes(rowTeam));
+        const dateOk = isDateInRange(tr.dataset.date || '');
+        tr.style.display = (projectOk && componentOk && teamOk && dateOk) ? '' : 'none';
       }};
       ['tableBlocked', 'tableBugs', 'tableSprints', 'tableKanban', 'tableEpics', 'tableReleases', 'tableEmptyBad'].forEach(tableId => {{
         const t = document.getElementById(tableId);
@@ -1967,11 +2166,61 @@ def main():
         const projectOk = effectiveProj === null || effectiveProj.includes(s.project);
         const sprintComponents = Object.keys(s.component_breakdown || {{}});
         const componentOk = !compSel || !compSel.length || !sprintComponents.length || compSel.some(c => sprintComponents.includes(c));
-        return projectOk && componentOk;
+        const dateOk = isDateInRange(s.end || s.start || '');
+        return projectOk && componentOk && dateOk;
       }});
       chartAddedLate.data.labels = filtered.map(s => s.project + ' \u2013 ' + (s.sprint_name || ''));
       chartAddedLate.data.datasets[0].data = filtered.map(s => s.added_after_sprint_start != null ? s.added_after_sprint_start : 0);
       chartAddedLate.update();
+
+      // Update time-series charts with time filter
+      const _hasTimeFilter = !!(window._timeRange.from || window._timeRange.to);
+      const thrAll = DATA.throughput_by_week || {{}};
+      const thrKeys = Object.keys(thrAll).sort();
+      const thrF = filterWeekKeys(thrKeys, thrKeys.map(k => thrAll[k]));
+      chartThroughput.data.labels = thrF.keys;
+      chartThroughput.data.datasets[0].data = thrF.values;
+      chartThroughput.update();
+
+      const createdWeek = DATA.created_by_week || {{}};
+      const resolvedWeek = DATA.throughput_by_week || {{}};
+      const crWeeks = [...new Set([...Object.keys(createdWeek), ...Object.keys(resolvedWeek)])].sort();
+      const crF = filterWeekKeys(crWeeks, crWeeks.map(() => 0));
+      const crFiltered = _hasTimeFilter ? crF.keys : crF.keys.slice(-16);
+      if (typeof chartCreatedResolved !== 'undefined') {{
+        chartCreatedResolved.data.labels = crFiltered;
+        chartCreatedResolved.data.datasets[0].data = crFiltered.map(w => createdWeek[w] || 0);
+        chartCreatedResolved.data.datasets[1].data = crFiltered.map(w => resolvedWeek[w] || 0);
+        chartCreatedResolved.update();
+      }}
+
+      const bugWeek = DATA.bug_creation_by_week || {{}};
+      const bugKeys = Object.keys(bugWeek).sort();
+      const bugF = filterWeekKeys(bugKeys, bugKeys.map(k => bugWeek[k]));
+      const bugFiltered = _hasTimeFilter ? bugF : {{ keys: bugF.keys.slice(-16), values: bugF.values.slice(-16) }};
+      if (typeof chartBugCreation !== 'undefined') {{
+        chartBugCreation.data.labels = bugFiltered.keys;
+        chartBugCreation.data.datasets[0].data = bugFiltered.values;
+        chartBugCreation.update();
+      }}
+
+      const rpm = DATA.releases_per_month || {{}};
+      const rpmKeysAll = Object.keys(rpm).sort();
+      const rpmF = filterWeekKeys(rpmKeysAll, rpmKeysAll.map(k => rpm[k]));
+      const rpmFiltered = _hasTimeFilter ? rpmF : {{ keys: rpmF.keys.slice(-24), values: rpmF.values.slice(-24) }};
+      if (typeof chartReleasesPerMonth !== 'undefined') {{
+        chartReleasesPerMonth.data.labels = rpmFiltered.keys;
+        chartReleasesPerMonth.data.datasets[0].data = rpmFiltered.values;
+        chartReleasesPerMonth.update();
+      }}
+
+      const bulkDays = DATA.bulk_closure_days || [];
+      const bulkF = bulkDays.filter(d => isDateInRange(d.date || ''));
+      if (typeof chartBulkClosure !== 'undefined') {{
+        chartBulkClosure.data.labels = bulkF.map(d => d.date);
+        chartBulkClosure.data.datasets[0].data = bulkF.map(d => d.count);
+        chartBulkClosure.update();
+      }}
 
       setCardsAndChartsFromMetrics(scoped, compSel, effectiveProj);
       computeAuditFlags(effectiveProj);
@@ -2008,6 +2257,20 @@ def main():
         applyProjectFilter();
       }});
     }});
+    const teamAll = document.getElementById('teamAll');
+    const teamCbs = document.querySelectorAll('.team-cb');
+    if (teamAll) {{
+      teamAll.addEventListener('change', function() {{
+        if (this.checked) teamCbs.forEach(cb => {{ cb.checked = false; }});
+        applyProjectFilter();
+      }});
+    }}
+    teamCbs.forEach(cb => {{
+      cb.addEventListener('change', function() {{
+        if (document.getElementById('teamAll')?.checked) document.getElementById('teamAll').checked = false;
+        applyProjectFilter();
+      }});
+    }});
 
     function setupFilter(inputId, tableId) {{
       const input = document.getElementById(inputId);
@@ -2019,13 +2282,17 @@ def main():
         const scopeMeta = window._currentScopeMeta || {{}};
         const proj = scopeMeta.effectiveProjects || null;
         const compSel = scopeMeta.components || null;
+        const teamSel = getSelectedTeams();
         tbody.querySelectorAll('tr').forEach(tr => {{
           if (tr.cells.length < 2) {{ tr.style.display = ''; return; }}
           const projectOk = proj === null || !tr.dataset.project || proj.includes(tr.dataset.project);
           const rowComponents = (tr.dataset.components || '').split('|').filter(Boolean);
           const componentOk = !compSel || !compSel.length || !rowComponents.length || compSel.some(c => rowComponents.includes(c));
+          const rowTeam = tr.dataset.team || '';
+          const teamOk = !teamSel || !teamSel.length || (rowTeam && teamSel.includes(rowTeam));
+          const dateOk = isDateInRange(tr.dataset.date || '');
           const text = Array.from(tr.cells).map(c => c.textContent).join(' ').toLowerCase();
-          tr.style.display = (projectOk && componentOk && text.includes(q)) ? '' : 'none';
+          tr.style.display = (projectOk && componentOk && teamOk && dateOk && text.includes(q)) ? '' : 'none';
         }});
       }});
     }}

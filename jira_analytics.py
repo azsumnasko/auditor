@@ -989,8 +989,20 @@ def _filter_empty_or_bad(
     return out, keys
 
 
-def _empty_or_bad_list_details(issues, summary_max_len=60):
-    """Return list of dicts: key, project, type (issuetype), summary (truncated), status, assignee_display_name."""
+def _get_issue_team(issue, team_field_id):
+    if not team_field_id:
+        return ""
+    raw = (issue.get("fields") or {}).get(team_field_id)
+    if raw is None:
+        return ""
+    if isinstance(raw, list):
+        labels = [_team_field_value_to_label(x) for x in raw if x is not None]
+        return labels[0] if labels else ""
+    return _team_field_value_to_label(raw)
+
+
+def _empty_or_bad_list_details(issues, summary_max_len=60, team_field_id=None):
+    """Return list of dicts: key, project, type (issuetype), summary (truncated), status, assignee_display_name, team."""
     rows = []
     for it in issues:
         fields = it.get("fields") or {}
@@ -1011,6 +1023,7 @@ def _empty_or_bad_list_details(issues, summary_max_len=60):
             "summary": summary,
             "status": status_name,
             "assignee_display_name": assignee_name,
+            "team": _get_issue_team(it, team_field_id),
         })
     return rows
 
@@ -1400,7 +1413,7 @@ def _issue_components(issue):
 # ----------------------------
 def main():
     run_ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    results = {"run_iso_ts": run_ts, "projects": PROJECT_KEYS}
+    results = {"run_iso_ts": run_ts, "projects": PROJECT_KEYS, "jira_base_url": os.environ.get("JIRA_BASE_URL", "")}
 
     jira = JiraClient()
     projects_csv = ",".join(PROJECT_KEYS)
@@ -1485,6 +1498,7 @@ def main():
     print(f"WIP (in flight): {wip_in_flight}")
     if results["wip_components"]:
         print("Open by component:", dict(sorted(results["wip_components"].items(), key=lambda x: -x[1])[:10]))
+    results["teams"] = sorted(results["wip_teams"].keys()) if results["wip_teams"] else []
     if results["wip_teams"]:
         print("Open by team:", dict(sorted(results["wip_teams"].items(), key=lambda x: -x[1])[:10]))
 
@@ -1505,7 +1519,7 @@ def main():
     results["empty_or_bad_count_wip"] = len(empty_bad_wip_keys)
     results["empty_or_bad_pct_wip"] = round(len(empty_bad_wip_keys) / len(wip_issues) * 100, 1) if wip_issues else 0
     results["empty_or_bad_ticket_keys_wip"] = empty_bad_wip_keys
-    results["empty_or_bad_list_wip"] = _empty_or_bad_list_details(empty_bad_wip_list)
+    results["empty_or_bad_list_wip"] = _empty_or_bad_list_details(empty_bad_wip_list, team_field_id=TEAM_FIELD_ID)
     results["empty_or_bad_by_team_wip"] = _team_breakdown(empty_bad_wip_list, TEAM_FIELD_ID) if TEAM_FIELD_ID else {}
     results["empty_or_bad_by_assignee_wip"] = _assignee_breakdown(empty_bad_wip_list)
     results["empty_or_bad_by_component_wip"] = _component_breakdown(empty_bad_wip_list)
@@ -1549,6 +1563,7 @@ def main():
             "age_days": round(age, 1),
             "summary": str((blocked_issue_lookup.get(key, {}).get("fields") or {}).get("summary") or "")[:80],
             "components": _issue_components(blocked_issue_lookup.get(key, {})),
+            "team": _get_issue_team(blocked_issue_lookup.get(key, {}), TEAM_FIELD_ID),
         }
         for age, key, _ in sorted(blocked_with_age, reverse=True)[:10]
     ]
@@ -1606,7 +1621,7 @@ def main():
     results["empty_or_bad_count_done"] = len(empty_bad_done_keys)
     results["empty_or_bad_pct_done"] = round(len(empty_bad_done_keys) / len(done_issues) * 100, 1) if done_issues else 0
     results["empty_or_bad_ticket_keys_done"] = empty_bad_done_keys
-    results["empty_or_bad_list_done"] = _empty_or_bad_list_details(empty_bad_done_list)
+    results["empty_or_bad_list_done"] = _empty_or_bad_list_details(empty_bad_done_list, team_field_id=TEAM_FIELD_ID)
     results["empty_or_bad_by_team_done"] = _team_breakdown(empty_bad_done_list, TEAM_FIELD_ID) if TEAM_FIELD_ID else {}
     results["empty_or_bad_by_assignee_done"] = _assignee_breakdown(empty_bad_done_list)
     results["empty_or_bad_by_component_done"] = _component_breakdown(empty_bad_done_list)
@@ -1694,6 +1709,7 @@ def main():
             "age_days": round(age, 1),
             "summary": str(summary or "")[:80],
             "components": _issue_components(open_bug_lookup.get(key, {})),
+            "team": _get_issue_team(open_bug_lookup.get(key, {}), TEAM_FIELD_ID),
         }
         for age, key, summary, proj in bug_ages[:15]
     ]
@@ -2001,6 +2017,8 @@ def main():
         {
             "project": m["project"],
             "sprint_name": m["sprint_name"],
+            "start": m.get("start", ""),
+            "end": m.get("end", ""),
             "committed": m["committed_points_or_count"],
             "done": m["done_points_or_count"],
             "commitment_done_ratio": m["commitment_done_ratio"],
