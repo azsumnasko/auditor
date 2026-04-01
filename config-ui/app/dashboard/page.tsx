@@ -3,7 +3,13 @@
 import { useState, useEffect } from 'react';
 import AppNav from '@/app/components/AppNav';
 
-type JobStatus = { status: string | null; jobId: number | null; errorMessage: string | null; createdAt: string | null };
+type JobStatus = {
+  status: string | null;
+  jobId: number | null;
+  errorMessage: string | null;
+  createdAt: string | null;
+  pipelineWarnings: string[] | null;
+};
 
 export default function DashboardPage() {
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
@@ -15,7 +21,15 @@ export default function DashboardPage() {
     fetch('/api/reports/status', { credentials: 'include' })
       .then((r) => r.json())
       .then((data) => setJobStatus(data))
-      .catch(() => setJobStatus({ status: null, jobId: null, errorMessage: null, createdAt: null }));
+      .catch(() =>
+        setJobStatus({
+          status: null,
+          jobId: null,
+          errorMessage: null,
+          createdAt: null,
+          pipelineWarnings: null,
+        })
+      );
   };
 
   useEffect(() => {
@@ -81,9 +95,34 @@ export default function DashboardPage() {
             )}
           </div>
           {jobStatus?.status === 'done' && (
-            <p className="report-ready text-success">
-              Report ready. View below or <a href="/dashboard/report" target="_blank" rel="noopener">open in new tab</a>.
-            </p>
+            <>
+              {jobStatus.pipelineWarnings && jobStatus.pipelineWarnings.length > 0 && (
+                <div
+                  className="pipeline-warnings-banner"
+                  role="status"
+                  style={{
+                    marginTop: '0.75rem',
+                    padding: '0.75rem 1rem',
+                    borderRadius: 8,
+                    border: '1px solid #d29922',
+                    background: 'rgba(210, 153, 34, 0.12)',
+                    fontSize: '0.875rem',
+                  }}
+                >
+                  <strong>Partial data</strong>
+                  <p style={{ margin: '0.35rem 0 0', color: 'var(--muted, #8b949e)' }}>
+                    Some optional sources did not complete:</p>
+                  <ul style={{ margin: '0.35rem 0 0', paddingLeft: '1.25rem' }}>
+                    {jobStatus.pipelineWarnings.map((w, i) => (
+                      <li key={i}>{w}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <p className="report-ready text-success">
+                Report ready. View below or <a href="/dashboard/report" target="_blank" rel="noopener">open in new tab</a>.
+              </p>
+            </>
           )}
         </section>
 

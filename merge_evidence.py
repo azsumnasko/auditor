@@ -301,6 +301,13 @@ def main():
     cicd_data = read_json("cicd_analytics", output_dir)
     code_data = read_json("code_analytics", output_dir)
 
+    pipeline_warnings: list = []
+    pw_raw = read_json("pipeline_warnings", output_dir)
+    if isinstance(pw_raw, dict):
+        pipeline_warnings = pw_raw.get("warnings") or []
+    elif isinstance(pw_raw, list):
+        pipeline_warnings = pw_raw
+
     sources = {
         "jira": jira_data is not None,
         "git": git_data is not None,
@@ -337,6 +344,7 @@ def main():
     results = {
         "run_iso_ts": datetime.now(timezone.utc).isoformat(),
         "sources": sources,
+        "pipeline_warnings": pipeline_warnings,
         "jira": jira_data,
         "git": git_data,
         "octopus": octopus_data,

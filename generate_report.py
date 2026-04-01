@@ -45,6 +45,7 @@ def generate_report(evidence, scorecard):
     pending_risk = evidence.get("pending_risk") or {}
     release_health = evidence.get("release_health") or {}
     run_ts = evidence.get("run_iso_ts", "")
+    pipeline_warnings = evidence.get("pipeline_warnings") or []
 
     # Helpers for domain data
     def _domain_score(key):
@@ -63,6 +64,10 @@ def generate_report(evidence, scorecard):
     deploy_freq_cat = _safe(dora, "deployment_frequency", "category")
     repos_behind = _safe(pending_risk, "total_repos_behind", default=0)
 
+    notes_line = ""
+    if pipeline_warnings:
+        notes_line = "\n- **Note:** Some optional data sources did not complete; see *Data collection notes* in the appendix.\n"
+
     sections.append(f"""# Engineering Delivery & Organization Audit -- Executive Summary
 
 **Overall Maturity Score: {overall}/5**
@@ -71,8 +76,7 @@ def generate_report(evidence, scorecard):
 - Deployment frequency: **{deploy_freq_cat}** | DORA overall: **{dora.get('overall_category', 'N/A')}**
 - Repos with pending unreleased changes: **{repos_behind}**
 - Branch drift across repos: **{_safe(release_health, 'branch_drift_total', default=0)}** missing commits
-- Data sources: {', '.join(k for k, v in completeness.items() if v)}
-""")
+- Data sources: {', '.join(k for k, v in completeness.items() if v)}{notes_line}""")
 
     # Slide 2: Context & Scope
     repos_analyzed = _safe(git, "repos_analyzed", default=[])
@@ -276,8 +280,21 @@ Scores are based on automated metrics and quantitative evidence. Domains marked 
 The goal is faster and more predictable delivery, not more process.
 """)
 
+    warn_block = ""
+    if pipeline_warnings:
+        bullets = "\n".join(f"  - {w}" for w in pipeline_warnings)
+        warn_block = f"""---
+
+# Data collection notes
+
+The following optional integrations were skipped or failed; the report reflects all data that was collected successfully.
+
+{bullets}
+
+"""
+
     # Appendix
-    sections.append(f"""---
+    sections.append(f"""{warn_block}---
 
 # Appendix -- Evidence Summary
 

@@ -10,6 +10,8 @@
 
 Per-user Jira config is stored in the SQLite DB (`/data/app.db`); users set it via the Config page after signup/login. Reports are generated on demand (Generate report on the Dashboard); the worker polls for pending jobs and runs analytics per user.
 
+**Optional integrations (Git, Octopus Deploy, CI/CD):** Only Jira is required for a successful report run. If optional collectors are missing configuration or fail (for example, API errors), the worker still completes the pipeline with Jira and any other sources that succeeded. Check the dashboard banner, the generated HTML dashboard, and `executive_report.md` for **Data collection notes** listing skipped or failed optional steps. Warnings are also stored per user as `pipeline_warnings_latest.json` under `/data/users/<id>/`.
+
 ## Local run (Docker Compose)
 
 1. From repo root: `docker compose up --build`

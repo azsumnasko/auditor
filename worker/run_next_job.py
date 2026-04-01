@@ -3,9 +3,20 @@
 Poll SQLite for a pending job, run jira_analytics + generate_dashboard for that user.
 Set env from config *before* importing jira_analytics (it reads env at import).
 """
+import logging
 import os
 import sqlite3
 import sys
+
+_WARN_MSG_MAX = 300
+_REPO_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
+
+def _append_stage_warning(warnings: list, stage: str, exc: BaseException) -> None:
+    msg = (str(exc).strip() or type(exc).__name__)
+    if len(msg) > _WARN_MSG_MAX:
+        msg = msg[:_WARN_MSG_MAX] + "…"
+    warnings.append(f"{stage}: {msg}")
 
 DATA_DIR = os.environ.get("DATA_DIR", "/data")
 DB_PATH = os.path.join(DATA_DIR, "app.db")
@@ -130,26 +141,53 @@ def main():
             if config.get("cicd_deploy_workflow"):
                 os.environ["CICD_DEPLOY_WORKFLOW"] = config["cicd_deploy_workflow"]
 
-        sys.path.insert(0, "/app")
+        for p in ("/app", _REPO_ROOT):
+            if p not in sys.path:
+                sys.path.insert(0, p)
+
         try:
-            # 1. Jira analytics (always)
+            logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+            pipeline_warnings: list[str] = []
+
+            # 1. Jira analytics (always — failure fails the job)
             import jira_analytics
             jira_analytics.main()
 
-            # 2. Git analytics (if configured)
+            # 2. Git analytics (optional)
             if git_token and git_org:
-                import git_analytics
-                git_analytics.main()
+                try:
+                    import git_analytics
+                    git_analytics.main()
+                except Exception as e:
+                    logging.exception("git_analytics failed")
+                    _append_stage_warning(pipeline_warnings, "git_analytics", e)
 
-            # 3. Octopus Deploy analytics (if configured)
+            # 3. Octopus Deploy analytics (optional; needs Git for compare)
             if octopus_url and octopus_key:
-                import octopus_analytics
-                octopus_analytics.main()
+                if not git_token or not git_org:
+                    pipeline_warnings.append(
+                        "octopus_deploy: skipped (GIT_TOKEN and GIT_ORG are required for Octopus analytics)"
+                    )
+                else:
+                    try:
+                        import octopus_analytics
+                        octopus_analytics.main()
+                    except Exception as e:
+                        logging.exception("octopus_analytics failed")
+                        _append_stage_warning(pipeline_warnings, "octopus_analytics", e)
 
-            # 4. CI/CD analytics (if configured)
+            # 4. CI/CD analytics (optional)
             if cicd_provider != "none":
-                import cicd_analytics
-                cicd_analytics.main()
+                try:
+                    import cicd_analytics
+                    cicd_analytics.main()
+                except Exception as e:
+                    logging.exception("cicd_analytics failed")
+                    _append_stage_warning(pipeline_warnings, "cicd_analytics", e)
+
+            from analytics_utils import write_json
+
+            write_json({"warnings": pipeline_warnings}, "pipeline_warnings", output_dir)
 
             # 5. Merge evidence (always -- works with whatever data is available)
             import merge_evidence

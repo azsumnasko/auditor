@@ -480,10 +480,12 @@ def main():
         return None
     if not api_key:
         raise RuntimeError("OCTOPUS_API_KEY is required when OCTOPUS_SERVER_URL is set")
-    if not git_token:
-        raise RuntimeError("GIT_TOKEN is required for GitHub compare calls")
-    if not git_org:
-        raise RuntimeError("GIT_ORG is required")
+    if not git_token or not git_org:
+        log.warning(
+            "Octopus analytics skipped: GIT_TOKEN and GIT_ORG are required for Git compare (deployment history / lead time)."
+        )
+        print("[octopus_analytics] GIT_TOKEN and GIT_ORG required for Octopus analytics, skipping.")
+        return None
 
     repo_map = _build_repo_map_from_config()
     if repo_map_raw:

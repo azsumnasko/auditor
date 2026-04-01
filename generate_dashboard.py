@@ -47,6 +47,17 @@ def main():
     scorecard_data_js = json.dumps(scorecard_data or {}, ensure_ascii=False)
     evidence_data = _try_load("unified_evidence")
     evidence_data_js = json.dumps((evidence_data or {}).get("dora", {}), ensure_ascii=False)
+    pipeline_warnings = (evidence_data or {}).get("pipeline_warnings") or []
+    if pipeline_warnings:
+        pw_items = "".join(f"<li>{html.escape(str(w))}</li>" for w in pipeline_warnings)
+        pw_banner_html = (
+            '<div class="pipeline-warnings-banner" role="status">'
+            "<strong>Partial data</strong>"
+            "<p>Some optional sources did not complete:</p>"
+            f"<ul>{pw_items}</ul></div>"
+        )
+    else:
+        pw_banner_html = ""
     jira_base_url = (data.get("jira_base_url") or "").rstrip("/")
     run_ts = data.get("run_iso_ts", "")
     # Agile-friendly naming: open_count (all not done), open_by_phase (backlog, in_progress, in_review, blocked), wip_in_flight
@@ -341,9 +352,13 @@ def main():
     .tab-btn.active {{ background: var(--accent); color: #0f1419; }}
     .tab-panel {{ display: none; }}
     .tab-panel.active {{ display: block; }}
+    .pipeline-warnings-banner {{ background: rgba(227, 179, 65, 0.12); border: 1px solid #e3b341; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.875rem; }}
+    .pipeline-warnings-banner p {{ margin: 0.35rem 0 0.25rem; color: var(--muted); }}
+    .pipeline-warnings-banner ul {{ margin: 0.25rem 0 0; padding-left: 1.25rem; color: var(--text); }}
   </style>
 </head>
 <body>
+{pw_banner_html}
   <h1>Clear Horizon Tech \u2014 Jira Analytics Dashboard</h1>
   <p class="meta">Author: Clear Horizon Tech &nbsp; Run: {html.escape(run_ts)} \u00b7 Projects: {", ".join(projects)} &nbsp; <button class="export-btn" onclick="exportEvidence()">Export Audit Evidence</button></p>
 
