@@ -3,7 +3,16 @@
 import { useState, useEffect } from 'react';
 
 type ConfigRow = { user_id: number; user_email: string; jira_base_url: string; jira_email: string; jira_token: string; jira_project_keys: string };
-type JobRow = { id: number; user_id: number; user_email: string; status: string; created_at: string; updated_at: string; error_message: string | null };
+type JobRow = {
+  id: number;
+  user_id: number;
+  user_email: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  error_message: string | null;
+  progress_message: string | null;
+};
 type ReportRow = { user_id: number; user_email: string; has_report: boolean };
 
 export default function AdminAssetsPage() {
@@ -167,19 +176,21 @@ export default function AdminAssetsPage() {
                     <th style={thStyle}>ID</th>
                     <th style={thStyle}>User</th>
                     <th style={thStyle}>Status</th>
+                    <th style={thStyle}>Progress</th>
                     <th style={thStyle}>Created</th>
                     <th style={thStyle}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {jobs.length === 0 ? (
-                    <tr><td colSpan={5} style={tdStyle} className="text-muted">No jobs</td></tr>
+                    <tr><td colSpan={6} style={tdStyle} className="text-muted">No jobs</td></tr>
                   ) : (
                     jobs.map((j) => (
                       <tr key={j.id}>
                         <td style={tdStyle}>{j.id}</td>
                         <td style={tdStyle}>{j.user_email}</td>
                         <td style={tdStyle}>{j.status}</td>
+                        <td style={tdStyle} className="text-muted">{j.progress_message ?? '—'}</td>
                         <td style={tdStyle} className="text-muted">{j.created_at}</td>
                         <td style={tdStyle}>
                           {(j.status === 'pending' || j.status === 'running') && (

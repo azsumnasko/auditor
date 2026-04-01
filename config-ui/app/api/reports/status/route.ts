@@ -41,6 +41,7 @@ export async function GET() {
       errorMessage: null,
       createdAt: null,
       pipelineWarnings: null,
+      progressMessage: null,
     });
   }
   let pipelineWarnings: string[] | null = null;
@@ -53,5 +54,6 @@ export async function GET() {
     errorMessage: job.error_message ?? null,
     createdAt: job.created_at,
     pipelineWarnings,
+    progressMessage: job.progress_message ?? null,
   });
 }

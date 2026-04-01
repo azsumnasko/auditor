@@ -8,18 +8,47 @@ import os
 import sqlite3
 import sys
 
-_WARN_MSG_MAX = 300
+_USER_TEXT_MAX = 300  # max length for warning snippets and UI progress lines
 _REPO_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 
 def _append_stage_warning(warnings: list, stage: str, exc: BaseException) -> None:
     msg = (str(exc).strip() or type(exc).__name__)
-    if len(msg) > _WARN_MSG_MAX:
-        msg = msg[:_WARN_MSG_MAX] + "…"
+    if len(msg) > _USER_TEXT_MAX:
+        msg = msg[:_USER_TEXT_MAX] + "…"
     warnings.append(f"{stage}: {msg}")
 
 DATA_DIR = os.environ.get("DATA_DIR", "/data")
 DB_PATH = os.path.join(DATA_DIR, "app.db")
+
+
+class ProgressLabel:
+    """User-facing progress strings (single source; keep in sync with pipeline order)."""
+
+    JIRA = "Fetching Jira data…"
+    GIT_ANALYZE = "Analyzing Git repositories…"
+    GIT_SKIP = "Skipping Git analytics (not configured)…"
+    OCTOPUS_ANALYZE = "Analyzing Octopus Deploy…"
+    OCTOPUS_SKIP_GIT = "Skipping Octopus (Git token and org required)…"
+    OCTOPUS_SKIP_CFG = "Skipping Octopus (not configured)…"
+    CICD_ANALYZE = "Analyzing CI/CD…"
+    CICD_SKIP = "Skipping CI/CD (not configured)…"
+    MERGE = "Merging evidence…"
+    SCORES = "Computing scores…"
+    DASHBOARD = "Building dashboard…"
+    SCORECARD = "Generating scorecard…"
+    REPORT = "Generating report…"
+    INTERVIEW = "Generating interview prep…"
+    INSIGHTS = "Generating project insights…"
+
+
+def ensure_jobs_schema(conn):
+    """Match Node `initSchema`: add `progress_message` if the DB predates it (worker may run first)."""
+    cur = conn.execute("PRAGMA table_info(jobs)")
+    cols = {row[1] for row in cur.fetchall()}
+    if "progress_message" not in cols:
+        conn.execute("ALTER TABLE jobs ADD COLUMN progress_message TEXT")
+        conn.commit()
 
 
 def claim_next_job(conn):
@@ -51,14 +80,32 @@ def get_config(conn, user_id):
     return dict(zip(cols, row))
 
 
+def set_job_progress(conn, job_id, message):
+    if message is None:
+        return
+    text = str(message).strip()
+    if not text:
+        return
+    if len(text) > _USER_TEXT_MAX:
+        text = text[:_USER_TEXT_MAX] + "…"
+    conn.execute(
+        "UPDATE jobs SET progress_message = ?, updated_at = datetime('now') WHERE id = ?",
+        (text, job_id),
+    )
+    conn.commit()
+
+
 def set_job_done(conn, job_id):
-    conn.execute("UPDATE jobs SET status = ?, updated_at = datetime('now') WHERE id = ?", ("done", job_id))
+    conn.execute(
+        "UPDATE jobs SET status = ?, updated_at = datetime('now'), progress_message = NULL WHERE id = ?",
+        ("done", job_id),
+    )
     conn.commit()
 
 
 def set_job_failed(conn, job_id, error_message):
     conn.execute(
-        "UPDATE jobs SET status = ?, updated_at = datetime('now'), error_message = ? WHERE id = ?",
+        "UPDATE jobs SET status = ?, updated_at = datetime('now'), error_message = ?, progress_message = NULL WHERE id = ?",
         ("failed", error_message[:500] if error_message else None, job_id),
     )
     conn.commit()
@@ -70,7 +117,7 @@ def cleanup_stale_running_jobs(conn, stale_hours=1):
         """
         UPDATE jobs
         SET status = 'failed', updated_at = datetime('now'),
-            error_message = ?
+            error_message = ?, progress_message = NULL
         WHERE status = 'running' AND updated_at < datetime('now', ?)
         """,
         (f"Stale (run exceeded {stale_hours} hour(s)); you can generate again.", f"-{stale_hours} hours"),
@@ -83,6 +130,11 @@ def main():
         return 0
     conn = sqlite3.connect(DB_PATH)
     try:
+        try:
+            conn.execute("PRAGMA journal_mode=WAL")
+        except sqlite3.Error:
+            pass
+        ensure_jobs_schema(conn)
         cleanup_stale_running_jobs(conn)
         row = claim_next_job(conn)
         if not row:
@@ -149,18 +201,22 @@ def main():
             logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
             pipeline_warnings: list[str] = []
 
+            set_job_progress(conn, job_id, ProgressLabel.JIRA)
             # 1. Jira analytics (always — failure fails the job)
             import jira_analytics
             jira_analytics.main()
 
             # 2. Git analytics (optional)
             if git_token and git_org:
+                set_job_progress(conn, job_id, ProgressLabel.GIT_ANALYZE)
                 try:
                     import git_analytics
                     git_analytics.main()
                 except Exception as e:
                     logging.exception("git_analytics failed")
                     _append_stage_warning(pipeline_warnings, "git_analytics", e)
+            else:
+                set_job_progress(conn, job_id, ProgressLabel.GIT_SKIP)
 
             # 3. Octopus Deploy analytics (optional; needs Git for compare)
             if octopus_url and octopus_key:
@@ -168,48 +224,62 @@ def main():
                     pipeline_warnings.append(
                         "octopus_deploy: skipped (GIT_TOKEN and GIT_ORG are required for Octopus analytics)"
                     )
+                    set_job_progress(conn, job_id, ProgressLabel.OCTOPUS_SKIP_GIT)
                 else:
+                    set_job_progress(conn, job_id, ProgressLabel.OCTOPUS_ANALYZE)
                     try:
                         import octopus_analytics
                         octopus_analytics.main()
                     except Exception as e:
                         logging.exception("octopus_analytics failed")
                         _append_stage_warning(pipeline_warnings, "octopus_analytics", e)
+            else:
+                set_job_progress(conn, job_id, ProgressLabel.OCTOPUS_SKIP_CFG)
 
             # 4. CI/CD analytics (optional)
             if cicd_provider != "none":
+                set_job_progress(conn, job_id, ProgressLabel.CICD_ANALYZE)
                 try:
                     import cicd_analytics
                     cicd_analytics.main()
                 except Exception as e:
                     logging.exception("cicd_analytics failed")
                     _append_stage_warning(pipeline_warnings, "cicd_analytics", e)
+            else:
+                set_job_progress(conn, job_id, ProgressLabel.CICD_SKIP)
 
             from analytics_utils import write_json
 
             write_json({"warnings": pipeline_warnings}, "pipeline_warnings", output_dir)
 
+            set_job_progress(conn, job_id, ProgressLabel.MERGE)
             # 5. Merge evidence (always -- works with whatever data is available)
             import merge_evidence
             merge_evidence.main()
 
+            set_job_progress(conn, job_id, ProgressLabel.SCORES)
             # 6. Score engine
             import score_engine
             score_engine.main()
 
+            set_job_progress(conn, job_id, ProgressLabel.DASHBOARD)
             # 7. Output generators
             import generate_dashboard
             generate_dashboard.main()
 
+            set_job_progress(conn, job_id, ProgressLabel.SCORECARD)
             import generate_scorecard
             generate_scorecard.main()
 
+            set_job_progress(conn, job_id, ProgressLabel.REPORT)
             import generate_report
             generate_report.main()
 
+            set_job_progress(conn, job_id, ProgressLabel.INTERVIEW)
             import generate_interview_prep
             generate_interview_prep.main()
 
+            set_job_progress(conn, job_id, ProgressLabel.INSIGHTS)
             import insights_by_project
             insights_by_project.main()
 

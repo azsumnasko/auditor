@@ -57,9 +57,14 @@ function initSchema(database: Database.Database) {
       status TEXT NOT NULL CHECK(status IN ('pending','running','done','failed')),
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-      error_message TEXT
+      error_message TEXT,
+      progress_message TEXT
     );
   `);
+  const jobsCols = database.prepare("PRAGMA table_info(jobs)").all() as { name: string }[];
+  if (jobsCols && !jobsCols.some((c) => c.name === 'progress_message')) {
+    database.exec(`ALTER TABLE jobs ADD COLUMN progress_message TEXT`);
+  }
   // Migration: add Git/CI-CD/Octopus columns to existing config tables that lack them
   const configCols = database.prepare("PRAGMA table_info(config)").all() as { name: string }[];
   const configColNames = new Set(configCols.map((c) => c.name));
@@ -104,7 +109,25 @@ export type ConfigRow = {
   octopus_repo_map: string | null;
   repo_config: string | null;
 };
-export type JobRow = { id: number; user_id: number; status: string; created_at: string; updated_at: string; error_message: string | null };
+export type JobRow = {
+  id: number;
+  user_id: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  error_message: string | null;
+  progress_message: string | null;
+};
+
+/** Latest job row for a user (from `getLatestJob`). */
+export type LatestJobRow = {
+  id: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  error_message: string | null;
+  progress_message: string | null;
+};
 
 export function createUser(email: string, passwordHash: string): { id: number } {
   const database = getDb();
@@ -223,11 +246,13 @@ export function createJob(userId: number): number {
   return result.lastInsertRowid as number;
 }
 
-export function getLatestJob(userId: number): { id: number; status: string; created_at: string; updated_at: string; error_message: string | null } | undefined {
+export function getLatestJob(userId: number): LatestJobRow | undefined {
   const database = getDb();
-  return database.prepare(
-    'SELECT id, status, created_at, updated_at, error_message FROM jobs WHERE user_id = ? ORDER BY id DESC LIMIT 1'
-  ).get(userId) as { id: number; status: string; created_at: string; updated_at: string; error_message: string | null } | undefined;
+  return database
+    .prepare(
+      'SELECT id, status, created_at, updated_at, error_message, progress_message FROM jobs WHERE user_id = ? ORDER BY id DESC LIMIT 1'
+    )
+    .get(userId) as LatestJobRow | undefined;
 }
 
 /** Count jobs created by this user in the last 60 minutes (for rate limiting). */
@@ -251,19 +276,36 @@ export function claimNextPendingJob(): { id: number; user_id: number } | undefin
 
 export function setJobDone(jobId: number): void {
   const database = getDb();
-  database.prepare('UPDATE jobs SET status = ?, updated_at = datetime(\'now\') WHERE id = ?').run('done', jobId);
+  database
+    .prepare(
+      `UPDATE jobs SET status = ?, updated_at = datetime('now'), progress_message = NULL WHERE id = ?`
+    )
+    .run('done', jobId);
 }
 
 export function setJobFailed(jobId: number, errorMessage: string): void {
   const database = getDb();
-  database.prepare('UPDATE jobs SET status = ?, updated_at = datetime(\'now\'), error_message = ? WHERE id = ?').run('failed', errorMessage, jobId);
+  database
+    .prepare(
+      `UPDATE jobs SET status = ?, updated_at = datetime('now'), error_message = ?, progress_message = NULL WHERE id = ?`
+    )
+    .run('failed', errorMessage, jobId);
 }
 
 export function getConfigForUser(userId: number): ConfigRow | undefined {
   return getConfig(userId);
 }
 
-export type JobWithUser = { id: number; user_id: number; user_email: string; status: string; created_at: string; updated_at: string; error_message: string | null };
+export type JobWithUser = {
+  id: number;
+  user_id: number;
+  user_email: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  error_message: string | null;
+  progress_message: string | null;
+};
 
 const JOB_STATUSES = ['pending', 'running', 'done', 'failed'] as const;
 
@@ -271,14 +313,14 @@ export function getAllJobs(statusFilter?: string): JobWithUser[] {
   const database = getDb();
   if (statusFilter && JOB_STATUSES.includes(statusFilter as (typeof JOB_STATUSES)[number])) {
     return database.prepare(`
-      SELECT j.id, j.user_id, u.email as user_email, j.status, j.created_at, j.updated_at, j.error_message
+      SELECT j.id, j.user_id, u.email as user_email, j.status, j.created_at, j.updated_at, j.error_message, j.progress_message
       FROM jobs j JOIN users u ON j.user_id = u.id
       WHERE j.status = ?
       ORDER BY j.created_at DESC
     `).all(statusFilter) as JobWithUser[];
   }
   return database.prepare(`
-    SELECT j.id, j.user_id, u.email as user_email, j.status, j.created_at, j.updated_at, j.error_message
+    SELECT j.id, j.user_id, u.email as user_email, j.status, j.created_at, j.updated_at, j.error_message, j.progress_message
     FROM jobs j JOIN users u ON j.user_id = u.id
     ORDER BY j.created_at DESC
   `).all() as JobWithUser[];
