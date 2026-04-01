@@ -15,6 +15,26 @@ type JobRow = {
 };
 type ReportRow = { user_id: number; user_email: string; has_report: boolean };
 
+type WorkerRow = {
+  id: string;
+  hostname: string;
+  first_seen: string;
+  last_seen: string;
+  state: string;
+  stop_requested: number;
+  current_job_id: number | null;
+  online: boolean;
+  stopRequested: boolean;
+};
+
+type WorkersSummary = {
+  totalRegistered: number;
+  totalOnline: number;
+  free: number;
+  busy: number;
+  stopped: number;
+};
+
 export default function AdminAssetsPage() {
   const [configs, setConfigs] = useState<ConfigRow[]>([]);
   const [jobs, setJobs] = useState<JobRow[]>([]);
@@ -25,7 +45,10 @@ export default function AdminAssetsPage() {
   const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [deletingReportUserId, setDeletingReportUserId] = useState<number | null>(null);
   const [deletingConfigUserId, setDeletingConfigUserId] = useState<number | null>(null);
-  const [tab, setTab] = useState<'configs' | 'jobs' | 'reports'>('configs');
+  const [workers, setWorkers] = useState<WorkerRow[]>([]);
+  const [workersSummary, setWorkersSummary] = useState<WorkersSummary | null>(null);
+  const [workerActionId, setWorkerActionId] = useState<string | null>(null);
+  const [tab, setTab] = useState<'configs' | 'jobs' | 'reports' | 'workers'>('configs');
 
   const fetchConfigs = () => {
     fetch('/api/admin/configs', { credentials: 'include' })
@@ -47,6 +70,24 @@ export default function AdminAssetsPage() {
       .catch(() => setReports([]));
   };
 
+  const fetchWorkers = () => {
+    fetch('/api/admin/workers', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { workers?: WorkerRow[]; summary?: WorkersSummary } | null) => {
+        if (data?.workers && data.summary) {
+          setWorkers(data.workers);
+          setWorkersSummary(data.summary);
+        } else {
+          setWorkers([]);
+          setWorkersSummary(null);
+        }
+      })
+      .catch(() => {
+        setWorkers([]);
+        setWorkersSummary(null);
+      });
+  };
+
   useEffect(() => {
     setLoading(true);
     Promise.all([
@@ -66,6 +107,34 @@ export default function AdminAssetsPage() {
   useEffect(() => {
     if (tab === 'jobs') fetchJobs();
   }, [tab, jobsFilter]);
+
+  useEffect(() => {
+    if (tab === 'workers') fetchWorkers();
+  }, [tab]);
+
+  const stopWorker = (id: string) => {
+    setWorkerActionId(id);
+    fetch(`/api/admin/workers/${encodeURIComponent(id)}/stop`, { method: 'POST', credentials: 'include' })
+      .then((r) => {
+        if (r.ok) {
+          setError(null);
+          fetchWorkers();
+        } else setError('Failed to stop worker');
+      })
+      .finally(() => setWorkerActionId(null));
+  };
+
+  const resumeWorker = (id: string) => {
+    setWorkerActionId(id);
+    fetch(`/api/admin/workers/${encodeURIComponent(id)}/resume`, { method: 'POST', credentials: 'include' })
+      .then((r) => {
+        if (r.ok) {
+          setError(null);
+          fetchWorkers();
+        } else setError('Failed to resume worker');
+      })
+      .finally(() => setWorkerActionId(null));
+  };
 
   const cancelJob = (id: number) => {
     setCancellingId(id);
@@ -126,6 +195,7 @@ export default function AdminAssetsPage() {
         <button type="button" className={tab === 'configs' ? 'btn-primary' : ''} onClick={() => setTab('configs')}>Configs</button>
         <button type="button" className={tab === 'jobs' ? 'btn-primary' : ''} onClick={() => setTab('jobs')}>Jobs</button>
         <button type="button" className={tab === 'reports' ? 'btn-primary' : ''} onClick={() => setTab('reports')}>Reports</button>
+        <button type="button" className={tab === 'workers' ? 'btn-primary' : ''} onClick={() => setTab('workers')}>Workers</button>
       </div>
       {loading ? (
         <p className="text-muted">Loading…</p>
@@ -195,6 +265,87 @@ export default function AdminAssetsPage() {
                         <td style={tdStyle}>
                           {(j.status === 'pending' || j.status === 'running') && (
                             <button type="button" disabled={cancellingId === j.id} onClick={() => cancelJob(j.id)}>Cancel</button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </>
+          )}
+          {tab === 'workers' && (
+            <>
+              {workersSummary && (
+                <p style={{ marginBottom: '12px', fontSize: '0.95rem' }}>
+                  <strong>Registered:</strong> {workersSummary.totalRegistered} instance(s) in DB ·{' '}
+                  <strong>Online</strong> (heartbeat within 3 min): {workersSummary.totalOnline} ·{' '}
+                  <strong>Free</strong> (idle, accepting jobs): {workersSummary.free} ·{' '}
+                  <strong>Busy</strong>: {workersSummary.busy} ·{' '}
+                  <strong>Stopped</strong> (pause): {workersSummary.stopped}
+                </p>
+              )}
+              <p className="text-muted" style={{ marginBottom: '12px', fontSize: '0.875rem' }}>
+                Each worker container registers with a stable ID (file <code>.worker_instance_id</code> under{' '}
+                <code>DATA_DIR</code>). <strong>Stop</strong> pauses job pickup until <strong>Resume</strong>. Scale
+                replicas in Compose/Coolify for multiple workers.
+              </p>
+              <table style={tableStyle}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>Hostname</th>
+                    <th style={thStyle}>Instance ID</th>
+                    <th style={thStyle}>Status</th>
+                    <th style={thStyle}>Job</th>
+                    <th style={thStyle}>Last seen</th>
+                    <th style={thStyle}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {workers.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} style={tdStyle} className="text-muted">
+                        No workers yet — start the worker service; rows appear after the first poll cycle.
+                      </td>
+                    </tr>
+                  ) : (
+                    workers.map((w) => (
+                      <tr key={w.id}>
+                        <td style={tdStyle}>{w.hostname}</td>
+                        <td style={tdStyle} className="text-muted" title={w.id}>
+                          {w.id.slice(0, 8)}…
+                        </td>
+                        <td style={tdStyle}>
+                          {!w.online && <span className="text-muted">Offline · </span>}
+                          {w.stopRequested ? (
+                            <span>Stopped</span>
+                          ) : w.state === 'busy' ? (
+                            <span>Busy</span>
+                          ) : (
+                            <span>Idle</span>
+                          )}
+                        </td>
+                        <td style={tdStyle} className="text-muted">
+                          {w.current_job_id != null ? w.current_job_id : '—'}
+                        </td>
+                        <td style={tdStyle} className="text-muted">{w.last_seen}</td>
+                        <td style={tdStyle}>
+                          {w.stopRequested ? (
+                            <button
+                              type="button"
+                              disabled={workerActionId === w.id}
+                              onClick={() => resumeWorker(w.id)}
+                            >
+                              Resume
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={workerActionId === w.id}
+                              onClick={() => stopWorker(w.id)}
+                            >
+                              Stop
+                            </button>
                           )}
                         </td>
                       </tr>

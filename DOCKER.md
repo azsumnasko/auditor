@@ -29,6 +29,7 @@ Per-user Jira config is stored in the SQLite DB (`/data/app.db`); users set it v
 5. Deploy; Coolify will build both `config-ui` and `worker` and create the shared volume.
 6. Point your domain or port to the **config-ui** service (port 3001). Do not expose the worker.
 7. Users sign up, configure Jira, and generate reports on demand from the Dashboard.
+8. **Admin → Assets → Workers:** shows registered worker instances (each container writes a stable ID under `/data/.worker_instance_id`), counts online / free / busy / stopped, and lets admins **Stop** (pause job pickup) or **Resume** a worker. This does not terminate the container process; scale replicas in Compose/Coolify for multiple workers.
 
 ---
 

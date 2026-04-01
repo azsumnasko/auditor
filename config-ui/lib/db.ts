@@ -65,6 +65,17 @@ function initSchema(database: Database.Database) {
   if (jobsCols && !jobsCols.some((c) => c.name === 'progress_message')) {
     database.exec(`ALTER TABLE jobs ADD COLUMN progress_message TEXT`);
   }
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS worker_instances (
+      id TEXT PRIMARY KEY,
+      hostname TEXT NOT NULL,
+      first_seen TEXT NOT NULL DEFAULT (datetime('now')),
+      last_seen TEXT NOT NULL DEFAULT (datetime('now')),
+      state TEXT NOT NULL CHECK(state IN ('idle','busy')) DEFAULT 'idle',
+      stop_requested INTEGER NOT NULL DEFAULT 0 CHECK(stop_requested IN (0, 1)),
+      current_job_id INTEGER
+    );
+  `);
   // Migration: add Git/CI-CD/Octopus columns to existing config tables that lack them
   const configCols = database.prepare("PRAGMA table_info(config)").all() as { name: string }[];
   const configColNames = new Set(configCols.map((c) => c.name));
@@ -345,4 +356,41 @@ export function deleteConfig(userId: number): void {
 export function getJobById(id: number): { id: number; user_id: number; status: string } | undefined {
   const database = getDb();
   return database.prepare('SELECT id, user_id, status FROM jobs WHERE id = ?').get(id) as { id: number; user_id: number; status: string } | undefined;
+}
+
+/** Report worker containers that heartbeat into SQLite (see worker/run_next_job.py). */
+export type WorkerInstanceRow = {
+  id: string;
+  hostname: string;
+  first_seen: string;
+  last_seen: string;
+  state: string;
+  stop_requested: number;
+  current_job_id: number | null;
+};
+
+export function getAllWorkerInstances(): WorkerInstanceRow[] {
+  const database = getDb();
+  return database
+    .prepare(
+      `SELECT id, hostname, first_seen, last_seen, state, stop_requested, current_job_id
+       FROM worker_instances ORDER BY last_seen DESC`
+    )
+    .all() as WorkerInstanceRow[];
+}
+
+export function getWorkerInstanceById(id: string): WorkerInstanceRow | undefined {
+  const database = getDb();
+  return database
+    .prepare(
+      `SELECT id, hostname, first_seen, last_seen, state, stop_requested, current_job_id
+       FROM worker_instances WHERE id = ?`
+    )
+    .get(id) as WorkerInstanceRow | undefined;
+}
+
+export function setWorkerStopRequested(workerId: string, stop: boolean): boolean {
+  const database = getDb();
+  const r = database.prepare(`UPDATE worker_instances SET stop_requested = ? WHERE id = ?`).run(stop ? 1 : 0, workerId);
+  return r.changes > 0;
 }
