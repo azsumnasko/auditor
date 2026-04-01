@@ -90,6 +90,19 @@ def write_by_project_json(by_project, out_path):
         json.dump(out, f, indent=2, ensure_ascii=False)
     return out
 
+def _load_extra_data(base_dir):
+    """Try to load git/octopus/cicd/scorecard data alongside Jira."""
+    extras = {}
+    for name in ("git_analytics", "octopus_analytics", "cicd_analytics", "scorecard", "unified_evidence"):
+        path = os.path.join(base_dir, f"{name}_latest.json")
+        if os.path.isfile(path):
+            try:
+                with open(path, encoding="utf-8") as f:
+                    extras[name] = json.load(f)
+            except Exception:
+                pass
+    return extras
+
 def generate_insights_md(data, by_project, out_path):
     run_ts = data.get("run_iso_ts", "")
     wip = data.get("wip_count", 0)
@@ -118,6 +131,15 @@ def generate_insights_md(data, by_project, out_path):
         key = f"{y}-{m:02d}"
         releases_last_12 += releases_per_month.get(key, 0)
 
+    base_dir = os.path.dirname(out_path) or os.path.dirname(__file__)
+    extras = _load_extra_data(base_dir)
+    git_data = extras.get("git_analytics", {})
+    octopus_data = extras.get("octopus_analytics", {})
+    cicd_data = extras.get("cicd_analytics", {})
+    scorecard = extras.get("scorecard", {})
+    evidence = extras.get("unified_evidence", {})
+    dora = evidence.get("dora", {}) if evidence else {}
+
     lines = [
         "# Jira insights and next best actions",
         f"*Generated from run: {run_ts}*",
@@ -130,11 +152,38 @@ def generate_insights_md(data, by_project, out_path):
         f"- **Open bugs:** {open_bugs} · median age **{open_bugs_age.get('p50_days', 0):.0f}** days",
         f"- **Throughput (last 4 weeks):** {recent_throughput} issues done",
         f"- **Released versions:** {total_released_versions} total; {releases_last_12} released in the last 12 months",
-        "",
-        "---",
-        "## By project",
-        "",
     ]
+
+    # Git metrics in snapshot
+    if git_data:
+        prc = (git_data.get("pr_cycle_time") or {}).get("p50_days")
+        review = (git_data.get("review_turnaround") or {}).get("p50_hours")
+        merge_freq = (git_data.get("merge_frequency") or {}).get("avg_merges_per_week")
+        min_bus = (git_data.get("contributors") or {}).get("min_bus_factor")
+        if prc is not None:
+            lines.append(f"- **PR cycle time (p50):** {prc:.1f} days")
+        if review is not None:
+            lines.append(f"- **Review turnaround (p50):** {review:.1f} hours")
+        if merge_freq is not None:
+            lines.append(f"- **Merge frequency:** {merge_freq:.1f}/week")
+        if min_bus is not None:
+            lines.append(f"- **Min bus factor:** {min_bus}")
+
+    # DORA summary
+    if dora:
+        dora_cat = dora.get("overall_category", "N/A")
+        df = dora.get("deployment_frequency", {})
+        lt = dora.get("lead_time_for_changes", {})
+        lines.append(f"- **DORA overall:** {dora_cat} | Deploy freq: {df.get('category', 'N/A')} | Lead time: {lt.get('category', 'N/A')}")
+
+    # Octopus summary
+    if octopus_data:
+        pending = octopus_data.get("pending_changes", {})
+        repos_behind = pending.get("total_pending_repos", 0)
+        commits_behind = pending.get("total_pending_commits", 0)
+        lines.append(f"- **Repos behind on deployment:** {repos_behind} ({commits_behind} pending commits)")
+
+    lines.extend(["", "---", "## By project", ""])
 
     # Sort projects: those with blockers or oldest bugs first, then by sprint/kanban activity
     def sort_key(p):
@@ -261,6 +310,38 @@ def generate_insights_md(data, by_project, out_path):
     lines.append("- **Releases per month:** consider keeping a steady cadence where possible.")
     lines.append("")
 
+    # Git / DORA / Octopus next best actions
+    if git_data or dora or octopus_data:
+        lines.extend(["### 5. Git, CI/CD, and Deployment", ""])
+
+    if git_data:
+        min_bus = (git_data.get("contributors") or {}).get("min_bus_factor")
+        if min_bus is not None and min_bus <= 1:
+            bus_repos = {r: v for r, v in (git_data.get("contributors") or {}).get("bus_factor_by_repo", {}).items() if v <= 1}
+            lines.append(f"- **Bus factor = 1** in {len(bus_repos)} repo(s): {', '.join(list(bus_repos.keys())[:5])}. Cross-train and pair to reduce key-person risk.")
+
+        drift = git_data.get("branch_drift", {})
+        if drift.get("total_missing_across_repos", 0) > 10:
+            lines.append(f"- **Branch drift:** {drift['total_missing_across_repos']} commits missing across repos. Reconcile branches to reduce release risk.")
+
+        weekend = (git_data.get("work_patterns") or {}).get("weekend_commit_pct")
+        if weekend and weekend > 15:
+            lines.append(f"- **Weekend commits at {weekend:.0f}%** — potential burnout signal. Review workload distribution.")
+
+    if octopus_data:
+        pending = octopus_data.get("pending_changes", {}).get("by_repo", {})
+        behind = [(r, d) for r, d in pending.items() if d.get("status") == "pending"]
+        if behind:
+            top = sorted(behind, key=lambda x: -x[1].get("pending_count", 0))[:3]
+            lines.append("- **Pending releases:** " + "; ".join(f"{r} ({d['pending_count']} commits)" for r, d in top) + ". Deploy or schedule these releases.")
+
+    if dora:
+        if dora.get("overall_category") in ("low", "medium"):
+            lines.append(f"- **DORA category is {dora['overall_category']}.** Focus on reducing lead time and increasing deployment frequency for higher delivery maturity.")
+
+    if git_data or dora or octopus_data:
+        lines.append("")
+
     lines.extend([
         "---",
         "*Re-run `./run_jira_analytics.ps1` and this script to refresh. Use `@jira_analytics_latest.json` or `@by_project.json` in Cursor for follow-up questions.*",
@@ -272,11 +353,15 @@ def generate_insights_md(data, by_project, out_path):
 
 def main():
     src = sys.argv[1] if len(sys.argv) > 1 else None
+    output_dir = os.environ.get("OUTPUT_DIR") or os.path.dirname(os.path.abspath(__file__))
+    if src is None:
+        candidate = os.path.join(output_dir, "jira_analytics_latest.json")
+        if os.path.isfile(candidate):
+            src = candidate
     data = load_data(src)
     by_project = build_by_project(data)
-    base = os.path.dirname(os.path.abspath(__file__))
-    write_by_project_json(by_project, os.path.join(base, "by_project.json"))
-    generate_insights_md(data, by_project, os.path.join(base, "INSIGHTS_AND_ACTIONS.md"))
+    write_by_project_json(by_project, os.path.join(output_dir, "by_project.json"))
+    generate_insights_md(data, by_project, os.path.join(output_dir, "INSIGHTS_AND_ACTIONS.md"))
     print("Wrote by_project.json and INSIGHTS_AND_ACTIONS.md")
 
 if __name__ == "__main__":

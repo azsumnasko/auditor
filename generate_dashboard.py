@@ -24,9 +24,29 @@ def escape_js(s):
         return "null"
     return json.dumps(str(s))
 
+def _try_load(basename):
+    path = os.path.join(_output_dir(), f"{basename}_latest.json")
+    if os.path.isfile(path):
+        try:
+            with open(path, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return None
+
 def main():
     data = load_data(sys.argv[1] if len(sys.argv) > 1 else None)
     data_js = json.dumps(data, ensure_ascii=False)
+    git_data = _try_load("git_analytics")
+    git_data_js = json.dumps(git_data or {}, ensure_ascii=False)
+    cicd_data = _try_load("cicd_analytics")
+    cicd_data_js = json.dumps(cicd_data or {}, ensure_ascii=False)
+    octopus_data = _try_load("octopus_analytics")
+    octopus_data_js = json.dumps(octopus_data or {}, ensure_ascii=False)
+    scorecard_data = _try_load("scorecard")
+    scorecard_data_js = json.dumps(scorecard_data or {}, ensure_ascii=False)
+    evidence_data = _try_load("unified_evidence")
+    evidence_data_js = json.dumps((evidence_data or {}).get("dora", {}), ensure_ascii=False)
     jira_base_url = (data.get("jira_base_url") or "").rstrip("/")
     run_ts = data.get("run_iso_ts", "")
     # Agile-friendly naming: open_count (all not done), open_by_phase (backlog, in_progress, in_review, blocked), wip_in_flight
@@ -367,6 +387,10 @@ def main():
     <button class="tab-btn" data-tab="quality">Quality</button>
     <button class="tab-btn" data-tab="releases">Releases</button>
     <button class="tab-btn" data-tab="audit">Audit</button>
+    <button class="tab-btn" data-tab="gitmetrics">Git</button>
+    <button class="tab-btn" data-tab="cicdmetrics">CI/CD</button>
+    <button class="tab-btn" data-tab="dorametrics">DORA</button>
+    <button class="tab-btn" data-tab="scorecardtab">Scorecard</button>
   </div>
 
   <!-- ===== OVERVIEW TAB ===== -->
@@ -675,8 +699,54 @@ def main():
   </div>
   </div>
 
+  <!-- ===== GIT TAB ===== -->
+  <div class="tab-panel" id="panel-gitmetrics">
+    <section><h2>Git Analytics</h2><p class="summary-desc">Metrics from Git/GitHub: PR cycle time, review turnaround, merge frequency, contributor analysis.</p></section>
+    <div class="cards" id="gitCards"></div>
+    <div class="grid2">
+      <section><h2>PR Cycle Time by Week</h2><div class="chart-wrap"><canvas id="chartPrCycle"></canvas></div></section>
+      <section><h2>Merge Frequency by Week</h2><div class="chart-wrap"><canvas id="chartMergeFreq"></canvas></div></section>
+    </div>
+    <div class="grid2">
+      <section><h2>PR Size Distribution</h2><div class="chart-wrap"><canvas id="chartPrSize"></canvas></div></section>
+      <section><h2>Review Turnaround by Week</h2><div class="chart-wrap"><canvas id="chartReviewTurnaround"></canvas></div></section>
+    </div>
+    <section><h2>Bus Factor by Repo</h2><div class="chart-wrap"><canvas id="chartBusFactor"></canvas></div></section>
+    <section><h2>Branch Drift</h2><div id="branchDriftTable"></div></section>
+  </div>
+
+  <!-- ===== CI/CD TAB ===== -->
+  <div class="tab-panel" id="panel-cicdmetrics">
+    <section><h2>CI/CD Analytics</h2><p class="summary-desc">Build success rates, deployment frequency, MTTR, and change failure rate.</p></section>
+    <div class="cards" id="cicdCards"></div>
+    <div class="grid2">
+      <section><h2>Build Time Trend</h2><div class="chart-wrap"><canvas id="chartBuildTime"></canvas></div></section>
+      <section><h2>Deploy Frequency</h2><div class="chart-wrap"><canvas id="chartDeployFreq"></canvas></div></section>
+    </div>
+  </div>
+
+  <!-- ===== DORA TAB ===== -->
+  <div class="tab-panel" id="panel-dorametrics">
+    <section><h2>DORA Four Key Metrics</h2><p class="summary-desc">Industry-standard delivery performance indicators.</p></section>
+    <div class="cards" id="doraCards"></div>
+    <section><h2>Benchmark Comparison</h2><div id="doraBenchmark"></div></section>
+  </div>
+
+  <!-- ===== SCORECARD TAB ===== -->
+  <div class="tab-panel" id="panel-scorecardtab">
+    <section><h2>Engineering Maturity Scorecard</h2><p class="summary-desc">5-domain maturity assessment. <a href="scorecard.html" target="_blank" style="color:var(--accent)">Open full scorecard &rarr;</a></p></section>
+    <div class="cards" id="scorecardCards"></div>
+    <section><h2>Radar</h2><div class="chart-wrap" style="max-width:420px;margin:0 auto"><canvas id="chartScoreRadar"></canvas></div></section>
+    <section><h2>Signal Details</h2><div id="scorecardSignals"></div></section>
+  </div>
+
   <script>
     const DATA = {data_js};
+    const GIT_DATA = {git_data_js};
+    const CICD_DATA = {cicd_data_js};
+    const OCTOPUS_DATA = {octopus_data_js};
+    const SCORECARD_DATA = {scorecard_data_js};
+    const DORA_DATA = {evidence_data_js};
     const JIRA_BASE = (DATA.jira_base_url || '').replace(/\\/+$/, '');
     function linkKey(key) {{
       if (!key) return '';
@@ -1572,6 +1642,53 @@ def main():
         sev('yellow', `Story points vs worklog correlation is only ${{wla.sp_worklog_correlation}} (weak)`,
           'Story point estimates do not correlate with actual effort. Points may be arbitrary.');
 
+      // Git / CI-CD / Octopus audit flags
+      if (GIT_DATA && Object.keys(GIT_DATA).length) {{
+        const bf = (GIT_DATA.contributors||{{}}).min_bus_factor;
+        if (bf != null && bf <= 1)
+          sev('red', 'Bus factor = 1 in at least one repo',
+            'A single contributor covers 80%+ of commits. Key-person risk is high.');
+        const drift = (GIT_DATA.branch_drift||{{}}).total_missing_across_repos || 0;
+        if (drift > 50)
+          sev('red', `Branch drift: ${{drift}} commits behind across repos`,
+            'Large branch drift indicates significant release lag or incomplete merge processes.');
+        else if (drift > 10)
+          sev('orange', `Branch drift: ${{drift}} commits behind across repos`,
+            'Moderate branch drift — consider reconciling branches.');
+        const weekend = (GIT_DATA.work_patterns||{{}}).weekend_commit_pct || 0;
+        if (weekend > 15)
+          sev('orange', `Weekend commits: ${{weekend.toFixed(0)}}%`,
+            'Potential burnout signal. Review workload distribution.');
+        const noReview = (GIT_DATA.review_turnaround||{{}}).pct_no_review || 0;
+        if (noReview > 40)
+          sev('orange', `${{noReview.toFixed(0)}}% of PRs merged without review`,
+            'High rate of unreviewed PRs increases quality risk.');
+      }}
+      if (OCTOPUS_DATA && Object.keys(OCTOPUS_DATA).length) {{
+        const pending = OCTOPUS_DATA.pending_changes || {{}};
+        const reposBehind = pending.total_pending_repos || 0;
+        const commitsBehind = pending.total_pending_commits || 0;
+        if (reposBehind > 5)
+          sev('red', `${{reposBehind}} repos behind on deployment (${{commitsBehind}} pending commits)`,
+            'Many repos have unreleased changes. Deployment lag increases risk.');
+        else if (reposBehind > 2)
+          sev('orange', `${{reposBehind}} repos behind on deployment (${{commitsBehind}} pending commits)`,
+            'Some repos have pending changes waiting to be deployed.');
+      }}
+      if (CICD_DATA && Object.keys(CICD_DATA).length) {{
+        const cfr = (CICD_DATA.change_failure_rate||{{}}).cfr_pct || 0;
+        if (cfr > 15)
+          sev('red', `Change failure rate: ${{cfr}}%`,
+            'More than 15% of deployments fail. Investigate CI pipeline and test coverage.');
+        else if (cfr > 10)
+          sev('orange', `Change failure rate: ${{cfr}}%`,
+            'Moderate failure rate. Review test automation and deployment process.');
+        const buildRate = (CICD_DATA.builds||{{}}).success_rate;
+        if (buildRate != null && buildRate < 80)
+          sev('orange', `Build success rate: ${{buildRate}}%`,
+            'Low build success rate slows delivery. Investigate flaky tests and build issues.');
+      }}
+
       const container = document.getElementById('auditFlags');
       if (!container) return;
       if (flags.length === 0) {{
@@ -2391,6 +2508,177 @@ def main():
       a.click();
       URL.revokeObjectURL(url);
     }}
+
+    // ========== NEW TABS: Git / CI-CD / DORA / Scorecard ==========
+    (function populateExtraTabs() {{
+      const colorMap = {{ 1:'#e74c3c', 2:'#e67e22', 3:'#f1c40f', 4:'#2ecc71', 5:'#27ae60' }};
+      function mkCard(label, value, color) {{
+        return `<div class="card"><div class="value" style="color:${{color||'var(--accent)'}}">${{value ?? 'N/A'}}</div><div class="label">${{label}}</div></div>`;
+      }}
+
+      // --- Git tab ---
+      if (GIT_DATA && Object.keys(GIT_DATA).length) {{
+        const gc = document.getElementById('gitCards');
+        if (gc) {{
+          const prc = GIT_DATA.pr_cycle_time || {{}};
+          const rev = GIT_DATA.review_turnaround || {{}};
+          const mf = GIT_DATA.merge_frequency || {{}};
+          const contrib = GIT_DATA.contributors || {{}};
+          gc.innerHTML =
+            mkCard('PRs Merged', GIT_DATA.pr_merged_count) +
+            mkCard('PR Cycle p50', (prc.p50_days||0).toFixed(1) + 'd') +
+            mkCard('Review p50', (rev.p50_hours||0).toFixed(1) + 'h') +
+            mkCard('Merges/wk', mf.avg_merges_per_week) +
+            mkCard('Min Bus Factor', contrib.min_bus_factor, contrib.min_bus_factor<=1?'#e74c3c':'#2ecc71') +
+            mkCard('Contributors', contrib.total_contributors);
+        }}
+        // PR Cycle chart
+        const prcW = GIT_DATA.pr_cycle_time_by_week || {{}};
+        if (Object.keys(prcW).length && document.getElementById('chartPrCycle')) {{
+          new Chart(document.getElementById('chartPrCycle'), {{ type:'line', data:{{ labels:Object.keys(prcW), datasets:[{{ label:'PR Cycle (days)', data:Object.values(prcW), borderColor:'#58a6ff', fill:false }}] }}, options:{{ scales:{{ y:{{ beginAtZero:true }} }} }} }});
+        }}
+        // Merge freq chart
+        const mfW = (GIT_DATA.merge_frequency||{{}}).merges_by_week || {{}};
+        if (Object.keys(mfW).length && document.getElementById('chartMergeFreq')) {{
+          new Chart(document.getElementById('chartMergeFreq'), {{ type:'bar', data:{{ labels:Object.keys(mfW), datasets:[{{ label:'Merges', data:Object.values(mfW), backgroundColor:'#238636' }}] }}, options:{{ scales:{{ y:{{ beginAtZero:true }} }} }} }});
+        }}
+        // PR Size chart
+        const prSize = (GIT_DATA.pr_size||{{}}).distribution || {{}};
+        if (Object.keys(prSize).length && document.getElementById('chartPrSize')) {{
+          new Chart(document.getElementById('chartPrSize'), {{ type:'doughnut', data:{{ labels:Object.keys(prSize), datasets:[{{ data:Object.values(prSize), backgroundColor:['#27ae60','#2ecc71','#f1c40f','#e67e22','#e74c3c'] }}] }} }});
+        }}
+        // Review turnaround chart
+        const revW = GIT_DATA.review_turnaround_by_week || {{}};
+        if (Object.keys(revW).length && document.getElementById('chartReviewTurnaround')) {{
+          new Chart(document.getElementById('chartReviewTurnaround'), {{ type:'line', data:{{ labels:Object.keys(revW), datasets:[{{ label:'Review (hours)', data:Object.values(revW), borderColor:'#e67e22', fill:false }}] }}, options:{{ scales:{{ y:{{ beginAtZero:true }} }} }} }});
+        }}
+        // Bus factor chart
+        const bf = (GIT_DATA.contributors||{{}}).bus_factor_by_repo || {{}};
+        if (Object.keys(bf).length && document.getElementById('chartBusFactor')) {{
+          const repos = Object.keys(bf);
+          const vals = Object.values(bf);
+          const colors = vals.map(v => v<=1?'#e74c3c':v===2?'#f1c40f':'#2ecc71');
+          new Chart(document.getElementById('chartBusFactor'), {{ type:'bar', data:{{ labels:repos, datasets:[{{ label:'Bus Factor', data:vals, backgroundColor:colors }}] }}, options:{{ indexAxis:'y', scales:{{ x:{{ beginAtZero:true }} }} }} }});
+        }}
+        // Branch drift table
+        const drift = (GIT_DATA.branch_drift||{{}}).by_repo || {{}};
+        if (Object.keys(drift).length) {{
+          let html = '<table class="table-wrap"><thead><tr><th>Repo</th><th>Base</th><th>Target</th><th>Missing</th></tr></thead><tbody>';
+          for (const [r,d] of Object.entries(drift)) {{
+            html += `<tr><td>${{r}}</td><td>${{d.base||''}}</td><td>${{d.target||''}}</td><td style="color:${{d.total_missing>10?'var(--red)':'inherit'}}">${{d.total_missing||0}}</td></tr>`;
+          }}
+          html += '</tbody></table>';
+          const el = document.getElementById('branchDriftTable');
+          if (el) el.innerHTML = html;
+        }}
+      }}
+
+      // --- CI/CD tab ---
+      if (CICD_DATA && Object.keys(CICD_DATA).length) {{
+        const cc = document.getElementById('cicdCards');
+        if (cc) {{
+          const b = CICD_DATA.builds || {{}};
+          const d = CICD_DATA.deployments || {{}};
+          const m = CICD_DATA.mttr || {{}};
+          const cfr = CICD_DATA.change_failure_rate || {{}};
+          cc.innerHTML =
+            mkCard('Build Success', (b.success_rate||0)+'%', b.success_rate>=90?'#2ecc71':'#e74c3c') +
+            mkCard('Avg Build Time', (b.avg_build_time_minutes||0).toFixed(1)+'m') +
+            mkCard('Deploy Freq', d.deploy_frequency_category||'N/A') +
+            mkCard('Deploys/wk', d.avg_deploys_per_week) +
+            mkCard('MTTR p50', (m.p50_mttr_hours!=null?(m.p50_mttr_hours).toFixed(1)+'h':'N/A')) +
+            mkCard('CFR', (cfr.cfr_pct||0)+'%', cfr.cfr_pct>15?'#e74c3c':'#2ecc71');
+        }}
+        const btW = (CICD_DATA.builds||{{}}).build_time_trend_by_week || {{}};
+        if (Object.keys(btW).length && document.getElementById('chartBuildTime')) {{
+          new Chart(document.getElementById('chartBuildTime'), {{ type:'line', data:{{ labels:Object.keys(btW), datasets:[{{ label:'Build Time (min)', data:Object.values(btW), borderColor:'#58a6ff', fill:false }}] }}, options:{{ scales:{{ y:{{ beginAtZero:true }} }} }} }});
+        }}
+        const dfW = (CICD_DATA.deployments||{{}}).deploy_frequency_per_week || {{}};
+        if (Object.keys(dfW).length && document.getElementById('chartDeployFreq')) {{
+          new Chart(document.getElementById('chartDeployFreq'), {{ type:'bar', data:{{ labels:Object.keys(dfW), datasets:[{{ label:'Deploys', data:Object.values(dfW), backgroundColor:'#238636' }}] }}, options:{{ scales:{{ y:{{ beginAtZero:true }} }} }} }});
+        }}
+      }}
+
+      // --- DORA tab ---
+      if (DORA_DATA && Object.keys(DORA_DATA).length) {{
+        const dc = document.getElementById('doraCards');
+        const catColor = c => ({{ elite:'#27ae60', high:'#2ecc71', medium:'#f1c40f', low:'#e74c3c' }})[c] || '#888';
+        if (dc) {{
+          const df = DORA_DATA.deployment_frequency || {{}};
+          const lt = DORA_DATA.lead_time_for_changes || {{}};
+          const cfr = DORA_DATA.change_failure_rate || {{}};
+          const m = DORA_DATA.mttr || {{}};
+          const oc = DORA_DATA.overall_category || 'N/A';
+          dc.innerHTML =
+            mkCard('Overall', oc.charAt(0).toUpperCase()+oc.slice(1), catColor(oc)) +
+            mkCard('Deploy Freq', df.value!=null?df.value+'/wk':'N/A', catColor(df.category)) +
+            mkCard('Lead Time', lt.value_days!=null?lt.value_days.toFixed(1)+'d':'N/A', catColor(lt.category)) +
+            mkCard('CFR', cfr.value_pct!=null?cfr.value_pct+'%':'N/A', catColor(cfr.category)) +
+            mkCard('MTTR', m.value_hours!=null?m.value_hours.toFixed(1)+'h':'N/A', catColor(m.category));
+        }}
+        const bench = document.getElementById('doraBenchmark');
+        if (bench) {{
+          let html = '<table><thead><tr><th>Metric</th><th>Elite</th><th>High</th><th>Medium</th><th>Low</th><th>Current</th></tr></thead><tbody>';
+          const rows = [
+            ['Deploy Freq', 'Multiple/day', 'Daily-Weekly', 'Weekly-Monthly', 'Monthly+', DORA_DATA.deployment_frequency],
+            ['Lead Time', '<1 day', '1d-1wk', '1wk-1mo', '>1 month', DORA_DATA.lead_time_for_changes],
+            ['CFR', '<5%', '5-10%', '10-15%', '>15%', DORA_DATA.change_failure_rate],
+            ['MTTR', '<1 hour', '<1 day', '<1 week', '>1 week', DORA_DATA.mttr],
+          ];
+          for (const [name,e,h,m,l,cur] of rows) {{
+            const cat = (cur||{{}}).category || 'N/A';
+            html += `<tr><td>${{name}}</td><td>${{e}}</td><td>${{h}}</td><td>${{m}}</td><td>${{l}}</td><td style="color:${{catColor(cat)}};font-weight:bold">${{cat}}</td></tr>`;
+          }}
+          html += '</tbody></table>';
+          bench.innerHTML = html;
+        }}
+      }}
+
+      // --- Scorecard tab ---
+      if (SCORECARD_DATA && Object.keys(SCORECARD_DATA).length) {{
+        const sc = document.getElementById('scorecardCards');
+        const domains = SCORECARD_DATA.domains || {{}};
+        const domainLabels = {{ delivery_flow:'Delivery Flow', architecture_health:'Architecture', team_topology:'Team Topology', decision_making:'Decision-Making', tech_debt_sustainability:'Tech Debt' }};
+        if (sc) {{
+          let h = '';
+          for (const [k,lbl] of Object.entries(domainLabels)) {{
+            const d = domains[k] || {{}};
+            const s = (d.manual_override||{{}}).score || d.score;
+            h += mkCard(lbl, (s||'?')+'/5', colorMap[s]||'#888');
+          }}
+          h += mkCard('Overall', (SCORECARD_DATA.overall_score||'?')+'/5', colorMap[Math.round(SCORECARD_DATA.overall_score||0)]||'#888');
+          sc.innerHTML = h;
+        }}
+        // Radar chart
+        if (document.getElementById('chartScoreRadar')) {{
+          const labels = Object.values(domainLabels);
+          const vals = Object.keys(domainLabels).map(k => {{ const d = domains[k]||{{}}; return (d.manual_override||{{}}).score || d.score || 0; }});
+          new Chart(document.getElementById('chartScoreRadar'), {{
+            type: 'radar',
+            data: {{ labels, datasets: [{{ label:'Score', data:vals, backgroundColor:'rgba(88,166,255,0.15)', borderColor:'#58a6ff', pointBackgroundColor:'#58a6ff' }}] }},
+            options: {{ scales: {{ r: {{ min:0, max:5, ticks:{{ stepSize:1, color:'#8b949e' }}, grid:{{ color:'#30363d' }}, angleLines:{{ color:'#30363d' }}, pointLabels:{{ color:'#c9d1d9', font:{{ size:11 }} }} }} }} }}
+          }});
+        }}
+        // Signal table
+        const sigEl = document.getElementById('scorecardSignals');
+        if (sigEl) {{
+          let html = '';
+          for (const [k,lbl] of Object.entries(domainLabels)) {{
+            const d = domains[k] || {{}};
+            html += `<h3>${{lbl}} — ${{(d.manual_override||{{}}).score||d.score||'?'}}/5</h3>`;
+            if (d.needs_human_review) html += `<p style="color:#e67e22">Needs human review: ${{d.review_reason||''}}</p>`;
+            html += '<table><thead><tr><th>Signal</th><th>Value</th><th>Score</th><th>Source</th></tr></thead><tbody>';
+            for (const s of (d.signals||[])) {{
+              const sc = s.score;
+              const col = colorMap[sc] || '#888';
+              html += `<tr><td>${{s.name}}</td><td>${{s.value!=null?s.value:'-'}} ${{s.unit||''}}</td><td style="color:${{col}};font-weight:bold">${{sc!=null?sc:'-'}}/5</td><td>${{s.source||''}}</td></tr>`;
+            }}
+            html += '</tbody></table>';
+          }}
+          sigEl.innerHTML = html;
+        }}
+      }}
+    }})();
   </script>
 </body>
 </html>"""

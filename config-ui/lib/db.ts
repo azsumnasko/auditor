@@ -37,7 +37,19 @@ function initSchema(database: Database.Database) {
       jira_base_url TEXT NOT NULL,
       jira_email TEXT NOT NULL,
       jira_token TEXT NOT NULL,
-      jira_project_keys TEXT NOT NULL
+      jira_project_keys TEXT NOT NULL,
+      git_provider TEXT DEFAULT NULL,
+      git_base_url TEXT DEFAULT NULL,
+      git_token TEXT DEFAULT NULL,
+      git_org TEXT DEFAULT NULL,
+      git_repos TEXT DEFAULT NULL,
+      cicd_provider TEXT DEFAULT NULL,
+      cicd_deploy_workflow TEXT DEFAULT NULL,
+      octopus_server_url TEXT DEFAULT NULL,
+      octopus_api_key TEXT DEFAULT NULL,
+      octopus_environment TEXT DEFAULT 'Ontario',
+      octopus_repo_map TEXT DEFAULT NULL,
+      repo_config TEXT DEFAULT NULL
     );
     CREATE TABLE IF NOT EXISTS jobs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,10 +60,50 @@ function initSchema(database: Database.Database) {
       error_message TEXT
     );
   `);
+  // Migration: add Git/CI-CD/Octopus columns to existing config tables that lack them
+  const configCols = database.prepare("PRAGMA table_info(config)").all() as { name: string }[];
+  const configColNames = new Set(configCols.map((c) => c.name));
+  const newCols: [string, string][] = [
+    ['git_provider', 'TEXT DEFAULT NULL'],
+    ['git_base_url', 'TEXT DEFAULT NULL'],
+    ['git_token', 'TEXT DEFAULT NULL'],
+    ['git_org', 'TEXT DEFAULT NULL'],
+    ['git_repos', 'TEXT DEFAULT NULL'],
+    ['cicd_provider', 'TEXT DEFAULT NULL'],
+    ['cicd_deploy_workflow', 'TEXT DEFAULT NULL'],
+    ['octopus_server_url', 'TEXT DEFAULT NULL'],
+    ['octopus_api_key', 'TEXT DEFAULT NULL'],
+    ['octopus_environment', "TEXT DEFAULT 'Ontario'"],
+    ['octopus_repo_map', 'TEXT DEFAULT NULL'],
+    ['repo_config', 'TEXT DEFAULT NULL'],
+  ];
+  for (const [col, def] of newCols) {
+    if (!configColNames.has(col)) {
+      database.exec(`ALTER TABLE config ADD COLUMN ${col} ${def}`);
+    }
+  }
 }
 
 export type User = { id: number; email: string; password_hash: string; created_at: string; role: string };
-export type ConfigRow = { user_id: number; jira_base_url: string; jira_email: string; jira_token: string; jira_project_keys: string };
+export type ConfigRow = {
+  user_id: number;
+  jira_base_url: string;
+  jira_email: string;
+  jira_token: string;
+  jira_project_keys: string;
+  git_provider: string | null;
+  git_base_url: string | null;
+  git_token: string | null;
+  git_org: string | null;
+  git_repos: string | null;
+  cicd_provider: string | null;
+  cicd_deploy_workflow: string | null;
+  octopus_server_url: string | null;
+  octopus_api_key: string | null;
+  octopus_environment: string | null;
+  octopus_repo_map: string | null;
+  repo_config: string | null;
+};
 export type JobRow = { id: number; user_id: number; status: string; created_at: string; updated_at: string; error_message: string | null };
 
 export function createUser(email: string, passwordHash: string): { id: number } {
@@ -103,8 +155,27 @@ export function countOtherAdmins(excludeUserId: number): number {
 
 export function getConfig(userId: number): ConfigRow | undefined {
   const database = getDb();
-  return database.prepare('SELECT user_id, jira_base_url, jira_email, jira_token, jira_project_keys FROM config WHERE user_id = ?').get(userId) as ConfigRow | undefined;
+  return database.prepare('SELECT * FROM config WHERE user_id = ?').get(userId) as ConfigRow | undefined;
 }
+
+export type ConfigInput = {
+  jira_base_url: string;
+  jira_email: string;
+  jira_token?: string;
+  jira_project_keys: string;
+  git_provider?: string | null;
+  git_base_url?: string | null;
+  git_token?: string | null;
+  git_org?: string | null;
+  git_repos?: string | null;
+  cicd_provider?: string | null;
+  cicd_deploy_workflow?: string | null;
+  octopus_server_url?: string | null;
+  octopus_api_key?: string | null;
+  octopus_environment?: string | null;
+  octopus_repo_map?: string | null;
+  repo_config?: string | null;
+};
 
 export function upsertConfig(userId: number, jiraBaseUrl: string, jiraEmail: string, jiraToken: string, jiraProjectKeys: string): void {
   const database = getDb();
@@ -128,6 +199,22 @@ export function updateConfigKeepToken(userId: number, jiraBaseUrl: string, jiraE
       jira_project_keys = ?
     WHERE user_id = ?
   `).run(jiraBaseUrl, jiraEmail, jiraProjectKeys, userId);
+}
+
+export function updateConfigExtras(userId: number, extras: Partial<ConfigInput>): void {
+  const database = getDb();
+  const fields: string[] = [];
+  const values: (string | null)[] = [];
+  const allowed = ['git_provider','git_base_url','git_token','git_org','git_repos','cicd_provider','cicd_deploy_workflow','octopus_server_url','octopus_api_key','octopus_environment','octopus_repo_map','repo_config'] as const;
+  for (const key of allowed) {
+    if (key in extras) {
+      fields.push(`${key} = ?`);
+      values.push((extras as Record<string, string | null | undefined>)[key] ?? null);
+    }
+  }
+  if (fields.length === 0) return;
+  values.push(String(userId));
+  database.prepare(`UPDATE config SET ${fields.join(', ')} WHERE user_id = ?`).run(...values);
 }
 
 export function createJob(userId: number): number {
@@ -197,12 +284,12 @@ export function getAllJobs(statusFilter?: string): JobWithUser[] {
   `).all() as JobWithUser[];
 }
 
-export type ConfigWithUser = { user_id: number; user_email: string; jira_base_url: string; jira_email: string; jira_token: string; jira_project_keys: string };
+export type ConfigWithUser = ConfigRow & { user_email: string };
 
 export function getAllConfigs(): ConfigWithUser[] {
   const database = getDb();
   return database.prepare(`
-    SELECT c.user_id, u.email as user_email, c.jira_base_url, c.jira_email, c.jira_token, c.jira_project_keys
+    SELECT c.*, u.email as user_email
     FROM config c JOIN users u ON c.user_id = u.id
     ORDER BY c.user_id
   `).all() as ConfigWithUser[];
