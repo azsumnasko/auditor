@@ -1155,6 +1155,9 @@ def _scope_metrics(
         "created_by_week": _created_by_week(created_list),
         "sp_trend": _sp_trend(done_list, story_points_field),
         "bug_creation_by_week": _bug_creation_by_week(done_list, open_bug_list),
+        "bug_resolved_by_week": _bug_resolved_by_week(done_list),
+        "bug_fix_time_days": _bug_fix_time(done_list),
+        "open_bugs_by_priority": _priority_breakdown(open_bug_list),
         "wip_teams": _team_breakdown(wip_list, team_field_id) if team_field_id else {},
     }
     return metrics
@@ -1394,6 +1397,30 @@ def _bug_creation_by_week(done_issues, open_bugs):
         if created:
             weekly[iso_week(created)] += 1
     return dict(weekly)
+
+
+def _bug_resolved_by_week(done_issues):
+    """Count bug resolutions by week (resolved date)."""
+    weekly = Counter()
+    for it in done_issues:
+        itype = (it.get("fields") or {}).get("issuetype")
+        if isinstance(itype, dict) and (itype.get("name") or "").lower() == "bug":
+            dt = parse_dt((it.get("fields") or {}).get("resolutiondate"))
+            if dt:
+                weekly[iso_week(dt)] += 1
+    return dict(weekly)
+
+
+def _bug_fix_time(done_issues):
+    """Lead time stats for bugs only (created -> resolved)."""
+    vals = []
+    for it in done_issues:
+        itype = (it.get("fields") or {}).get("issuetype")
+        if isinstance(itype, dict) and (itype.get("name") or "").lower() == "bug":
+            lt = lead_time_days(it)
+            if lt is not None:
+                vals.append(lt)
+    return summarize_time_metrics(vals)
 
 
 def _issue_components(issue):
@@ -1733,6 +1760,9 @@ def main():
         if created:
             bug_created_weekly[iso_week(created)] += 1
     results["bug_creation_by_week"] = dict(bug_created_weekly)
+    results["bug_resolved_by_week"] = _bug_resolved_by_week(done_issues)
+    results["bug_fix_time_days"] = _bug_fix_time(done_issues)
+    results["open_bugs_by_priority"] = _priority_breakdown(open_bugs)
 
     # ---------
     # Scoped metrics for dashboard filters
@@ -1849,8 +1879,60 @@ def main():
                 team_field_id=TEAM_FIELD_ID,
             )
 
+    # Inject releases_per_month into per-project scopes
+    _rpm_by_project = defaultdict(lambda: Counter())
+    for r in released_versions:
+        if r.get("release_date"):
+            dt = parse_dt(r["release_date"])
+            if dt:
+                _rpm_by_project[r["project"]][dt.strftime("%Y-%m")] += 1
+    for pk in PROJECT_KEYS:
+        if pk in by_project:
+            by_project[pk]["releases_per_month"] = dict(_rpm_by_project.get(pk, {}))
+
+    # Per-team metrics (flat breakdown, like by_component)
+    by_team = {}
+    if TEAM_FIELD_ID:
+        wip_by_t = defaultdict(list)
+        blocked_by_t = defaultdict(list)
+        done_by_t = defaultdict(list)
+        done_90_by_t = defaultdict(list)
+        open_bugs_by_t = defaultdict(list)
+        created_by_t = defaultdict(list)
+
+        def _group_team_scope(target, issues):
+            for issue in issues:
+                team = _get_issue_team(issue, TEAM_FIELD_ID)
+                target[team or "(no team)"].append(issue)
+
+        _group_team_scope(wip_by_t, wip_issues)
+        _group_team_scope(blocked_by_t, blocked_issues)
+        _group_team_scope(done_by_t, done_issues)
+        _group_team_scope(done_90_by_t, done_issues_90)
+        _group_team_scope(open_bugs_by_t, open_bugs)
+        _group_team_scope(created_by_t, created_issues)
+
+        all_team_names = sorted(set(
+            list(wip_by_t) + list(blocked_by_t) + list(done_by_t) +
+            list(done_90_by_t) + list(open_bugs_by_t) + list(created_by_t)
+        ))
+        for tn in all_team_names:
+            by_team[tn] = _scope_metrics(
+                wip_list=wip_by_t.get(tn, []),
+                blocked_list=blocked_by_t.get(tn, []),
+                done_list=done_by_t.get(tn, []),
+                done_90_list=done_90_by_t.get(tn, []),
+                open_bug_list=open_bugs_by_t.get(tn, []),
+                created_list=created_by_t.get(tn, []),
+                story_points_field=STORY_POINTS_FIELD,
+                now=now,
+                team_field_id=TEAM_FIELD_ID,
+            )
+        print(f"Per-team metrics computed for {len(by_team)} teams.")
+
     results["by_project"] = by_project
     results["by_component"] = by_component
+    results["by_team"] = by_team
     results["by_project_component"] = {pk: dict(comp_map) for pk, comp_map in by_project_component.items()}
     results["metric_metadata"] = {
         "blocked_count": {"kind": "heuristic", "notes": "Derived from BLOCKED_JQL heuristic."},

@@ -95,6 +95,14 @@ def main():
     sp_trend = data.get("sp_trend") or {}
     created_by_week = data.get("created_by_week") or {}
     bug_creation_by_week = data.get("bug_creation_by_week") or {}
+    bug_resolved_by_week = data.get("bug_resolved_by_week") or {}
+    bug_fix_time = data.get("bug_fix_time_days") or {}
+    open_bugs_by_priority = data.get("open_bugs_by_priority") or {}
+    reopen_analysis = data.get("reopen_analysis") or {}
+    reopen_pct = reopen_analysis.get("reopened_pct", 0)
+    flow_eff_pct = (data.get("flow_efficiency") or {}).get("efficiency_pct", 0)
+    bug_fix_p50 = bug_fix_time.get("p50_days")
+    bug_fix_display = f"{round(bug_fix_p50, 1)}d" if bug_fix_p50 is not None else (f"{round(bug_fix_time['avg_days'], 1)}d (avg)" if bug_fix_time.get("avg_days") is not None else "N/A")
     assignee_change = data.get("assignee_change_near_resolution") or {}
     comment_timing = data.get("comment_timing") or {}
     worklog_analysis = data.get("worklog_analysis") or {}
@@ -104,7 +112,10 @@ def main():
     total_released_versions = data.get("total_released_versions", 0)
 
     projects = data.get("projects", [])
-    teams = data.get("teams") or sorted((data.get("wip_teams") or {}).keys())
+    teams = data.get("teams") or sorted(
+        k for k in set((data.get("wip_teams") or {}).keys()) | set((data.get("by_team") or {}).keys())
+        if k and k != "(no team)"
+    )
     wip_teams = data.get("wip_teams") or {}
     all_components = sorted(set(wip_comp.keys()) | set(
         c for p in (data.get("by_project") or {}).values()
@@ -558,15 +569,44 @@ def main():
 
   <!-- ===== QUALITY TAB ===== -->
   <div class="tab-panel" id="panel-quality">
+  <div class="summary-stats" id="qualityKpis">
+    <span>Open bugs: <strong id="qKpiOpenBugs">{open_bugs}</strong></span>
+    <span>Reopen rate: <strong id="qKpiReopenPct">{reopen_pct}%</strong></span>
+    <span>Bug fix time (p50): <strong id="qKpiBugFixTime">{bug_fix_display}</strong></span>
+    <span>Flow efficiency: <strong id="qKpiFlowEff">{flow_eff_pct}%</strong></span>
+  </div>
   <div class="grid2">
+    <section>
+      <h2>Logged vs Fixed Bugs (by week)</h2>
+      <p class="summary-desc">Red = bugs created, green = bugs resolved. Shows whether the bug backlog is growing or shrinking.</p>
+      <div class="chart-wrap"><canvas id="chartBugLoggedVsFixed"></canvas></div>
+    </section>
     <section>
       <h2>Bug creation rate (by week)</h2>
       <div class="chart-wrap"><canvas id="chartBugCreation"></canvas></div>
     </section>
+  </div>
+  <div class="grid2">
     <section>
       <h2>Defect density by component</h2>
       <p class="summary-desc">Open bugs / WIP count per component. Higher = more bugs relative to active work.</p>
       <div class="chart-wrap"><canvas id="chartDefectDensity"></canvas></div>
+    </section>
+    <section>
+      <h2>Open bugs by priority</h2>
+      <div class="chart-wrap"><canvas id="chartBugPriority"></canvas></div>
+    </section>
+  </div>
+  <div class="grid2">
+    <section>
+      <h2>Resolution breakdown</h2>
+      <p class="summary-desc">How resolved issues were closed. "Won't Do" / "Duplicate" inflates throughput.</p>
+      <div class="chart-wrap"><canvas id="chartResolutionBreakdown"></canvas></div>
+    </section>
+    <section>
+      <h2>Time in status (bottleneck analysis)</h2>
+      <p class="summary-desc">Average hours spent in each workflow status. Identifies where issues get stuck.</p>
+      <div class="chart-wrap"><canvas id="chartQualityTimeInStatus"></canvas></div>
     </section>
   </div>
   <section>
@@ -827,15 +867,29 @@ def main():
       toEl.addEventListener('change', onCustomChange);
     }})();
 
+    function keyToComparableDate(k) {{
+      const wMatch = k.match(/^(\d{{4}})-W(\d{{2}})$/);
+      if (wMatch) {{
+        const year = +wMatch[1], week = +wMatch[2];
+        const jan4 = new Date(year, 0, 4);
+        const dow = jan4.getDay() || 7;
+        const mon = new Date(jan4);
+        mon.setDate(jan4.getDate() - dow + 1 + (week - 1) * 7);
+        return mon.toISOString().slice(0, 10);
+      }}
+      if (/^\d{{4}}-\d{{2}}$/.test(k)) return k + '-01';
+      return k;
+    }}
+
     function filterWeekKeys(keys, values) {{
       const tr = window._timeRange;
       if (!tr.from && !tr.to) return {{ keys, values }};
       const fk = [], fv = [];
       for (let i = 0; i < keys.length; i++) {{
-        const k = keys[i];
-        if (tr.from && k < tr.from) continue;
-        if (tr.to && k > tr.to) continue;
-        fk.push(k); fv.push(values[i]);
+        const d = keyToComparableDate(keys[i]);
+        if (tr.from && d < tr.from) continue;
+        if (tr.to && d > tr.to) continue;
+        fk.push(keys[i]); fv.push(values[i]);
       }}
       return {{ keys: fk, values: fv }};
     }}
@@ -844,7 +898,7 @@ def main():
       const tr = window._timeRange;
       if (!tr.from && !tr.to) return true;
       if (!dateStr) return true;
-      const d = dateStr.slice(0, 10);
+      const d = keyToComparableDate(dateStr.slice(0, 10));
       if (tr.from && d < tr.from) return false;
       if (tr.to && d > tr.to) return false;
       return true;
@@ -941,83 +995,85 @@ def main():
     function getEffectiveData() {{
       const explicitProjects = getSelectedProjects();
       const selectedComponents = getSelectedComponents();
+      const selectedTeams = getSelectedTeams();
       const effectiveProjects = deriveEffectiveProjects(explicitProjects, selectedComponents);
       const byProject = DATA.by_project || {{}};
       const byComponent = DATA.by_component || {{}};
+      const byTeam = DATA.by_team || {{}};
       const byProjectComponent = DATA.by_project_component || {{}};
 
-      const labelProjects = effectiveProjects && effectiveProjects.length ? effectiveProjects.join(', ') : 'All projects';
-      const labelComponents = selectedComponents && selectedComponents.length ? selectedComponents.join(', ') : 'All components';
-      const exactMeta = {{
-        exactness: 'exact',
-        nonAdditiveExact: true,
+      const hasProjects = effectiveProjects && effectiveProjects.length;
+      const hasComponents = selectedComponents && selectedComponents.length;
+      const hasTeams = selectedTeams && selectedTeams.length;
+
+      const labelProjects = hasProjects ? effectiveProjects.join(', ') : 'All projects';
+      const labelComponents = hasComponents ? selectedComponents.join(', ') : 'All components';
+      const labelTeams = hasTeams ? selectedTeams.join(', ') : 'All teams';
+      const buildMeta = (exact) => ({{
+        exactness: exact ? 'exact' : 'merged-additive',
+        nonAdditiveExact: exact,
         effectiveProjects,
         components: selectedComponents,
-        label: `Project: ${{labelProjects}} | Component: ${{labelComponents}} | Mode: exact`,
-      }};
-      const mergedMeta = {{
-        exactness: 'merged-additive',
-        nonAdditiveExact: false,
-        effectiveProjects,
-        components: selectedComponents,
-        label: `Project: ${{labelProjects}} | Component: ${{labelComponents}} | Mode: additive-only`,
-      }};
+        teams: selectedTeams,
+        label: `Project: ${{labelProjects}} | Component: ${{labelComponents}} | Team: ${{labelTeams}} | Mode: ${{exact ? 'exact' : 'additive-only'}}`,
+      }});
 
       let scoped;
-      if ((!effectiveProjects || !effectiveProjects.length) && (!selectedComponents || !selectedComponents.length)) {{
-        scoped = normalizeMetrics(DATA, {{
-          exactness: 'exact',
-          nonAdditiveExact: true,
-          effectiveProjects: null,
-          components: null,
-          label: 'Project: All projects | Component: All components | Mode: exact',
-        }});
-      }} else if (effectiveProjects && effectiveProjects.length === 1 && (!selectedComponents || !selectedComponents.length) && byProject[effectiveProjects[0]]) {{
-        scoped = normalizeMetrics(byProject[effectiveProjects[0]], exactMeta);
-      }} else if ((!effectiveProjects || !effectiveProjects.length) && selectedComponents && selectedComponents.length === 1 && byComponent[selectedComponents[0]]) {{
-        scoped = normalizeMetrics(byComponent[selectedComponents[0]], exactMeta);
-      }} else if (effectiveProjects && effectiveProjects.length === 1 && selectedComponents && selectedComponents.length === 1 && byProjectComponent[effectiveProjects[0]] && byProjectComponent[effectiveProjects[0]][selectedComponents[0]]) {{
-        scoped = normalizeMetrics(byProjectComponent[effectiveProjects[0]][selectedComponents[0]], exactMeta);
+      if (!hasProjects && !hasComponents && !hasTeams) {{
+        scoped = normalizeMetrics(DATA, buildMeta(true));
+      }} else if (hasTeams && !hasProjects && !hasComponents && selectedTeams.length === 1 && byTeam[selectedTeams[0]]) {{
+        scoped = normalizeMetrics(byTeam[selectedTeams[0]], buildMeta(true));
+      }} else if (hasProjects && effectiveProjects.length === 1 && !hasComponents && !hasTeams && byProject[effectiveProjects[0]]) {{
+        scoped = normalizeMetrics(byProject[effectiveProjects[0]], buildMeta(true));
+      }} else if (!hasProjects && hasComponents && selectedComponents.length === 1 && !hasTeams && byComponent[selectedComponents[0]]) {{
+        scoped = normalizeMetrics(byComponent[selectedComponents[0]], buildMeta(true));
+      }} else if (hasProjects && effectiveProjects.length === 1 && hasComponents && selectedComponents.length === 1 && !hasTeams && byProjectComponent[effectiveProjects[0]] && byProjectComponent[effectiveProjects[0]][selectedComponents[0]]) {{
+        scoped = normalizeMetrics(byProjectComponent[effectiveProjects[0]][selectedComponents[0]], buildMeta(true));
       }} else {{
         const metricsList = [];
-        if (selectedComponents && selectedComponents.length && effectiveProjects && effectiveProjects.length) {{
+        if (hasTeams && !hasProjects && !hasComponents) {{
+          for (const tn of selectedTeams) if (byTeam[tn]) metricsList.push(byTeam[tn]);
+        }} else if (hasComponents && hasProjects) {{
           for (const pk of effectiveProjects) {{
             const compMap = byProjectComponent[pk] || {{}};
             for (const comp of selectedComponents) {{
               if (compMap[comp]) metricsList.push(compMap[comp]);
             }}
           }}
-        }} else if (selectedComponents && selectedComponents.length) {{
+        }} else if (hasComponents) {{
           for (const comp of selectedComponents) if (byComponent[comp]) metricsList.push(byComponent[comp]);
-        }} else if (effectiveProjects && effectiveProjects.length) {{
+        }} else if (hasProjects) {{
           for (const pk of effectiveProjects) if (byProject[pk]) metricsList.push(byProject[pk]);
         }}
-        scoped = _mergeSource(metricsList, mergedMeta) || normalizeMetrics({{}}, mergedMeta);
+        scoped = _mergeSource(metricsList, buildMeta(false)) || normalizeMetrics({{}}, buildMeta(false));
       }}
 
       const epicRows = filterEpicsForScope(effectiveProjects, selectedComponents);
       const sprintRows = (DATA.sprint_metrics || []).filter(s => {{
-        const projectOk = !effectiveProjects || !effectiveProjects.length || effectiveProjects.includes(s.project);
+        const projectOk = !hasProjects || effectiveProjects.includes(s.project);
         const sprintComponents = Object.keys(s.component_breakdown || {{}});
-        const componentOk = !selectedComponents || !selectedComponents.length || !sprintComponents.length || selectedComponents.some(c => sprintComponents.includes(c));
-        return projectOk && componentOk;
+        const componentOk = !hasComponents || !sprintComponents.length || selectedComponents.some(c => sprintComponents.includes(c));
+        const sprintTeams = Object.keys(s.team_breakdown || {{}});
+        const teamOk = !hasTeams || !sprintTeams.length || selectedTeams.some(t => sprintTeams.includes(t));
+        return projectOk && componentOk && teamOk;
       }});
       const bugRows = (DATA.oldest_open_bugs || []).filter(b => {{
-        const projectOk = !effectiveProjects || !effectiveProjects.length || effectiveProjects.includes(b.project);
+        const projectOk = !hasProjects || effectiveProjects.includes(b.project);
         const bugComponents = b.components || [];
-        const componentOk = !selectedComponents || !selectedComponents.length || !bugComponents.length || selectedComponents.some(c => bugComponents.includes(c));
-        return projectOk && componentOk;
+        const componentOk = !hasComponents || !bugComponents.length || selectedComponents.some(c => bugComponents.includes(c));
+        const teamOk = !hasTeams || (b.team && selectedTeams.includes(b.team));
+        return projectOk && componentOk && teamOk;
       }});
       scoped.open_epics_count = epicRows.length;
       scoped.stale_epics_count = epicRows.filter(e => e.stale).length;
       scoped.avg_epic_completion_pct = epicRows.length
         ? Math.round(epicRows.reduce((acc, epic) => acc + (epic.completion_pct || 0), 0) / epicRows.length * 10) / 10
         : 0;
-      scoped.by_project = (!selectedComponents || !selectedComponents.length)
+      scoped.by_project = (!hasComponents)
         ? Object.fromEntries((effectiveProjects || []).filter(pk => byProject[pk]).map(pk => [pk, byProject[pk]]))
         : {{}};
       scoped.projects = effectiveProjects || (DATA.projects || []);
-      scoped.velocity_cv_by_project = (!selectedComponents || !selectedComponents.length)
+      scoped.velocity_cv_by_project = (!hasComponents)
         ? Object.fromEntries((effectiveProjects || []).map(pk => [pk, (DATA.velocity_cv_by_project || {{}})[pk]]).filter(([,v]) => v != null))
         : {{}};
       scoped.sprint_metrics = sprintRows;
@@ -1250,6 +1306,22 @@ def main():
       }});
     }}
 
+    // Logged vs Fixed Bugs (grouped bar)
+    const _initBugCreated = DATA.bug_creation_by_week || {{}};
+    const _initBugResolved = DATA.bug_resolved_by_week || {{}};
+    const _initLvfWeeks = [...new Set([...Object.keys(_initBugCreated), ...Object.keys(_initBugResolved)])].sort().slice(-16);
+    const chartBugLoggedVsFixed = new Chart(document.getElementById('chartBugLoggedVsFixed'), {{
+      type: 'bar',
+      data: {{
+        labels: _initLvfWeeks,
+        datasets: [
+          {{ label: 'Bugs created', data: _initLvfWeeks.map(w => _initBugCreated[w]||0), backgroundColor: 'rgba(248,81,73,0.6)' }},
+          {{ label: 'Bugs fixed', data: _initLvfWeeks.map(w => _initBugResolved[w]||0), backgroundColor: 'rgba(63,185,80,0.6)' }}
+        ]
+      }},
+      options: {{ responsive: true, maintainAspectRatio: false }}
+    }});
+
     // Bug creation rate (5b)
     const bugWeek = DATA.bug_creation_by_week || {{}};
     const bugWeeks = Object.keys(bugWeek).sort().slice(-16);
@@ -1274,6 +1346,44 @@ def main():
       data: {{
         labels: ddItems.map(d => d[0]),
         datasets: [{{ label: 'Bugs / WIP %', data: ddItems.map(d => d[1]), backgroundColor: ddItems.map(([,v]) => v > 30 ? 'rgba(248,81,73,0.7)' : v > 10 ? 'rgba(210,153,34,0.6)' : 'rgba(88,166,255,0.6)') }}]
+      }},
+      options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
+    }});
+
+    // Open bugs by priority (doughnut)
+    const _initBugPri = DATA.open_bugs_by_priority || {{}};
+    const _initBugPriLabels = Object.keys(_initBugPri);
+    const _bugPriColors = ['rgba(248,81,73,0.7)', 'rgba(210,153,34,0.7)', 'rgba(88,166,255,0.7)', 'rgba(63,185,80,0.7)', 'rgba(139,148,158,0.6)', 'rgba(188,140,255,0.6)'];
+    const chartBugPriority = new Chart(document.getElementById('chartBugPriority'), {{
+      type: 'doughnut',
+      data: {{
+        labels: _initBugPriLabels,
+        datasets: [{{ data: _initBugPriLabels.map(l => _initBugPri[l]||0), backgroundColor: _bugPriColors.slice(0, _initBugPriLabels.length) }}]
+      }},
+      options: {{ responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ position: 'right' }} }} }}
+    }});
+
+    // Resolution breakdown (doughnut)
+    const _initRb = DATA.resolution_breakdown || {{}};
+    const _initRbLabels = Object.keys(_initRb);
+    const _rbColors = ['rgba(63,185,80,0.7)', 'rgba(210,153,34,0.7)', 'rgba(248,81,73,0.7)', 'rgba(88,166,255,0.7)', 'rgba(139,148,158,0.6)', 'rgba(188,140,255,0.6)', 'rgba(255,203,107,0.6)'];
+    const chartResBreakdown = new Chart(document.getElementById('chartResolutionBreakdown'), {{
+      type: 'doughnut',
+      data: {{
+        labels: _initRbLabels,
+        datasets: [{{ data: _initRbLabels.map(l => _initRb[l]||0), backgroundColor: _rbColors.slice(0, _initRbLabels.length) }}]
+      }},
+      options: {{ responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ position: 'right' }} }} }}
+    }});
+
+    // Time in status — Quality tab (bottleneck horizontal bar, avg hours)
+    const _initQTis = DATA.time_in_status || {{}};
+    const _initQTisItems = Object.entries(_initQTis).sort((a,b) => (b[1].avg_hours||0) - (a[1].avg_hours||0)).slice(0, 12);
+    const chartQualityTIS = new Chart(document.getElementById('chartQualityTimeInStatus'), {{
+      type: 'bar',
+      data: {{
+        labels: _initQTisItems.map(t => t[0]),
+        datasets: [{{ label: 'Avg hours', data: _initQTisItems.map(t => t[1].avg_hours||0), backgroundColor: 'rgba(88,166,255,0.6)' }}]
       }},
       options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
     }});
@@ -1330,8 +1440,8 @@ def main():
     }});
 
     // ---------- Audit Flags (expanded) ----------
-    function computeAuditFlags(selectedProjects) {{
-      const D = getEffectiveData(selectedProjects);
+    function computeAuditFlags() {{
+      const D = getEffectiveData();
       const flags = [];
       const sev = (s, title, detail) => flags.push({{ severity: s, title, detail }});
       const bp = D.by_project || {{}};
@@ -1719,11 +1829,11 @@ def main():
 
       window._auditFlags = flags;
     }}
-    computeAuditFlags(null);
+    computeAuditFlags();
 
     // ---------- Gaming Score (Phase 4a) ----------
-    function computeGamingScore(selectedProjects) {{
-      const D = getEffectiveData(selectedProjects);
+    function computeGamingScore() {{
+      const D = getEffectiveData();
       const bp = D.by_project || {{}};
       const projects = D.projects || [];
       const container = document.getElementById('gamingScoreContainer');
@@ -1779,7 +1889,7 @@ def main():
       window._gamingScore = globalScore;
       window._projectScores = Object.fromEntries(projects.map(pk => [pk, projectScore(pk)]));
     }}
-    computeGamingScore(null);
+    computeGamingScore();
 
     // ---------- Filters & Interactivity ----------
     function getSelectedProjects() {{
@@ -1826,7 +1936,11 @@ def main():
       const wlaByDow = {{}};
       const createdMerge = {{}};
       const bugCreatedMerge = {{}};
+      const bugResolvedMerge = {{}};
+      let bftCount = 0, bftSum = 0;
+      const bugPriMerge = {{}};
       const spTrendMonthMerge = {{}};
+      const rpmMerge = {{}};
       for (const m of metricsList) {{
         if (!m) continue;
         const mOpen = m.open_count != null ? m.open_count : (m.wip_count || 0);
@@ -1907,6 +2021,10 @@ def main():
         for (const [d,h] of Object.entries(mwla.by_dow || {{}})) wlaByDow[d] = (wlaByDow[d]||0) + h;
         for (const [w,c] of Object.entries(m.created_by_week || {{}})) createdMerge[w] = (createdMerge[w]||0) + c;
         for (const [w,c] of Object.entries(m.bug_creation_by_week || {{}})) bugCreatedMerge[w] = (bugCreatedMerge[w]||0) + c;
+        for (const [w,c] of Object.entries(m.bug_resolved_by_week || {{}})) bugResolvedMerge[w] = (bugResolvedMerge[w]||0) + c;
+        if (m.bug_fix_time_days) {{ bftCount += m.bug_fix_time_days.count||0; bftSum += (m.bug_fix_time_days.avg_days||0) * (m.bug_fix_time_days.count||0); }}
+        for (const [k,v] of Object.entries(m.open_bugs_by_priority || {{}})) bugPriMerge[k] = (bugPriMerge[k]||0) + v;
+        for (const [mon,c] of Object.entries(m.releases_per_month || {{}})) rpmMerge[mon] = (rpmMerge[mon]||0) + c;
         const mSpt = m.sp_trend || {{}};
         for (const [mon, mData] of Object.entries(mSpt.by_month || {{}})) {{
           if (!spTrendMonthMerge[mon]) spTrendMonthMerge[mon] = {{ total_sp: 0, total_issues: 0 }};
@@ -1973,6 +2091,10 @@ def main():
         }},
         created_by_week: createdMerge,
         bug_creation_by_week: bugCreatedMerge,
+        bug_resolved_by_week: bugResolvedMerge,
+        bug_fix_time_days: bftCount ? {{ count: bftCount, avg_days: bftSum / bftCount, p50_days: null, p85_days: null, p95_days: null }} : null,
+        open_bugs_by_priority: bugPriMerge,
+        releases_per_month: rpmMerge,
         sp_trend: (() => {{
           const byM = {{}};
           let infl = false, prev = null;
@@ -2053,6 +2175,15 @@ def main():
       el('cardLeadTime', leadAvg != null ? leadAvg.toFixed(1) : '\u2014');
       el('cardCycleTime', cycleAvg != null ? cycleAvg.toFixed(1) : '\u2014');
 
+      // Quality KPI cards
+      el('qKpiOpenBugs', d.open_bugs_count || 0);
+      const _qRa = d.reopen_analysis || {{}};
+      el('qKpiReopenPct', (_qRa.reopened_pct != null ? _qRa.reopened_pct : 0) + '%');
+      const _qBft = d.bug_fix_time_days || {{}};
+      el('qKpiBugFixTime', _qBft.p50_days != null ? Math.round(_qBft.p50_days * 10) / 10 + 'd' : (_qBft.avg_days != null ? Math.round(_qBft.avg_days * 10) / 10 + 'd (avg)' : 'N/A'));
+      const _qFe = d.flow_efficiency || {{}};
+      el('qKpiFlowEff', (_qFe.efficiency_pct != null ? _qFe.efficiency_pct : 0) + '%');
+
       chartStatus.data.labels = Object.keys(statusDist);
       chartStatus.data.datasets[0].data = Object.values(statusDist);
       chartStatus.update();
@@ -2063,8 +2194,9 @@ def main():
 
       const thru = d.throughput_by_week || {{}};
       const wkSort = Object.keys(thru).sort();
-      chartThroughput.data.labels = wkSort;
-      chartThroughput.data.datasets[0].data = wkSort.map(k => thru[k] || 0);
+      const thrF = filterWeekKeys(wkSort, wkSort.map(k => thru[k] || 0));
+      chartThroughput.data.labels = thrF.keys;
+      chartThroughput.data.datasets[0].data = thrF.values;
       chartThroughput.update();
 
       const leadD = d.lead || {{}};
@@ -2119,7 +2251,7 @@ def main():
       el('giniValue', d.workload_gini || 0);
 
       // Bulk closure
-      const bulkD = d.bulk_closure_days || [];
+      const bulkD = (d.bulk_closure_days || []).filter(dd => isDateInRange(dd.date || ''));
       chartBulkClosure.data.labels = bulkD.map(dd => dd.date);
       chartBulkClosure.data.datasets[0].data = bulkD.map(dd => dd.count);
       chartBulkClosure.update();
@@ -2154,9 +2286,12 @@ def main():
       el('cardEmptyBadDone', d.empty_or_bad_count_done ?? 0);
 
       // Created vs Resolved chart
+      const _hasTimeFilter = !!(window._timeRange.from || window._timeRange.to);
       const cbwD = d.created_by_week || {{}};
       const tbwD = d.throughput_by_week || {{}};
-      const crWeeks = [...new Set([...Object.keys(cbwD), ...Object.keys(tbwD)])].sort().slice(-16);
+      const crWeeksAll = [...new Set([...Object.keys(cbwD), ...Object.keys(tbwD)])].sort();
+      const crF = filterWeekKeys(crWeeksAll, crWeeksAll.map(() => 0));
+      const crWeeks = _hasTimeFilter ? crF.keys : crF.keys.slice(-16);
       chartCreatedResolved.data.labels = crWeeks;
       chartCreatedResolved.data.datasets[0].data = crWeeks.map(w => cbwD[w]||0);
       chartCreatedResolved.data.datasets[1].data = crWeeks.map(w => tbwD[w]||0);
@@ -2173,19 +2308,19 @@ def main():
       // Defect density chart (5c) — recompute from by_component
       const ddSrc = d.wip_components ? (() => {{
         const fake = {{}};
+        const ep = (scopeMeta.effectiveProjects && scopeMeta.effectiveProjects.length) ? scopeMeta.effectiveProjects : null;
         const byPc = DATA.by_project_component || {{}};
-        const effectiveProjects = (scopeMeta.effectiveProjects && scopeMeta.effectiveProjects.length) ? scopeMeta.effectiveProjects : null;
-        const selectedCompSet = selectedComponents && selectedComponents.length ? new Set(selectedComponents) : null;
+        const byC = DATA.by_component || {{}};
         for (const [cn, wc] of Object.entries(d.wip_components || {{}})) {{
           let bugCount = 0;
-          if (effectiveProjects && selectedCompSet) {{
-            for (const pk of effectiveProjects) {{
-              const scoped = (byPc[pk] || {{}})[cn];
-              if (scoped) bugCount += scoped.open_bugs_count || 0;
+          if (ep) {{
+            for (const pk of ep) {{
+              const pcData = (byPc[pk] || {{}})[cn];
+              if (pcData) bugCount += pcData.open_bugs_count || 0;
             }}
           }} else {{
-            const bugC = (DATA.by_component||{{}})[cn];
-            bugCount = bugC ? bugC.open_bugs_count||0 : 0;
+            const cData = byC[cn];
+            bugCount = cData ? cData.open_bugs_count || 0 : 0;
           }}
           fake[cn] = {{ wip_count: wc, open_bugs_count: bugCount }};
         }}
@@ -2236,19 +2371,60 @@ def main():
       if (wkPctEl) wkPctEl.textContent = (wlAnalysis.weekend_pct || 0) + '%';
       if (spCorrEl) spCorrEl.textContent = wlAnalysis.sp_worklog_correlation != null ? wlAnalysis.sp_worklog_correlation : 'N/A';
 
+      // Logged vs Fixed Bugs chart
+      const _lvfCreated = d.bug_creation_by_week || {{}};
+      const _lvfResolved = d.bug_resolved_by_week || {{}};
+      const _lvfAllWeeks = [...new Set([...Object.keys(_lvfCreated), ...Object.keys(_lvfResolved)])].sort();
+      const _lvfCVals = _lvfAllWeeks.map(w => _lvfCreated[w]||0);
+      const _lvfRVals = _lvfAllWeeks.map(w => _lvfResolved[w]||0);
+      const _lvfFC = filterWeekKeys(_lvfAllWeeks, _lvfCVals);
+      const _lvfFR = filterWeekKeys(_lvfAllWeeks, _lvfRVals);
+      const _lvfFinalC = _hasTimeFilter ? _lvfFC : {{ keys: _lvfFC.keys.slice(-16), values: _lvfFC.values.slice(-16) }};
+      const _lvfFinalR = _hasTimeFilter ? _lvfFR : {{ keys: _lvfFR.keys.slice(-16), values: _lvfFR.values.slice(-16) }};
+      chartBugLoggedVsFixed.data.labels = _lvfFinalC.keys;
+      chartBugLoggedVsFixed.data.datasets[0].data = _lvfFinalC.values;
+      chartBugLoggedVsFixed.data.datasets[1].data = _lvfFinalR.values;
+      chartBugLoggedVsFixed.update();
+
       // Bug creation rate chart
       const bugWkD = d.bug_creation_by_week || {{}};
-      const bugWkKeys = Object.keys(bugWkD).sort();
-      chartBugCreation.data.labels = bugWkKeys;
-      chartBugCreation.data.datasets[0].data = bugWkKeys.map(w => bugWkD[w]||0);
+      const bugWkKeysAll = Object.keys(bugWkD).sort();
+      const bugF = filterWeekKeys(bugWkKeysAll, bugWkKeysAll.map(k => bugWkD[k]||0));
+      const bugWkFinal = _hasTimeFilter ? bugF : {{ keys: bugF.keys.slice(-16), values: bugF.values.slice(-16) }};
+      chartBugCreation.data.labels = bugWkFinal.keys;
+      chartBugCreation.data.datasets[0].data = bugWkFinal.values;
       chartBugCreation.update();
+
+      // Open bugs by priority chart
+      const _updBugPri = d.open_bugs_by_priority || {{}};
+      const _updBugPriLabels = Object.keys(_updBugPri);
+      chartBugPriority.data.labels = _updBugPriLabels;
+      chartBugPriority.data.datasets[0].data = _updBugPriLabels.map(l => _updBugPri[l]||0);
+      chartBugPriority.data.datasets[0].backgroundColor = _bugPriColors.slice(0, _updBugPriLabels.length);
+      chartBugPriority.update();
+
+      // Resolution breakdown chart
+      const _updRb = d.resolution_breakdown || {{}};
+      const _updRbLabels = Object.keys(_updRb);
+      chartResBreakdown.data.labels = _updRbLabels;
+      chartResBreakdown.data.datasets[0].data = _updRbLabels.map(l => _updRb[l]||0);
+      chartResBreakdown.data.datasets[0].backgroundColor = _rbColors.slice(0, _updRbLabels.length);
+      chartResBreakdown.update();
+
+      // Time in status bottleneck chart (Quality tab)
+      const _updQTis = d.time_in_status || {{}};
+      const _updQTisItems = Object.entries(_updQTis).sort((a,b) => (b[1].avg_hours||0) - (a[1].avg_hours||0)).slice(0, 12);
+      chartQualityTIS.data.labels = _updQTisItems.map(t => t[0]);
+      chartQualityTIS.data.datasets[0].data = _updQTisItems.map(t => t[1].avg_hours||0);
+      chartQualityTIS.update();
 
       // SP trend chart (4a)
       const sptD = d.sp_trend || {{}};
       const sptMon = sptD.by_month || {{}};
-      const sptKeys = Object.keys(sptMon).sort();
-      chartSpTrend.data.labels = sptKeys;
-      chartSpTrend.data.datasets[0].data = sptKeys.map(mm => sptMon[mm]?.avg_sp || 0);
+      const sptKeysAll = Object.keys(sptMon).sort();
+      const sptF = filterWeekKeys(sptKeysAll, sptKeysAll.map(mm => sptMon[mm]?.avg_sp || 0));
+      chartSpTrend.data.labels = sptF.keys;
+      chartSpTrend.data.datasets[0].data = sptF.values;
       chartSpTrend.update();
 
       // Epic health summary text
@@ -2268,6 +2444,40 @@ def main():
       if (pathsTb) {{
         const tp = spaD.top_paths || [];
         pathsTb.innerHTML = tp.length ? tp.slice(0,10).map(p => `<tr><td>${{p.path.replace(/</g,'&lt;')}}</td><td>${{p.count}}</td></tr>`).join('') : '<tr><td colspan="2">No data</td></tr>';
+      }}
+
+      // Releases per month chart (uses scoped data with time filter)
+      const rpm = d.releases_per_month || {{}};
+      const rpmKeysAll = Object.keys(rpm).sort();
+      const rpmF = filterWeekKeys(rpmKeysAll, rpmKeysAll.map(k => rpm[k]));
+      const rpmFinal = _hasTimeFilter ? rpmF : {{ keys: rpmF.keys.slice(-24), values: rpmF.values.slice(-24) }};
+      if (typeof chartReleasesPerMonth !== 'undefined') {{
+        chartReleasesPerMonth.data.labels = rpmFinal.keys;
+        chartReleasesPerMonth.data.datasets[0].data = rpmFinal.values;
+        chartReleasesPerMonth.update();
+      }}
+
+      // WIP by team chart
+      if (chartWipTeams) {{
+        const wt = d.wip_teams || {{}};
+        const wtItems = Object.entries(wt).sort((a,b) => b[1] - a[1]).slice(0, 20);
+        chartWipTeams.data.labels = wtItems.map(t => t[0]);
+        chartWipTeams.data.datasets[0].data = wtItems.map(t => t[1]);
+        chartWipTeams.update();
+      }}
+
+      // Sprint throughput by team chart
+      if (chartTeamThroughput) {{
+        const stData = {{}};
+        (d.sprint_metrics || []).filter(s => isDateInRange(s.end || s.start || '')).forEach(s => {{
+          const tb = s.team_breakdown || {{}};
+          for (const [team, count] of Object.entries(tb))
+            stData[team] = (stData[team] || 0) + count;
+        }});
+        const stItems = Object.entries(stData).sort((a,b) => b[1] - a[1]).slice(0, 20);
+        chartTeamThroughput.data.labels = stItems.map(t => t[0]);
+        chartTeamThroughput.data.datasets[0].data = stItems.map(t => t[1]);
+        chartTeamThroughput.update();
       }}
     }}
 
@@ -2298,65 +2508,18 @@ def main():
         const projectOk = effectiveProj === null || effectiveProj.includes(s.project);
         const sprintComponents = Object.keys(s.component_breakdown || {{}});
         const componentOk = !compSel || !compSel.length || !sprintComponents.length || compSel.some(c => sprintComponents.includes(c));
+        const sprintTeams = Object.keys(s.team_breakdown || {{}});
+        const teamOk = !teamSel || !teamSel.length || !sprintTeams.length || teamSel.some(t => sprintTeams.includes(t));
         const dateOk = isDateInRange(s.end || s.start || '');
-        return projectOk && componentOk && dateOk;
+        return projectOk && componentOk && teamOk && dateOk;
       }});
       chartAddedLate.data.labels = filtered.map(s => s.project + ' \u2013 ' + (s.sprint_name || ''));
       chartAddedLate.data.datasets[0].data = filtered.map(s => s.added_after_sprint_start != null ? s.added_after_sprint_start : 0);
       chartAddedLate.update();
 
-      // Update time-series charts with time filter
-      const _hasTimeFilter = !!(window._timeRange.from || window._timeRange.to);
-      const thrAll = DATA.throughput_by_week || {{}};
-      const thrKeys = Object.keys(thrAll).sort();
-      const thrF = filterWeekKeys(thrKeys, thrKeys.map(k => thrAll[k]));
-      chartThroughput.data.labels = thrF.keys;
-      chartThroughput.data.datasets[0].data = thrF.values;
-      chartThroughput.update();
-
-      const createdWeek = DATA.created_by_week || {{}};
-      const resolvedWeek = DATA.throughput_by_week || {{}};
-      const crWeeks = [...new Set([...Object.keys(createdWeek), ...Object.keys(resolvedWeek)])].sort();
-      const crF = filterWeekKeys(crWeeks, crWeeks.map(() => 0));
-      const crFiltered = _hasTimeFilter ? crF.keys : crF.keys.slice(-16);
-      if (typeof chartCreatedResolved !== 'undefined') {{
-        chartCreatedResolved.data.labels = crFiltered;
-        chartCreatedResolved.data.datasets[0].data = crFiltered.map(w => createdWeek[w] || 0);
-        chartCreatedResolved.data.datasets[1].data = crFiltered.map(w => resolvedWeek[w] || 0);
-        chartCreatedResolved.update();
-      }}
-
-      const bugWeek = DATA.bug_creation_by_week || {{}};
-      const bugKeys = Object.keys(bugWeek).sort();
-      const bugF = filterWeekKeys(bugKeys, bugKeys.map(k => bugWeek[k]));
-      const bugFiltered = _hasTimeFilter ? bugF : {{ keys: bugF.keys.slice(-16), values: bugF.values.slice(-16) }};
-      if (typeof chartBugCreation !== 'undefined') {{
-        chartBugCreation.data.labels = bugFiltered.keys;
-        chartBugCreation.data.datasets[0].data = bugFiltered.values;
-        chartBugCreation.update();
-      }}
-
-      const rpm = DATA.releases_per_month || {{}};
-      const rpmKeysAll = Object.keys(rpm).sort();
-      const rpmF = filterWeekKeys(rpmKeysAll, rpmKeysAll.map(k => rpm[k]));
-      const rpmFiltered = _hasTimeFilter ? rpmF : {{ keys: rpmF.keys.slice(-24), values: rpmF.values.slice(-24) }};
-      if (typeof chartReleasesPerMonth !== 'undefined') {{
-        chartReleasesPerMonth.data.labels = rpmFiltered.keys;
-        chartReleasesPerMonth.data.datasets[0].data = rpmFiltered.values;
-        chartReleasesPerMonth.update();
-      }}
-
-      const bulkDays = DATA.bulk_closure_days || [];
-      const bulkF = bulkDays.filter(d => isDateInRange(d.date || ''));
-      if (typeof chartBulkClosure !== 'undefined') {{
-        chartBulkClosure.data.labels = bulkF.map(d => d.date);
-        chartBulkClosure.data.datasets[0].data = bulkF.map(d => d.count);
-        chartBulkClosure.update();
-      }}
-
       setCardsAndChartsFromMetrics(scoped, compSel, effectiveProj);
-      computeAuditFlags(effectiveProj);
-      computeGamingScore(effectiveProj);
+      computeAuditFlags();
+      computeGamingScore();
       document.getElementById('filterBugs')?.dispatchEvent(new Event('input'));
       document.getElementById('filterSprints')?.dispatchEvent(new Event('input'));
     }}
@@ -2414,7 +2577,7 @@ def main():
         const scopeMeta = window._currentScopeMeta || {{}};
         const proj = scopeMeta.effectiveProjects || null;
         const compSel = scopeMeta.components || null;
-        const teamSel = getSelectedTeams();
+        const teamSel = scopeMeta.teams || null;
         tbody.querySelectorAll('tr').forEach(tr => {{
           if (tr.cells.length < 2) {{ tr.style.display = ''; return; }}
           const projectOk = proj === null || !tr.dataset.project || proj.includes(tr.dataset.project);
