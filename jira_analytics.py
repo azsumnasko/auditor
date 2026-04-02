@@ -1879,17 +1879,6 @@ def main():
                 team_field_id=TEAM_FIELD_ID,
             )
 
-    # Inject releases_per_month into per-project scopes
-    _rpm_by_project = defaultdict(lambda: Counter())
-    for r in released_versions:
-        if r.get("release_date"):
-            dt = parse_dt(r["release_date"])
-            if dt:
-                _rpm_by_project[r["project"]][dt.strftime("%Y-%m")] += 1
-    for pk in PROJECT_KEYS:
-        if pk in by_project:
-            by_project[pk]["releases_per_month"] = dict(_rpm_by_project.get(pk, {}))
-
     # Per-team metrics (flat breakdown, like by_component)
     by_team = {}
     if TEAM_FIELD_ID:
@@ -2221,6 +2210,17 @@ def main():
                 rel_months[dt.strftime("%Y-%m")] += 1
     results["releases_per_month"] = dict(rel_months)
     print(f"  Total versions: {len(release_data)}, released: {len(released_versions)}")
+
+    # Inject releases_per_month into per-project scopes
+    _rpm_by_project = defaultdict(lambda: Counter())
+    for r in released_versions:
+        if r.get("release_date"):
+            dt = parse_dt(r["release_date"])
+            if dt:
+                _rpm_by_project[r["project"]][dt.strftime("%Y-%m")] += 1
+    for pk in PROJECT_KEYS:
+        if pk in by_project:
+            by_project[pk]["releases_per_month"] = dict(_rpm_by_project.get(pk, {}))
 
     # ---------
     # 6) Change Failure Rate (CFR) framework
