@@ -8,6 +8,7 @@ import json
 import os
 import sys
 import html
+from datetime import datetime
 
 def _output_dir():
     return os.environ.get("OUTPUT_DIR") or os.path.dirname(__file__)
@@ -34,19 +35,23 @@ def _try_load(basename):
             pass
     return None
 
+def _safe_js(obj):
+    """JSON-encode and escape sequences that would break a <script> block."""
+    return json.dumps(obj, ensure_ascii=False).replace("</", "<\\/")
+
 def main():
     data = load_data(sys.argv[1] if len(sys.argv) > 1 else None)
-    data_js = json.dumps(data, ensure_ascii=False)
+    data_js = _safe_js(data)
     git_data = _try_load("git_analytics")
-    git_data_js = json.dumps(git_data or {}, ensure_ascii=False)
+    git_data_js = _safe_js(git_data or {})
     cicd_data = _try_load("cicd_analytics")
-    cicd_data_js = json.dumps(cicd_data or {}, ensure_ascii=False)
+    cicd_data_js = _safe_js(cicd_data or {})
     octopus_data = _try_load("octopus_analytics")
-    octopus_data_js = json.dumps(octopus_data or {}, ensure_ascii=False)
+    octopus_data_js = _safe_js(octopus_data or {})
     scorecard_data = _try_load("scorecard")
-    scorecard_data_js = json.dumps(scorecard_data or {}, ensure_ascii=False)
+    scorecard_data_js = _safe_js(scorecard_data or {})
     evidence_data = _try_load("unified_evidence")
-    evidence_data_js = json.dumps((evidence_data or {}).get("dora", {}), ensure_ascii=False)
+    evidence_data_js = _safe_js((evidence_data or {}).get("dora", {}))
     pipeline_warnings = (evidence_data or {}).get("pipeline_warnings") or []
     if pipeline_warnings:
         pw_items = "".join(f"<li>{html.escape(str(w))}</li>" for w in pipeline_warnings)
@@ -59,7 +64,7 @@ def main():
     else:
         pw_banner_html = ""
     jira_base_url = (data.get("jira_base_url") or "").rstrip("/")
-    run_ts = data.get("run_iso_ts", "")
+    run_ts = data.get("run_iso_ts", "") or ""
     # Agile-friendly naming: open_count (all not done), open_by_phase (backlog, in_progress, in_review, blocked), wip_in_flight
     open_count = data.get("open_count", data.get("wip_count", 0))
     blocked = data.get("blocked_count", 0)
@@ -157,8 +162,9 @@ def main():
         a_d = s.get("added_and_done_count")
         a_d_str = str(a_d) if a_d is not None else "\u2014"
         sprint_components = sorted((s.get("component_breakdown") or {}).keys())
+        sprint_teams = sorted((s.get("team_breakdown") or {}).keys())
         sprint_rows.append(
-            f'<tr data-project="{html.escape(s.get("project", ""))}" data-components="{html.escape("|".join(sprint_components))}" data-date="{html.escape(str(s.get("end", "") or s.get("start", "") or ""))[:10]}">'
+            f'<tr data-project="{html.escape(s.get("project", ""))}" data-components="{html.escape("|".join(sprint_components))}" data-team="{html.escape("|".join(sprint_teams))}" data-date="{html.escape(str(s.get("end", "") or s.get("start", "") or ""))[:10]}">'
             f'<td>{html.escape(s.get("project", ""))}</td>'
             f'<td>{html.escape(s.get("sprint_name", ""))}</td>'
             f'<td>{s.get("throughput_issues", 0)}</td>'
@@ -244,8 +250,6 @@ def main():
     total_versions = len(releases)
     unreleased_count = total_versions - total_released_versions
     # Releases in last 3/6/12 months from releases_per_month (use run_iso_ts or now for "current" month)
-    from datetime import datetime
-    run_ts = data.get("run_iso_ts", "") or ""
     try:
         ref_year = int(run_ts[:4]) if len(run_ts) >= 4 else datetime.now().year
         ref_month = int(run_ts[5:7]) if len(run_ts) >= 7 else datetime.now().month
@@ -1941,6 +1945,7 @@ def main():
       const bugPriMerge = {{}};
       const spTrendMonthMerge = {{}};
       const rpmMerge = {{}};
+      const wipTeamsMerge = {{}};
       for (const m of metricsList) {{
         if (!m) continue;
         const mOpen = m.open_count != null ? m.open_count : (m.wip_count || 0);
@@ -1973,8 +1978,9 @@ def main():
         for (const [wk, cnt] of Object.entries(m.throughput_by_week || {{}}))
           throughputMerge[wk] = (throughputMerge[wk] || 0) + cnt;
         if (m.wip_aging_days && m.wip_aging_days.avg_days != null) {{
-          wipAgingWeight += m.wip_count || 0;
-          wipAgingSum += (m.wip_aging_days.avg_days || 0) * (m.wip_count || 0);
+          const agingCount = m.wip_aging_days.count || 0;
+          wipAgingWeight += agingCount;
+          wipAgingSum += (m.wip_aging_days.avg_days || 0) * agingCount;
         }}
         if (m.lead_time_days) {{ leadCount += m.lead_time_days.count||0; leadSum += (m.lead_time_days.avg_days||0) * (m.lead_time_days.count||0); }}
         if (m.cycle_time_days) {{ cycleCount += m.cycle_time_days.count||0; cycleSum += (m.cycle_time_days.avg_days||0) * (m.cycle_time_days.count||0); }}
@@ -2011,6 +2017,7 @@ def main():
         zcpW += (m.zero_comment_done_pct||0) * dc;
         orpW += (m.orphan_done_pct||0) * dc;
         for (const [k,v] of Object.entries(m.wip_assignees || {{}})) wipAssMerge[k] = (wipAssMerge[k]||0) + v;
+        for (const [k,v] of Object.entries(m.wip_teams || {{}})) wipTeamsMerge[k] = (wipTeamsMerge[k]||0) + v;
         const macnr = m.assignee_change_near_resolution || {{}};
         acnrChanged += macnr.changed_count || 0; acnrTotal += macnr.total || 0;
         const mctm = m.comment_timing || {{}};
@@ -2080,6 +2087,7 @@ def main():
           return ppl.length > 0 ? Math.round(ppl.reduce((a,[,v])=>a+v,0)/ppl.length*10)/10 : 0;
         }})(),
         wip_assignees: wipAssMerge,
+        wip_teams: wipTeamsMerge,
         assignee_change_near_resolution: {{ total: acnrTotal, changed_count: acnrChanged, changed_pct: acnrTotal ? Math.round(acnrChanged/acnrTotal*1000)/10 : 0 }},
         comment_timing: {{ total_issues: ctmTotal, with_post_resolution_comments: ctmPost, post_resolution_comment_pct: ctmTotal ? Math.round(ctmPost/ctmTotal*1000)/10 : 0 }},
         worklog_analysis: {{
@@ -2097,14 +2105,23 @@ def main():
         releases_per_month: rpmMerge,
         sp_trend: (() => {{
           const byM = {{}};
-          let infl = false, prev = null;
           const sorted = Object.keys(spTrendMonthMerge).sort();
           for (const mon of sorted) {{
             const d = spTrendMonthMerge[mon];
             const avg = d.total_issues > 0 ? Math.round(d.total_sp / d.total_issues * 100) / 100 : 0;
             byM[mon] = {{ avg_sp: avg, count: d.total_issues }};
-            if (prev !== null && avg > prev * 1.3) infl = true;
-            prev = avg;
+          }}
+          let infl = false;
+          if (sorted.length >= 4) {{
+            const mid = Math.floor(sorted.length / 2);
+            const firstMonths = sorted.slice(0, mid);
+            const secondMonths = sorted.slice(mid);
+            let firstSum = 0, firstCnt = 0, secondSum = 0, secondCnt = 0;
+            for (const mon of firstMonths) {{ const d = spTrendMonthMerge[mon]; firstSum += d.total_sp; firstCnt += d.total_issues; }}
+            for (const mon of secondMonths) {{ const d = spTrendMonthMerge[mon]; secondSum += d.total_sp; secondCnt += d.total_issues; }}
+            const avgFirst = firstCnt > 0 ? firstSum / firstCnt : 0;
+            const avgSecond = secondCnt > 0 ? secondSum / secondCnt : 0;
+            if (avgFirst > 0 && (avgSecond - avgFirst) / avgFirst > 0.3) infl = true;
           }}
           return {{ by_month: byM, inflation_detected: infl }};
         }})(),
@@ -2495,8 +2512,8 @@ def main():
         const projectOk = effectiveProj === null || effectiveProj.includes(tr.dataset.project);
         const rowComponents = (tr.dataset.components || '').split('|').filter(Boolean);
         const componentOk = !compSel || !compSel.length || !rowComponents.length || compSel.some(c => rowComponents.includes(c));
-        const rowTeam = tr.dataset.team || '';
-        const teamOk = !teamSel || !teamSel.length || (rowTeam && teamSel.includes(rowTeam));
+        const rowTeams = (tr.dataset.team || '').split('|').filter(Boolean);
+        const teamOk = !teamSel || !teamSel.length || !rowTeams.length || teamSel.some(t => rowTeams.includes(t));
         const dateOk = isDateInRange(tr.dataset.date || '');
         tr.style.display = (projectOk && componentOk && teamOk && dateOk) ? '' : 'none';
       }};
@@ -2583,8 +2600,8 @@ def main():
           const projectOk = proj === null || !tr.dataset.project || proj.includes(tr.dataset.project);
           const rowComponents = (tr.dataset.components || '').split('|').filter(Boolean);
           const componentOk = !compSel || !compSel.length || !rowComponents.length || compSel.some(c => rowComponents.includes(c));
-          const rowTeam = tr.dataset.team || '';
-          const teamOk = !teamSel || !teamSel.length || (rowTeam && teamSel.includes(rowTeam));
+          const rowTeams = (tr.dataset.team || '').split('|').filter(Boolean);
+          const teamOk = !teamSel || !teamSel.length || !rowTeams.length || teamSel.some(t => rowTeams.includes(t));
           const dateOk = isDateInRange(tr.dataset.date || '');
           const text = Array.from(tr.cells).map(c => c.textContent).join(' ').toLowerCase();
           tr.style.display = (projectOk && componentOk && teamOk && dateOk && text.includes(q)) ? '' : 'none';

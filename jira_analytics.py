@@ -880,20 +880,15 @@ def _sprint_end_closures(sprint_issues, sprint_end_dt):
 # ----------------------------
 # Phase 3 helper functions (need additional fields)
 # ----------------------------
-def _empty_description_pct(issues):
+def _empty_description_pct(issues, min_len=None):
     if not issues:
         return 0
+    if min_len is None:
+        min_len = EMPTY_OR_BAD_DESCRIPTION_MIN_LEN
     empty = 0
     for it in issues:
-        desc = (it.get("fields") or {}).get("description")
-        if desc is None:
+        if _is_empty_description(it, min_len=min_len):
             empty += 1
-        elif isinstance(desc, str) and len(desc.strip()) < 20:
-            empty += 1
-        elif isinstance(desc, dict):
-            content = desc.get("content") or []
-            if not content:
-                empty += 1
     return round(empty / len(issues) * 100, 1)
 
 def _zero_comment_pct(issues):
@@ -2201,8 +2196,7 @@ def main():
     released_versions = [r for r in release_data if r["released"]]
     results["total_released_versions"] = len(released_versions)
     # releases per month
-    from collections import Counter as _Counter
-    rel_months = _Counter()
+    rel_months = Counter()
     for r in released_versions:
         if r.get("release_date"):
             dt = parse_dt(r["release_date"])
