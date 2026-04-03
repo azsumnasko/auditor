@@ -130,13 +130,13 @@ def _score_delivery_flow(evidence):
                      "threshold_ref": ">14=1, 3-14=3, <3=5", "source": "octopus"})
 
     # Unplanned work ratio
-    val = _safe_get(jira, "sprint_metrics", "avg_added_after_start_pct")
+    val = _safe_get(jira, "sprint_aggregate", "avg_added_after_start_pct")
     s = _score_lower_is_better(val, 30, 15, 30, 15)
     signals.append({"name": "unplanned_work_ratio", "value": val, "unit": "pct", "score": s,
                      "threshold_ref": ">30%=1, 15-30%=3, <15%=5", "source": "jira"})
 
     # Sprint commitment ratio
-    val = _safe_get(jira, "sprint_metrics", "avg_commitment_ratio_pct")
+    val = _safe_get(jira, "sprint_aggregate", "avg_commitment_ratio_pct")
     s = _score_higher_is_better(val, 60, 60, 85, 85)
     signals.append({"name": "sprint_commitment_ratio", "value": val, "unit": "pct", "score": s,
                      "threshold_ref": "<60%=1, 60-85%=3, >85%=5", "source": "jira"})

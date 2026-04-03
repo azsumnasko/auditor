@@ -2080,7 +2080,7 @@ def main():
             "resolved_last_24h_pct": last_24h_pct,
         })
 
-    results["sprint_metrics"] = [
+    sprint_metrics_list = [
         {
             "project": m["project"],
             "sprint_name": m["sprint_name"],
@@ -2105,6 +2105,27 @@ def main():
         }
         for m in sprint_metrics
     ]
+
+    results["sprint_metrics"] = sprint_metrics_list
+
+    if sprint_metrics:
+        _added_pcts = [
+            round(m["added_after_sprint_start"] / m["total_issues"] * 100, 1)
+            if m["total_issues"] else 0.0
+            for m in sprint_metrics
+        ]
+        results["sprint_aggregate"] = {
+            "avg_added_after_start_pct": round(sum(_added_pcts) / len(_added_pcts), 1),
+            "avg_commitment_ratio_pct": round(
+                sum(round(m["commitment_done_ratio"] * 100, 1) for m in sprint_metrics)
+                / len(sprint_metrics), 1
+            ),
+        }
+    else:
+        results["sprint_aggregate"] = {
+            "avg_added_after_start_pct": None,
+            "avg_commitment_ratio_pct": None,
+        }
 
     # Phase 1g: velocity CV per project
     velocity_cv_by_project = {}

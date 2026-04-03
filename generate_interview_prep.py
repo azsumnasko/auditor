@@ -130,7 +130,7 @@ def _data_point_hints(domain_key, evidence, scorecard):
         ctp = _safe(octopus, "commit_to_prod_lead_time", "p50_days")
         if ctp is not None:
             hints.append(f"Commit-to-prod lead time is {_fmt(ctp, ' days')}")
-        unplanned = _safe(jira, "sprint_metrics", "avg_added_after_start_pct")
+        unplanned = _safe(jira, "sprint_aggregate", "avg_added_after_start_pct")
         if unplanned is not None:
             hints.append(f"Unplanned work ratio is {_fmt(unplanned, '%')}")
 

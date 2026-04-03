@@ -457,6 +457,12 @@ def main():
   <div class="grid2">
     <section>
       <h2>WIP by phase</h2>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:0.82rem;margin-bottom:6px" id="wipPhaseToggles">
+        <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" class="wip-phase-cb" data-phase="backlog"> Backlog</label>
+        <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" class="wip-phase-cb" data-phase="in_progress" checked> In progress</label>
+        <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" class="wip-phase-cb" data-phase="in_review" checked> In review</label>
+        <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" class="wip-phase-cb" data-phase="blocked" checked> Blocked</label>
+      </div>
       <div class="chart-wrap"><canvas id="chartPhase"></canvas></div>
     </section>
     <section>
@@ -1085,16 +1091,17 @@ def main():
       return scoped;
     }}
 
+    const _hbarScales = {{ y: {{ ticks: {{ crossAlign: 'far' }} }} }};
     const chartStatus = new Chart(document.getElementById('chartStatus'), {{
       type: 'bar',
       data: {{ labels: {json.dumps(status_labels)}, datasets: [{{ label: 'Issues', data: {json.dumps(status_values)}, backgroundColor: 'rgba(88,166,255,0.6)' }}] }},
-      options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
+      options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }}, scales: _hbarScales }}
     }});
 
     const chartComponents = new Chart(document.getElementById('chartComponents'), {{
       type: 'bar',
       data: {{ labels: {json.dumps(comp_labels)}, datasets: [{{ label: 'Issues', data: {json.dumps(comp_values)}, backgroundColor: 'rgba(63,185,80,0.6)' }}] }},
-      options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
+      options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }}, scales: _hbarScales }}
     }});
 
     const chartThroughput = new Chart(document.getElementById('chartThroughput'), {{
@@ -1192,7 +1199,7 @@ def main():
         labels: {json.dumps([a[0] for a in assignee_items])},
         datasets: [{{ label: 'Resolved', data: {json.dumps([a[1] for a in assignee_items])}, backgroundColor: 'rgba(63,185,80,0.6)' }}]
       }},
-      options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
+      options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }}, scales: _hbarScales }}
     }});
 
     // Bulk closure (1i)
@@ -1221,7 +1228,7 @@ def main():
           return 'rgba(139,148,158,0.5)';
         }}) }}]
       }},
-      options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
+      options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }}, scales: _hbarScales }}
     }});
 
     // Top closers (2c)
@@ -1232,7 +1239,7 @@ def main():
         labels: closerData.map(c => c.name),
         datasets: [{{ label: 'Issues closed', data: closerData.map(c => c.count), backgroundColor: 'rgba(163,113,247,0.6)' }}]
       }},
-      options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
+      options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }}, scales: _hbarScales }}
     }});
 
     // Sprint added late
@@ -1269,7 +1276,7 @@ def main():
         labels: wipAssItems.map(a => a[0]),
         datasets: [{{ label: 'WIP issues', data: wipAssItems.map(a => a[1]), backgroundColor: wipAssItems.map(([,v]) => v > 20 ? 'rgba(248,81,73,0.7)' : v > 10 ? 'rgba(210,153,34,0.6)' : 'rgba(88,166,255,0.6)') }}]
       }},
-      options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
+      options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }}, scales: _hbarScales }}
     }});
 
     // WIP by Team chart
@@ -1284,7 +1291,7 @@ def main():
           labels: wipTeamItems.map(t => t[0]),
           datasets: [{{ label: 'WIP issues', data: wipTeamItems.map(t => t[1]), backgroundColor: 'rgba(88,166,255,0.6)' }}]
         }},
-        options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
+        options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }}, scales: _hbarScales }}
       }});
     }}
 
@@ -1306,7 +1313,7 @@ def main():
           labels: teamThrItems.map(t => t[0]),
           datasets: [{{ label: 'Issues in sprints', data: teamThrItems.map(t => t[1]), backgroundColor: 'rgba(63,185,80,0.6)' }}]
         }},
-        options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
+        options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }}, scales: _hbarScales }}
       }});
     }}
 
@@ -1351,7 +1358,7 @@ def main():
         labels: ddItems.map(d => d[0]),
         datasets: [{{ label: 'Bugs / WIP %', data: ddItems.map(d => d[1]), backgroundColor: ddItems.map(([,v]) => v > 30 ? 'rgba(248,81,73,0.7)' : v > 10 ? 'rgba(210,153,34,0.6)' : 'rgba(88,166,255,0.6)') }}]
       }},
-      options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
+      options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }}, scales: _hbarScales }}
     }});
 
     // Open bugs by priority (doughnut)
@@ -1389,7 +1396,7 @@ def main():
         labels: _initQTisItems.map(t => t[0]),
         datasets: [{{ label: 'Avg hours', data: _initQTisItems.map(t => t[1].avg_hours||0), backgroundColor: 'rgba(88,166,255,0.6)' }}]
       }},
-      options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }} }}
+      options: {{ indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {{ legend: {{ display: false }} }}, scales: _hbarScales }}
     }});
 
     // Focus factor — histogram of WIP per assignee (6c)
@@ -2128,6 +2135,81 @@ def main():
       }}, scopeMeta);
     }}
 
+    // --- Reusable DORA renderer (called on filter change + initial load) ---
+    const _doraCatColor = c => ({{ elite:'#27ae60', high:'#2ecc71', medium:'#f1c40f', low:'#e74c3c' }})[c] || '#888';
+    function _doraCategorize(metricType, value) {{
+      if (value == null) return null;
+      const thresholds = {{
+        deployment_frequency: [['elite',5],['high',1],['medium',0.25]],
+        lead_time: [['elite',1],['high',7],['medium',30]],
+        change_failure_rate: [['elite',5],['high',10],['medium',15]],
+        mttr: [['elite',1],['high',24],['medium',168]],
+      }};
+      const t = thresholds[metricType];
+      if (!t) return null;
+      if (metricType === 'deployment_frequency') {{
+        for (const [cat, min] of t) if (value >= min) return cat;
+        return 'low';
+      }}
+      for (const [cat, max] of t) if (value <= max) return cat;
+      return 'low';
+    }}
+    function updateDORA(scopedJiraData) {{
+      const dc = document.getElementById('doraCards');
+      const bench = document.getElementById('doraBenchmark');
+      if (!dc && !bench) return;
+      const base = (DORA_DATA && Object.keys(DORA_DATA).length) ? DORA_DATA : {{}};
+      const mkCard = (label, value, color) => `<div class="card"><div class="value" style="color:${{color||'var(--accent)'}}">${{value ?? 'N/A'}}</div><div class="label">${{label}}</div></div>`;
+
+      let df = base.deployment_frequency || {{}};
+      let cfr = base.change_failure_rate || {{}};
+      let mttr = base.mttr || {{}};
+
+      let lt = base.lead_time_for_changes || {{}};
+      if (scopedJiraData) {{
+        const slt = scopedJiraData.lead_time_days || {{}};
+        if (slt.p50_days != null) {{
+          const cat = _doraCategorize('lead_time', slt.p50_days);
+          lt = {{ value_days: slt.p50_days, category: cat, source: 'jira_scoped' }};
+        }}
+      }}
+
+      const categories = [df, lt, cfr, mttr].map(m => m.category).filter(Boolean);
+      const rankMap = {{ elite:4, high:3, medium:2, low:1 }};
+      let overall = 'N/A';
+      if (categories.length) {{
+        const avg = categories.reduce((s,c) => s + (rankMap[c]||1), 0) / categories.length;
+        if (avg >= 3.5) overall = 'elite';
+        else if (avg >= 2.5) overall = 'high';
+        else if (avg >= 1.5) overall = 'medium';
+        else overall = 'low';
+      }}
+
+      if (dc) {{
+        dc.innerHTML =
+          mkCard('Overall', overall !== 'N/A' ? overall.charAt(0).toUpperCase()+overall.slice(1) : 'N/A', _doraCatColor(overall)) +
+          mkCard('Deploy Freq', df.value!=null?df.value+'/wk':'N/A', _doraCatColor(df.category)) +
+          mkCard('Lead Time', lt.value_days!=null?lt.value_days.toFixed(1)+'d':'N/A', _doraCatColor(lt.category)) +
+          mkCard('CFR', cfr.value_pct!=null?cfr.value_pct+'%':'N/A', _doraCatColor(cfr.category)) +
+          mkCard('MTTR', mttr.value_hours!=null?mttr.value_hours.toFixed(1)+'h':'N/A', _doraCatColor(mttr.category));
+      }}
+      if (bench) {{
+        let html = '<table><thead><tr><th>Metric</th><th>Elite</th><th>High</th><th>Medium</th><th>Low</th><th>Current</th></tr></thead><tbody>';
+        const rows = [
+          ['Deploy Freq', 'Multiple/day', 'Daily-Weekly', 'Weekly-Monthly', 'Monthly+', df],
+          ['Lead Time', '<1 day', '1d-1wk', '1wk-1mo', '>1 month', lt],
+          ['CFR', '<5%', '5-10%', '10-15%', '>15%', cfr],
+          ['MTTR', '<1 hour', '<1 day', '<1 week', '>1 week', mttr],
+        ];
+        for (const [name,e,h,med,l,cur] of rows) {{
+          const cat = (cur||{{}}).category || 'N/A';
+          html += `<tr><td>${{name}}</td><td>${{e}}</td><td>${{h}}</td><td>${{med}}</td><td>${{l}}</td><td style="color:${{_doraCatColor(cat)}};font-weight:bold">${{cat}}</td></tr>`;
+        }}
+        html += '</tbody></table>';
+        bench.innerHTML = html;
+      }}
+    }}
+
     function setCardsAndChartsFromMetrics(m, selectedComponents, projList) {{
       const d = m || normalizeMetrics(DATA, {{
         exactness: 'exact',
@@ -2176,7 +2258,9 @@ def main():
       const phase = d.open_by_phase ? obp : phaseFromStatusDist(statusDist);
       const backlog = phase.backlog != null ? phase.backlog : (phase.not_started || 0);
       const inReview = phase.in_review != null ? phase.in_review : (phase.review_qa || 0);
-      const wipInFlight = d.wip_in_flight != null ? d.wip_in_flight : ((phase.in_progress||0) + inReview + (phase.blocked||0));
+      const _phaseMap = {{ backlog: backlog, in_progress: phase.in_progress||0, in_review: inReview, blocked: phase.blocked||0 }};
+      const _wipPhases = (typeof getWipPhases === 'function') ? getWipPhases() : ['in_progress','in_review','blocked'];
+      const wipInFlight = _wipPhases.reduce((s, p) => s + (_phaseMap[p]||0), 0);
       el('cardOpen', openCount);
       el('cardWipInFlight', wipInFlight);
       el('cardBacklog', backlog);
@@ -2223,8 +2307,16 @@ def main():
       const summaryEl = document.getElementById('leadCycleSummary');
       if (summaryEl) summaryEl.innerHTML = `<span>Lead (created\u2192resolved):</span> ${{leadStr}} &nbsp;|&nbsp; <span>Cycle (in progress\u2192resolved):</span> ${{cycleStr}} &nbsp;|&nbsp; <span>Exactness:</span> ${{scopeMeta.nonAdditiveExact ? 'exact' : 'additive only'}}`;
 
-      // Phase chart (Backlog, In progress, In review, Blocked)
-      chartPhase.data.datasets[0].data = [backlog, phase.in_progress||0, inReview, phase.blocked||0];
+      // Phase chart — respect WIP phase checkboxes
+      const _phaseKeys = ['backlog','in_progress','in_review','blocked'];
+      const _phaseLabels = ['Backlog','In progress','In review','Blocked'];
+      const _phaseColors = ['rgba(139,148,158,0.6)','rgba(88,166,255,0.6)','rgba(210,153,34,0.6)','rgba(248,81,73,0.6)'];
+      const _phaseBorders = ['#8b949e','#58a6ff','#d29922','#f85149'];
+      const _activeIdx = _phaseKeys.map((k,i) => _wipPhases.includes(k) ? i : -1).filter(i => i >= 0);
+      chartPhase.data.labels = _activeIdx.map(i => _phaseLabels[i]);
+      chartPhase.data.datasets[0].data = _activeIdx.map(i => _phaseMap[_phaseKeys[i]]||0);
+      chartPhase.data.datasets[0].backgroundColor = _activeIdx.map(i => _phaseColors[i]);
+      chartPhase.data.datasets[0].borderColor = _activeIdx.map(i => _phaseBorders[i]);
       chartPhase.update();
 
       // Lead time distribution chart
@@ -2496,6 +2588,9 @@ def main():
         chartTeamThroughput.data.datasets[0].data = stItems.map(t => t[1]);
         chartTeamThroughput.update();
       }}
+
+      // Re-render DORA with scoped Jira data (Lead Time updates per scope)
+      updateDORA(d);
     }}
 
     function applyProjectFilter() {{
@@ -2584,6 +2679,40 @@ def main():
       }});
     }});
 
+    // WIP phase toggles: load from localStorage, wire changes, then refresh
+    (function() {{
+      const saved = localStorage.getItem('wip_phases');
+      if (saved) {{
+        try {{
+          const arr = JSON.parse(saved);
+          if (Array.isArray(arr)) {{
+            document.querySelectorAll('.wip-phase-cb').forEach(cb => {{
+              cb.checked = arr.includes(cb.dataset.phase);
+            }});
+          }}
+        }} catch(e) {{
+          localStorage.removeItem('wip_phases');
+        }}
+      }}
+      document.querySelectorAll('.wip-phase-cb').forEach(cb => {{
+        cb.addEventListener('change', function() {{
+          const phases = [];
+          document.querySelectorAll('.wip-phase-cb').forEach(c => {{ if (c.checked) phases.push(c.dataset.phase); }});
+          localStorage.setItem('wip_phases', JSON.stringify(phases));
+          applyProjectFilter();
+        }});
+      }});
+      setTimeout(() => applyProjectFilter(), 0);
+    }})();
+
+    function getWipPhases() {{
+      const cbs = document.querySelectorAll('.wip-phase-cb');
+      if (!cbs.length) return ['in_progress','in_review','blocked'];
+      const phases = [];
+      cbs.forEach(cb => {{ if (cb.checked) phases.push(cb.dataset.phase); }});
+      return phases;
+    }}
+
     function setupFilter(inputId, tableId) {{
       const input = document.getElementById(inputId);
       const table = document.getElementById(tableId);
@@ -2662,7 +2791,10 @@ def main():
       const openCountExport = d.open_count != null ? d.open_count : d.wip_count;
       const unassignedOpenExport = d.unassigned_open_count != null ? d.unassigned_open_count : (d.unassigned_wip_count||0);
       md += `| Open (not done) | ${{openCountExport}} |\\n`;
-      md += `| WIP (in flight) | ${{d.wip_in_flight != null ? d.wip_in_flight : (openCountExport - ((d.open_by_phase||{{}}).backlog||(d.wip_by_phase||{{}}).not_started||0))}} |\\n`;
+      const _expPh = d.open_by_phase || d.wip_by_phase || phaseFromStatusDist(d.status_distribution || {{}});
+      const _expMap = {{ backlog: _expPh.backlog ?? _expPh.not_started ?? 0, in_progress: _expPh.in_progress ?? 0, in_review: _expPh.in_review ?? _expPh.review_qa ?? 0, blocked: _expPh.blocked ?? 0 }};
+      const _expWip = (typeof getWipPhases==='function'?getWipPhases():['in_progress','in_review','blocked']).reduce((s,p)=>s+(_expMap[p]||0),0);
+      md += `| WIP (in flight) | ${{_expWip}} |\\n`;
       md += `| Unassigned open | ${{unassignedOpenExport}} (${{openCountExport ? Math.round(unassignedOpenExport/openCountExport*100) : 0}}%) |\\n`;
       md += `| Blocked | ${{d.blocked_count}} |\\n`;
       md += `| Open Bugs | ${{d.open_bugs_count}} |\\n`;
@@ -2753,7 +2885,7 @@ def main():
           const repos = Object.keys(bf);
           const vals = Object.values(bf);
           const colors = vals.map(v => v<=1?'#e74c3c':v===2?'#f1c40f':'#2ecc71');
-          new Chart(document.getElementById('chartBusFactor'), {{ type:'bar', data:{{ labels:repos, datasets:[{{ label:'Bus Factor', data:vals, backgroundColor:colors }}] }}, options:{{ indexAxis:'y', scales:{{ x:{{ beginAtZero:true }} }} }} }});
+          new Chart(document.getElementById('chartBusFactor'), {{ type:'bar', data:{{ labels:repos, datasets:[{{ label:'Bus Factor', data:vals, backgroundColor:colors }}] }}, options:{{ indexAxis:'y', scales:{{ x:{{ beginAtZero:true }}, y:{{ ticks:{{ crossAlign:'far' }} }} }} }} }});
         }}
         // Branch drift table
         const drift = (GIT_DATA.branch_drift||{{}}).by_repo || {{}};
@@ -2794,40 +2926,8 @@ def main():
         }}
       }}
 
-      // --- DORA tab ---
-      if (DORA_DATA && Object.keys(DORA_DATA).length) {{
-        const dc = document.getElementById('doraCards');
-        const catColor = c => ({{ elite:'#27ae60', high:'#2ecc71', medium:'#f1c40f', low:'#e74c3c' }})[c] || '#888';
-        if (dc) {{
-          const df = DORA_DATA.deployment_frequency || {{}};
-          const lt = DORA_DATA.lead_time_for_changes || {{}};
-          const cfr = DORA_DATA.change_failure_rate || {{}};
-          const m = DORA_DATA.mttr || {{}};
-          const oc = DORA_DATA.overall_category || 'N/A';
-          dc.innerHTML =
-            mkCard('Overall', oc.charAt(0).toUpperCase()+oc.slice(1), catColor(oc)) +
-            mkCard('Deploy Freq', df.value!=null?df.value+'/wk':'N/A', catColor(df.category)) +
-            mkCard('Lead Time', lt.value_days!=null?lt.value_days.toFixed(1)+'d':'N/A', catColor(lt.category)) +
-            mkCard('CFR', cfr.value_pct!=null?cfr.value_pct+'%':'N/A', catColor(cfr.category)) +
-            mkCard('MTTR', m.value_hours!=null?m.value_hours.toFixed(1)+'h':'N/A', catColor(m.category));
-        }}
-        const bench = document.getElementById('doraBenchmark');
-        if (bench) {{
-          let html = '<table><thead><tr><th>Metric</th><th>Elite</th><th>High</th><th>Medium</th><th>Low</th><th>Current</th></tr></thead><tbody>';
-          const rows = [
-            ['Deploy Freq', 'Multiple/day', 'Daily-Weekly', 'Weekly-Monthly', 'Monthly+', DORA_DATA.deployment_frequency],
-            ['Lead Time', '<1 day', '1d-1wk', '1wk-1mo', '>1 month', DORA_DATA.lead_time_for_changes],
-            ['CFR', '<5%', '5-10%', '10-15%', '>15%', DORA_DATA.change_failure_rate],
-            ['MTTR', '<1 hour', '<1 day', '<1 week', '>1 week', DORA_DATA.mttr],
-          ];
-          for (const [name,e,h,m,l,cur] of rows) {{
-            const cat = (cur||{{}}).category || 'N/A';
-            html += `<tr><td>${{name}}</td><td>${{e}}</td><td>${{h}}</td><td>${{m}}</td><td>${{l}}</td><td style="color:${{catColor(cat)}};font-weight:bold">${{cat}}</td></tr>`;
-          }}
-          html += '</tbody></table>';
-          bench.innerHTML = html;
-        }}
-      }}
+      // --- DORA tab (initial render; re-rendered on filter change via updateDORA) ---
+      updateDORA(null);
 
       // --- Scorecard tab ---
       if (SCORECARD_DATA && Object.keys(SCORECARD_DATA).length) {{

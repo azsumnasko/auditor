@@ -29,7 +29,6 @@ export default function ConfigPage() {
     OCTOPUS_SERVER_URL: '',
     OCTOPUS_API_KEY: '',
     OCTOPUS_ENVIRONMENT: 'Ontario',
-    OCTOPUS_REPO_MAP: '',
   });
   const [repoConfig, setRepoConfig] = useState<RepoEntry[]>([]);
   const [gitTokenSaved, setGitTokenSaved] = useState(false);
@@ -65,13 +64,31 @@ export default function ConfigPage() {
             CICD_DEPLOY_WORKFLOW: data.CICD_DEPLOY_WORKFLOW || f.CICD_DEPLOY_WORKFLOW,
             OCTOPUS_SERVER_URL: data.OCTOPUS_SERVER_URL || f.OCTOPUS_SERVER_URL,
             OCTOPUS_ENVIRONMENT: data.OCTOPUS_ENVIRONMENT || f.OCTOPUS_ENVIRONMENT,
-            OCTOPUS_REPO_MAP: data.OCTOPUS_REPO_MAP || f.OCTOPUS_REPO_MAP,
           }));
           setGitTokenSaved(!!data.GIT_TOKEN_SAVED);
           setOctopusTokenSaved(!!data.OCTOPUS_TOKEN_SAVED);
           try {
             const parsed = JSON.parse(data.REPO_CONFIG || '[]');
-            if (Array.isArray(parsed) && parsed.length > 0) setRepoConfig(parsed);
+            let repos: RepoEntry[] = Array.isArray(parsed) ? parsed : [];
+            // Migrate OCTOPUS_REPO_MAP entries into the repo table
+            const rawMap = (data.OCTOPUS_REPO_MAP || '').trim();
+            if (rawMap) {
+              try {
+                const mapObj = JSON.parse(rawMap);
+                if (mapObj && typeof mapObj === 'object' && !Array.isArray(mapObj)) {
+                  for (const [repoName, octProj] of Object.entries(mapObj)) {
+                    if (!repoName || !octProj) continue;
+                    const existing = repos.find((r) => r.repo === repoName);
+                    if (existing) {
+                      if (!existing.octopus) existing.octopus = String(octProj);
+                    } else {
+                      repos = [...repos, { repo: repoName, branch: 'stable', octopus: String(octProj), exclude_regex: '' }];
+                    }
+                  }
+                }
+              } catch { /* ignore bad OCTOPUS_REPO_MAP JSON */ }
+            }
+            if (repos.length > 0) setRepoConfig(repos);
           } catch { /* ignore bad JSON */ }
         }
       })
@@ -118,7 +135,7 @@ export default function ConfigPage() {
         CICD_DEPLOY_WORKFLOW: form.CICD_DEPLOY_WORKFLOW.trim(),
         OCTOPUS_SERVER_URL: form.OCTOPUS_SERVER_URL.trim(),
         OCTOPUS_ENVIRONMENT: form.OCTOPUS_ENVIRONMENT.trim(),
-        OCTOPUS_REPO_MAP: form.OCTOPUS_REPO_MAP.trim(),
+        OCTOPUS_REPO_MAP: '',
         REPO_CONFIG: JSON.stringify(cleanRepos),
       };
       if (tokenRequired) {
@@ -360,10 +377,9 @@ export default function ConfigPage() {
           Environment name
           <input type="text" value={form.OCTOPUS_ENVIRONMENT} onChange={(e) => setForm((f) => ({ ...f, OCTOPUS_ENVIRONMENT: e.target.value }))} placeholder="Ontario" className="config-input" />
         </label>
-        <label>
-          Repo-to-Project mapping <span className="text-muted">(JSON)</span>
-          <textarea value={form.OCTOPUS_REPO_MAP} onChange={(e) => setForm((f) => ({ ...f, OCTOPUS_REPO_MAP: e.target.value }))} placeholder='{"TransactionHistory": "TH", "PAM": "PAM"}' className="config-input" rows={3} />
-        </label>
+        <p className="text-muted" style={{ fontSize: '0.85em', marginTop: '8px' }}>
+          Repo-to-project mapping is configured in the <strong>Repository Configuration</strong> table above (Octopus project column).
+        </p>
 
         {error && <p className="text-error">{error}</p>}
         {saved && <p className="text-success">Saved.</p>}

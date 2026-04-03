@@ -122,8 +122,8 @@ Scores are based on automated metrics and quantitative evidence. Domains marked 
 """)
 
     # Slide 4: Delivery Flow Findings
-    unplanned = _safe(jira, "sprint_metrics", "avg_added_after_start_pct")
-    commitment = _safe(jira, "sprint_metrics", "avg_commitment_ratio_pct")
+    unplanned = _safe(jira, "sprint_aggregate", "avg_added_after_start_pct")
+    commitment = _safe(jira, "sprint_aggregate", "avg_commitment_ratio_pct")
     merge_trend = _safe(git, "merge_frequency", "trend")
     commit_to_prod = _safe(octopus, "commit_to_prod_lead_time", "p50_days")
 
