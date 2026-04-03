@@ -20,8 +20,8 @@ services:
       dockerfile: worker/Dockerfile
     volumes:
       - jira_data:/data
-      # Uncomment and set CODE_REPOS_PATH to mount local repos for code_analytics:
-      # - ${CODE_REPOS_PATH}:/repos:ro
+      # Mount local repos for code_analytics (path set in config UI):
+      # - /path/to/repos:/repos:ro
     environment:
       - DATA_DIR=/data
       # - CODE_REPOS_PATH=/repos

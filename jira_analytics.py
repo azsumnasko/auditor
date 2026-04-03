@@ -1602,6 +1602,7 @@ def main():
     weekly = throughput_weekly(done_issues)
     weekly_sorted = sorted(weekly.keys())[-12:]
     results["throughput_by_week"] = {wk: weekly[wk] for wk in weekly_sorted}
+    results["throughput_total"] = len(done_issues)
     print("\nThroughput by ISO week (issues resolved):")
     for wk in weekly_sorted:
         print(f"  {wk}: {weekly[wk]}")

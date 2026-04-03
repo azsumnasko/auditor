@@ -35,6 +35,8 @@ class ProgressLabel:
     OCTOPUS_SKIP_CFG = "Skipping Octopus (not configured)…"
     CICD_ANALYZE = "Analyzing CI/CD…"
     CICD_SKIP = "Skipping CI/CD (not configured)…"
+    CODE_ANALYZE = "Analyzing code quality…"
+    CODE_SKIP = "Skipping code analytics (not configured)…"
     MERGE = "Merging evidence…"
     SCORES = "Computing scores…"
     DASHBOARD = "Building dashboard…"
@@ -241,7 +243,8 @@ def main():
             # Clear any leftover env from a prior run (defensive)
             for _key in ("GIT_TOKEN", "GIT_PROVIDER", "GIT_ORG", "GIT_BASE_URL", "GIT_REPOS",
                           "OCTOPUS_SERVER_URL", "OCTOPUS_API_KEY", "OCTOPUS_ENVIRONMENT", "OCTOPUS_REPO_MAP",
-                          "CICD_PROVIDER", "CICD_DEPLOY_WORKFLOW", "REPO_CONFIG"):
+                          "CICD_PROVIDER", "CICD_DEPLOY_WORKFLOW", "REPO_CONFIG",
+                          "CODE_REPOS_PATH", "CODE_SONAR_URL", "CODE_SONAR_TOKEN", "CODE_SONAR_PROJECTS"):
                 os.environ.pop(_key, None)
 
             # Jira config (always required)
@@ -282,6 +285,17 @@ def main():
                 os.environ["CICD_PROVIDER"] = cicd_provider
                 if config.get("cicd_deploy_workflow"):
                     os.environ["CICD_DEPLOY_WORKFLOW"] = config["cicd_deploy_workflow"]
+
+            # Code analytics config
+            code_repos_path = config.get("code_repos_path") or ""
+            if code_repos_path:
+                os.environ["CODE_REPOS_PATH"] = code_repos_path
+            if config.get("code_sonar_url"):
+                os.environ["CODE_SONAR_URL"] = config["code_sonar_url"]
+            if config.get("code_sonar_token"):
+                os.environ["CODE_SONAR_TOKEN"] = config["code_sonar_token"]
+            if config.get("code_sonar_projects"):
+                os.environ["CODE_SONAR_PROJECTS"] = config["code_sonar_projects"]
 
             for p in ("/app", _REPO_ROOT):
                 if p not in sys.path:
@@ -338,22 +352,34 @@ def main():
                 else:
                     set_job_progress(conn, job_id, ProgressLabel.CICD_SKIP)
 
+                # 5. Code analytics (optional)
+                if code_repos_path or config.get("code_sonar_url"):
+                    set_job_progress(conn, job_id, ProgressLabel.CODE_ANALYZE)
+                    try:
+                        import code_analytics
+                        code_analytics.main()
+                    except Exception as e:
+                        logging.exception("code_analytics failed")
+                        _append_stage_warning(pipeline_warnings, "code_analytics", e)
+                else:
+                    set_job_progress(conn, job_id, ProgressLabel.CODE_SKIP)
+
                 from analytics_utils import write_json
 
                 write_json({"warnings": pipeline_warnings}, "pipeline_warnings", output_dir)
 
                 set_job_progress(conn, job_id, ProgressLabel.MERGE)
-                # 5. Merge evidence (always -- works with whatever data is available)
+                # 6. Merge evidence (always -- works with whatever data is available)
                 import merge_evidence
                 merge_evidence.main()
 
                 set_job_progress(conn, job_id, ProgressLabel.SCORES)
-                # 6. Score engine
+                # 7. Score engine
                 import score_engine
                 score_engine.main()
 
                 set_job_progress(conn, job_id, ProgressLabel.DASHBOARD)
-                # 7. Output generators
+                # 8. Output generators
                 import generate_dashboard
                 generate_dashboard.main()
 

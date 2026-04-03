@@ -545,6 +545,62 @@ def hotspot_analysis(commits):
     }
 
 
+_CHURN_IGNORE_RE = re.compile(
+    r"(^|/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|Pipfile\.lock|poetry\.lock"
+    r"|Gemfile\.lock|composer\.lock|go\.sum|Cargo\.lock"
+    r"|CHANGELOG(\.md)?|CHANGES(\.md)?|\.min\.(js|css))$",
+    re.IGNORECASE,
+)
+
+
+def churn_instability_metrics(commits, window_days=14):
+    """
+    Measure code instability: percentage of files re-touched within `window_days`
+    of their previous modification.  High values suggest poor requirements or
+    unstable areas.
+
+    Auto-generated files (lock files, changelogs, minified bundles) are excluded
+    to avoid inflating the metric.
+    """
+    file_last_touched: dict[str, datetime] = {}
+    total_touches = 0
+    rapid_retouches = 0
+
+    sorted_commits = sorted(
+        commits,
+        key=lambda c: (c.get("commit", {}).get("author") or {}).get("date", ""),
+    )
+
+    window = timedelta(days=window_days)
+    for c in sorted_commits:
+        raw_date = (c.get("commit", {}).get("author") or {}).get("date")
+        if not raw_date:
+            continue
+        try:
+            commit_dt = datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            continue
+
+        for f in c.get("files", []):
+            fname = f.get("filename", "")
+            if not fname or _CHURN_IGNORE_RE.search(fname):
+                continue
+            total_touches += 1
+            prev = file_last_touched.get(fname)
+            if prev is not None and (commit_dt - prev) <= window:
+                rapid_retouches += 1
+            file_last_touched[fname] = commit_dt
+
+    return {
+        "churn_instability": {
+            "window_days": window_days,
+            "total_file_touches": total_touches,
+            "rapid_retouches": rapid_retouches,
+            "instability_pct": round(rapid_retouches / max(total_touches, 1) * 100, 1),
+        }
+    }
+
+
 def revert_analysis(commits):
     """Detect reverts from commit messages."""
     revert_re = re.compile(r'^Revert\s+"', re.IGNORECASE)
@@ -902,6 +958,7 @@ def main():
     results.update(work_pattern_analysis(all_commits))
     results.update(coupling_analysis(pulls_files_map))
     results.update(revert_analysis(all_commits))
+    results.update(churn_instability_metrics(all_commits))
     results.update(ownership_analysis(all_commits))
 
     # Per-repo breakdowns
@@ -915,6 +972,8 @@ def main():
             by_repo[repo].update(pr_size_metrics(repo_pulls))
             by_repo[repo].update(merge_frequency_metrics(repo_pulls))
             by_repo[repo].update(revert_analysis(repo_commits))
+        if repo_commits:
+            by_repo[repo].update(churn_instability_metrics(repo_commits))
     results["by_repo"] = by_repo
 
     # Script-ported metrics

@@ -49,7 +49,11 @@ function initSchema(database: Database.Database) {
       octopus_api_key TEXT DEFAULT NULL,
       octopus_environment TEXT DEFAULT 'Ontario',
       octopus_repo_map TEXT DEFAULT NULL,
-      repo_config TEXT DEFAULT NULL
+      repo_config TEXT DEFAULT NULL,
+      code_repos_path TEXT DEFAULT NULL,
+      code_sonar_url TEXT DEFAULT NULL,
+      code_sonar_token TEXT DEFAULT NULL,
+      code_sonar_projects TEXT DEFAULT NULL
     );
     CREATE TABLE IF NOT EXISTS jobs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -92,6 +96,10 @@ function initSchema(database: Database.Database) {
     ['octopus_environment', "TEXT DEFAULT 'Ontario'"],
     ['octopus_repo_map', 'TEXT DEFAULT NULL'],
     ['repo_config', 'TEXT DEFAULT NULL'],
+    ['code_repos_path', 'TEXT DEFAULT NULL'],
+    ['code_sonar_url', 'TEXT DEFAULT NULL'],
+    ['code_sonar_token', 'TEXT DEFAULT NULL'],
+    ['code_sonar_projects', 'TEXT DEFAULT NULL'],
   ];
   for (const [col, def] of newCols) {
     if (!configColNames.has(col)) {
@@ -119,6 +127,10 @@ export type ConfigRow = {
   octopus_environment: string | null;
   octopus_repo_map: string | null;
   repo_config: string | null;
+  code_repos_path: string | null;
+  code_sonar_url: string | null;
+  code_sonar_token: string | null;
+  code_sonar_projects: string | null;
 };
 export type JobRow = {
   id: number;
@@ -209,6 +221,10 @@ export type ConfigInput = {
   octopus_environment?: string | null;
   octopus_repo_map?: string | null;
   repo_config?: string | null;
+  code_repos_path?: string | null;
+  code_sonar_url?: string | null;
+  code_sonar_token?: string | null;
+  code_sonar_projects?: string | null;
 };
 
 export function upsertConfig(userId: number, jiraBaseUrl: string, jiraEmail: string, jiraToken: string, jiraProjectKeys: string): void {
@@ -239,7 +255,7 @@ export function updateConfigExtras(userId: number, extras: Partial<ConfigInput>)
   const database = getDb();
   const fields: string[] = [];
   const values: (string | null)[] = [];
-  const allowed = ['git_provider','git_base_url','git_token','git_org','git_repos','cicd_provider','cicd_deploy_workflow','octopus_server_url','octopus_api_key','octopus_environment','octopus_repo_map','repo_config'] as const;
+  const allowed = ['git_provider','git_base_url','git_token','git_org','git_repos','cicd_provider','cicd_deploy_workflow','octopus_server_url','octopus_api_key','octopus_environment','octopus_repo_map','repo_config','code_repos_path','code_sonar_url','code_sonar_token','code_sonar_projects'] as const;
   for (const key of allowed) {
     if (key in extras) {
       fields.push(`${key} = ?`);

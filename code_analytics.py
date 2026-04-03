@@ -11,6 +11,7 @@ import os
 import json
 import subprocess
 import logging
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from collections import defaultdict
 
@@ -96,18 +97,62 @@ def complexity_analysis(repo_paths: list[str]) -> dict:
 # Test coverage
 # ---------------------------------------------------------------------------
 
+def _parse_cobertura(fpath: str):
+    """Extract line-rate from a Cobertura-format coverage.xml."""
+    try:
+        tree = ET.parse(fpath)
+        root = tree.getroot()
+        rate = root.attrib.get("line-rate")
+        if rate is not None:
+            return round(float(rate) * 100, 1)
+    except Exception as exc:
+        log.warning("Failed to parse Cobertura %s: %s", fpath, exc)
+    return None
+
+
+def _parse_lcov(fpath: str):
+    """Sum LF/LH records from an lcov.info file."""
+    try:
+        found = hit = 0
+        with open(fpath, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                try:
+                    if line.startswith("LF:"):
+                        found += int(line[3:].strip())
+                    elif line.startswith("LH:"):
+                        hit += int(line[3:].strip())
+                except ValueError:
+                    continue
+        if found:
+            return round(hit / found * 100, 1)
+    except Exception as exc:
+        log.warning("Failed to parse lcov %s: %s", fpath, exc)
+    return None
+
+
 def test_coverage_analysis(repo_paths: list[str], sonar_url=None, sonar_token=None, sonar_projects=None) -> dict:
     """Parse existing coverage reports or query SonarQube."""
     if sonar_url and sonar_token and sonar_projects:
         return _coverage_from_sonar(sonar_url, sonar_token, sonar_projects)
 
+    by_module: dict[str, float] = {}
     for repo_path in repo_paths:
-        for report in ["coverage.xml", "coverage/lcov.info", ".coverage"]:
+        repo_name = os.path.basename(repo_path)
+        for report, parser in [
+            ("coverage.xml", _parse_cobertura),
+            ("coverage/lcov.info", _parse_lcov),
+            ("lcov.info", _parse_lcov),
+        ]:
             fpath = os.path.join(repo_path, report)
             if os.path.isfile(fpath):
                 log.info("Found coverage report: %s", fpath)
+                pct = parser(fpath)
+                if pct is not None:
+                    by_module[repo_name] = pct
+                    break
 
-    return {"overall_coverage_pct": None, "by_module": {}, "uncovered_modules": []}
+    overall = round(sum(by_module.values()) / len(by_module), 1) if by_module else None
+    return {"overall_coverage_pct": overall, "by_module": by_module, "uncovered_modules": []}
 
 
 def _coverage_from_sonar(url, token, projects):

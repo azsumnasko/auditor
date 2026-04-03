@@ -224,8 +224,10 @@ def _score_team_topology(evidence):
 
     signals = []
 
-    # Unassigned WIP pct
-    val = _safe_get(jira, "unassigned_pct")
+    # Unassigned WIP pct (derived from count / open)
+    unassigned = _safe_get(jira, "unassigned_open_count")
+    open_count = _safe_get(jira, "open_count") or _safe_get(jira, "wip_count") or 0
+    val = round(unassigned / max(open_count, 1) * 100, 1) if unassigned is not None else None
     s = _score_lower_is_better(val, 30, 10, 30, 5)
     signals.append({"name": "unassigned_wip_pct", "value": val, "unit": "pct", "score": s,
                      "threshold_ref": ">30%=1, 10-30%=3, <5%=5", "source": "jira"})
@@ -240,7 +242,7 @@ def _score_team_topology(evidence):
                      "threshold_ref": "<50%=1, 50-80%=3, >90%=5", "source": "git"})
 
     # WIP per assignee
-    val = _safe_get(jira, "wip_per_assignee_avg")
+    val = _safe_get(jira, "avg_wip_per_assignee")
     s = _score_lower_is_better(val, 15, 5, 15, 5)
     signals.append({"name": "wip_per_assignee", "value": val, "unit": "issues", "score": s,
                      "threshold_ref": ">15=1, 5-15=3, <5=5", "source": "jira"})
@@ -264,13 +266,15 @@ def _score_decision_making(evidence):
                      "threshold_ref": ">0.6=1, 0.3-0.6=3, <0.3=5", "source": "jira"})
 
     # Closer != assignee pct
-    val = _safe_get(jira, "closer_not_assignee_pct")
+    val = _safe_get(jira, "closer_analysis", "closer_not_assignee_pct")
     s = _score_lower_is_better(val, 50, 20, 50, 20)
     signals.append({"name": "closer_not_assignee_pct", "value": val, "unit": "pct", "score": s,
                      "threshold_ref": ">50%=1, 20-50%=3, <20%=5", "source": "jira"})
 
-    # Velocity CV
-    val = _safe_get(jira, "velocity_cv")
+    # Velocity CV (mean across projects)
+    cv_by_proj = _safe_get(jira, "velocity_cv_by_project") or {}
+    cv_values = [v for v in cv_by_proj.values() if v is not None]
+    val = round(sum(cv_values) / len(cv_values), 2) if cv_values else None
     s = _score_lower_is_better(val, 0.5, 0.2, 0.5, 0.2)
     signals.append({"name": "velocity_cv", "value": val, "unit": "CV", "score": s,
                      "threshold_ref": ">0.5=1, 0.2-0.5=3, <0.2=5", "source": "jira"})
@@ -293,25 +297,25 @@ def _score_tech_debt(evidence):
     signals = []
 
     # Empty/bad description pct
-    val = _safe_get(jira, "empty_description_pct")
+    val = _safe_get(jira, "empty_description_done_pct")
     s = _score_lower_is_better(val, 25, 10, 25, 5)
     signals.append({"name": "empty_description_pct", "value": val, "unit": "pct", "score": s,
                      "threshold_ref": ">25%=1, 10-25%=3, <5%=5", "source": "jira"})
 
     # Reopen pct
-    val = _safe_get(jira, "reopen_pct")
+    val = _safe_get(jira, "reopen_analysis", "reopened_pct")
     s = _score_lower_is_better(val, 20, 5, 20, 5)
     signals.append({"name": "reopen_pct", "value": val, "unit": "pct", "score": s,
                      "threshold_ref": ">20%=1, 5-20%=3, <5%=5", "source": "jira"})
 
     # Open bug median age
-    val = _safe_get(jira, "open_bug_median_age_days")
+    val = _safe_get(jira, "open_bugs_age_days", "p50_days")
     s = _score_lower_is_better(val, 180, 60, 180, 30)
     signals.append({"name": "open_bug_age_p50", "value": val, "unit": "days", "score": s,
                      "threshold_ref": ">180=1, 60-180=3, <30=5", "source": "jira"})
 
     # Flow efficiency
-    val = _safe_get(jira, "flow_efficiency_pct")
+    val = _safe_get(jira, "flow_efficiency", "efficiency_pct")
     s = _score_higher_is_better(val, 20, 20, 50, 60)
     signals.append({"name": "flow_efficiency", "value": val, "unit": "pct", "score": s,
                      "threshold_ref": "<20%=1, 20-50%=3, >60%=5", "source": "jira"})
@@ -327,6 +331,12 @@ def _score_tech_debt(evidence):
     s = _score_lower_is_better(val, 15, 5, 15, 5)
     signals.append({"name": "weekend_commit_pct", "value": val, "unit": "pct", "score": s,
                      "threshold_ref": ">15%=1, 5-15%=3, <5%=5", "source": "git"})
+
+    # Churn instability (files re-touched within 14 days)
+    val = _safe_get(git, "churn_instability", "instability_pct")
+    s = _score_lower_is_better(val, 50, 25, 50, 10)
+    signals.append({"name": "churn_instability_pct", "value": val, "unit": "pct", "score": s,
+                     "threshold_ref": ">50%=1, 25-50%=3, <10%=5", "source": "git"})
 
     return _build_domain("tech_debt_sustainability", signals)
 
