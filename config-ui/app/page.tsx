@@ -50,47 +50,44 @@ export default function ConfigPage() {
       .then((data) => {
         if (data == null) return;
         setStatus(data);
-        if (data?.JIRA_BASE_URL || data?.JIRA_PROJECT_KEYS || data?.JIRA_EMAIL) {
-          setForm((f) => ({
-            ...f,
-            JIRA_BASE_URL: data.JIRA_BASE_URL ?? f.JIRA_BASE_URL,
-            JIRA_EMAIL: data.JIRA_EMAIL ?? f.JIRA_EMAIL,
-            JIRA_PROJECT_KEYS: data.JIRA_PROJECT_KEYS ?? f.JIRA_PROJECT_KEYS,
-            GIT_PROVIDER: data.GIT_PROVIDER || f.GIT_PROVIDER,
-            GIT_BASE_URL: data.GIT_BASE_URL || f.GIT_BASE_URL,
-            GIT_ORG: data.GIT_ORG || f.GIT_ORG,
-            GIT_REPOS: data.GIT_REPOS || f.GIT_REPOS,
-            CICD_PROVIDER: data.CICD_PROVIDER || f.CICD_PROVIDER,
-            CICD_DEPLOY_WORKFLOW: data.CICD_DEPLOY_WORKFLOW || f.CICD_DEPLOY_WORKFLOW,
-            OCTOPUS_SERVER_URL: data.OCTOPUS_SERVER_URL || f.OCTOPUS_SERVER_URL,
-            OCTOPUS_ENVIRONMENT: data.OCTOPUS_ENVIRONMENT || f.OCTOPUS_ENVIRONMENT,
-          }));
-          setGitTokenSaved(!!data.GIT_TOKEN_SAVED);
-          setOctopusTokenSaved(!!data.OCTOPUS_TOKEN_SAVED);
-          try {
-            const parsed = JSON.parse(data.REPO_CONFIG || '[]');
-            let repos: RepoEntry[] = Array.isArray(parsed) ? parsed : [];
-            // Migrate OCTOPUS_REPO_MAP entries into the repo table
-            const rawMap = (data.OCTOPUS_REPO_MAP || '').trim();
-            if (rawMap) {
-              try {
-                const mapObj = JSON.parse(rawMap);
-                if (mapObj && typeof mapObj === 'object' && !Array.isArray(mapObj)) {
-                  for (const [repoName, octProj] of Object.entries(mapObj)) {
-                    if (!repoName || !octProj) continue;
-                    const existing = repos.find((r) => r.repo === repoName);
-                    if (existing) {
-                      if (!existing.octopus) existing.octopus = String(octProj);
-                    } else {
-                      repos = [...repos, { repo: repoName, branch: 'stable', octopus: String(octProj), exclude_regex: '' }];
-                    }
+        setForm((f) => ({
+          ...f,
+          JIRA_BASE_URL: data.JIRA_BASE_URL ?? f.JIRA_BASE_URL,
+          JIRA_EMAIL: data.JIRA_EMAIL ?? f.JIRA_EMAIL,
+          JIRA_PROJECT_KEYS: data.JIRA_PROJECT_KEYS ?? f.JIRA_PROJECT_KEYS,
+          GIT_PROVIDER: data.GIT_PROVIDER || f.GIT_PROVIDER,
+          GIT_BASE_URL: data.GIT_BASE_URL || f.GIT_BASE_URL,
+          GIT_ORG: data.GIT_ORG || f.GIT_ORG,
+          GIT_REPOS: data.GIT_REPOS || f.GIT_REPOS,
+          CICD_PROVIDER: data.CICD_PROVIDER || f.CICD_PROVIDER,
+          CICD_DEPLOY_WORKFLOW: data.CICD_DEPLOY_WORKFLOW || f.CICD_DEPLOY_WORKFLOW,
+          OCTOPUS_SERVER_URL: data.OCTOPUS_SERVER_URL || f.OCTOPUS_SERVER_URL,
+          OCTOPUS_ENVIRONMENT: data.OCTOPUS_ENVIRONMENT || f.OCTOPUS_ENVIRONMENT,
+        }));
+        setGitTokenSaved(!!data.GIT_TOKEN_SAVED);
+        setOctopusTokenSaved(!!data.OCTOPUS_TOKEN_SAVED);
+        try {
+          const parsed = JSON.parse(data.REPO_CONFIG || '[]');
+          let repos: RepoEntry[] = Array.isArray(parsed) ? parsed : [];
+          const rawMap = (data.OCTOPUS_REPO_MAP || '').trim();
+          if (rawMap) {
+            try {
+              const mapObj = JSON.parse(rawMap);
+              if (mapObj && typeof mapObj === 'object' && !Array.isArray(mapObj)) {
+                for (const [repoName, octProj] of Object.entries(mapObj)) {
+                  if (!repoName || !octProj) continue;
+                  const existing = repos.find((r) => r.repo === repoName);
+                  if (existing) {
+                    if (!existing.octopus) existing.octopus = String(octProj);
+                  } else {
+                    repos = [...repos, { repo: repoName, branch: 'stable', octopus: String(octProj), exclude_regex: '' }];
                   }
                 }
-              } catch { /* ignore bad OCTOPUS_REPO_MAP JSON */ }
-            }
-            if (repos.length > 0) setRepoConfig(repos);
-          } catch { /* ignore bad JSON */ }
-        }
+              }
+            } catch { /* ignore bad OCTOPUS_REPO_MAP JSON */ }
+          }
+          if (repos.length > 0) setRepoConfig(repos);
+        } catch { /* ignore bad JSON */ }
       })
       .catch(() => setStatus({ configured: false }));
   }, []);

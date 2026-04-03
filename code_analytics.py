@@ -29,8 +29,8 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _INSTALL_RECIPES: dict[str, list[list[str]]] = {
-    "npm":      [["apk", "add", "--no-cache", "nodejs", "npm"]],
-    "node":     [["apk", "add", "--no-cache", "nodejs", "npm"]],
+    "npm":       [["apk", "add", "--no-cache", "nodejs", "npm"]],
+    "node":      [["apk", "add", "--no-cache", "nodejs", "npm"]],
     "composer":  [
         ["apk", "add", "--no-cache", "curl", "php", "php-phar", "php-json",
          "php-mbstring", "php-openssl", "php-curl", "php-iconv", "php-dom",
@@ -38,6 +38,9 @@ _INSTALL_RECIPES: dict[str, list[list[str]]] = {
         ["sh", "-c",
          "curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer"],
     ],
+    "lizard":    [["pip", "install", "--quiet", "lizard"]],
+    "radon":     [["pip", "install", "--quiet", "radon"]],
+    "pip-audit": [["pip", "install", "--quiet", "pip-audit"]],
 }
 
 _install_attempted: set[str] = set()
@@ -83,23 +86,25 @@ def complexity_analysis(repo_paths: list[str]) -> dict:
     for repo_path in repo_paths:
         if not os.path.isdir(repo_path):
             continue
-        try:
-            result = subprocess.run(
-                ["lizard", "--json", repo_path],
-                capture_output=True, text=True, timeout=300,
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                data = json.loads(result.stdout)
-                for entry in data:
-                    for func in entry.get("functions", []) if isinstance(entry, dict) else []:
-                        all_files.append({
-                            "path": func.get("filename", ""),
-                            "function": func.get("name", ""),
-                            "complexity": func.get("cyclomatic_complexity", 0),
-                            "nloc": func.get("nloc", 0),
-                        })
-        except FileNotFoundError:
-            log.info("lizard not installed, trying radon...")
+        if _ensure_tool("lizard"):
+            try:
+                result = subprocess.run(
+                    ["lizard", "--json", repo_path],
+                    capture_output=True, text=True, timeout=300,
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    data = json.loads(result.stdout)
+                    for entry in data:
+                        for func in entry.get("functions", []) if isinstance(entry, dict) else []:
+                            all_files.append({
+                                "path": func.get("filename", ""),
+                                "function": func.get("name", ""),
+                                "complexity": func.get("cyclomatic_complexity", 0),
+                                "nloc": func.get("nloc", 0),
+                            })
+            except (subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
+                log.warning("lizard error for %s: %s", repo_path, exc)
+        elif _ensure_tool("radon"):
             try:
                 result = subprocess.run(
                     ["radon", "cc", "--json", repo_path],
@@ -115,10 +120,11 @@ def complexity_analysis(repo_paths: list[str]) -> dict:
                                 "complexity": b.get("complexity", 0),
                                 "nloc": b.get("endline", 0) - b.get("lineno", 0),
                             })
-            except FileNotFoundError:
-                log.warning("Neither lizard nor radon installed, skipping complexity")
-        except (subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
-            log.warning("Complexity analysis error: %s", exc)
+            except (subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
+                log.warning("radon error for %s: %s", repo_path, exc)
+        else:
+            log.warning("Neither lizard nor radon available, skipping complexity")
+            break
 
     if not all_files:
         return {"avg_complexity": None, "max_complexity": None, "files_above_threshold": 0}
@@ -346,7 +352,7 @@ def dependency_freshness(repo_paths: list[str]) -> dict:
 
     for repo_path in repo_paths:
         # Python
-        if _has_file(repo_path, "requirements.txt", "Pipfile", "pyproject.toml"):
+        if _has_file(repo_path, "requirements.txt", "Pipfile", "pyproject.toml") and _ensure_tool("pip"):
             try:
                 result = subprocess.run(
                     ["pip", "list", "--outdated", "--format=json"],
@@ -358,7 +364,7 @@ def dependency_freshness(repo_paths: list[str]) -> dict:
                     total += len(pkgs) + 10
                     for p in pkgs[:5]:
                         critical.append(f"[py] {p.get('name')} {p.get('version')} -> {p.get('latest_version')}")
-            except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
+            except (subprocess.TimeoutExpired, json.JSONDecodeError):
                 pass
 
         # Node / React / TS
@@ -502,7 +508,7 @@ def dependency_vulnerability_scan(repo_paths: list[str]) -> dict:
 
     for repo_path in repo_paths:
         # Python -- pip-audit
-        if _has_file(repo_path, "requirements.txt", "Pipfile", "pyproject.toml"):
+        if _has_file(repo_path, "requirements.txt", "Pipfile", "pyproject.toml") and _ensure_tool("pip-audit"):
             try:
                 result = subprocess.run(
                     ["pip-audit", "-f", "json"],
@@ -515,7 +521,7 @@ def dependency_vulnerability_scan(repo_paths: list[str]) -> dict:
                             sev = v.get("fix_versions", ["unknown"])[0] if v.get("fix_versions") else "unknown"
                             all_vulns.append({"name": vuln.get("name"), "id": v.get("id"),
                                               "severity": sev, "ecosystem": "python"})
-            except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
+            except (subprocess.TimeoutExpired, json.JSONDecodeError):
                 pass
 
         # Node / React / TS -- npm audit

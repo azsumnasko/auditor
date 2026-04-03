@@ -2885,7 +2885,7 @@ def main():
           const repos = Object.keys(bf);
           const vals = Object.values(bf);
           const colors = vals.map(v => v<=1?'#e74c3c':v===2?'#f1c40f':'#2ecc71');
-          new Chart(document.getElementById('chartBusFactor'), {{ type:'bar', data:{{ labels:repos, datasets:[{{ label:'Bus Factor', data:vals, backgroundColor:colors }}] }}, options:{{ indexAxis:'y', scales:{{ x:{{ beginAtZero:true }}, y:{{ ticks:{{ crossAlign:'far' }} }} }} }} }});
+          new Chart(document.getElementById('chartBusFactor'), {{ type:'bar', data:{{ labels:repos, datasets:[{{ label:'Bus Factor', data:vals, backgroundColor:colors }}] }}, options:{{ indexAxis:'y', scales: Object.assign({{}}, _hbarScales, {{ x:{{ beginAtZero:true }} }}) }} }});
         }}
         // Branch drift table
         const drift = (GIT_DATA.branch_drift||{{}}).by_repo || {{}};
