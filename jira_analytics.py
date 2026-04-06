@@ -1431,6 +1431,20 @@ def _issue_components(issue):
     return names if names else ["(no component)"]
 
 
+def _jira_created_to_date_str(fields):
+    """Parse Jira ``fields['created']`` to YYYY-MM-DD for dashboard time filtering."""
+    raw = (fields or {}).get("created")
+    if not raw:
+        return None
+    try:
+        dt = dtparser.parse(str(raw))
+        if dt.tzinfo:
+            dt = dt.astimezone(timezone.utc)
+        return dt.date().isoformat()
+    except Exception:
+        return None
+
+
 # ----------------------------
 # Main
 # ----------------------------
@@ -2172,7 +2186,7 @@ def main():
             except Exception:
                 total_children, done_children, pct = 0, 0, 0
             stale = (ep_age or 0) > 180 and pct < 20
-            epic_data.append({
+            epic_row = {
                 "key": ep_key,
                 "project": _project_key(ep),
                 "summary": (ep_fields.get("summary") or "")[:80],
@@ -2182,7 +2196,11 @@ def main():
                 "done_children": done_children,
                 "completion_pct": pct,
                 "stale": stale,
-            })
+            }
+            created_date = _jira_created_to_date_str(ep_fields)
+            if created_date:
+                epic_row["created_date"] = created_date
+            epic_data.append(epic_row)
         results["epic_health"] = epic_data
         results["open_epics_count"] = len(epics)
         results["stale_epics_count"] = sum(1 for e in epic_data if e["stale"])

@@ -744,7 +744,7 @@ def main():
       <table id="tableEpics">
         <thead><tr><th data-sort="project">Project</th><th data-sort="key">Key</th><th>Summary</th><th data-sort="age_days">Age (d)</th><th data-sort="total_children">Children</th><th data-sort="done_children">Done</th><th data-sort="completion_pct">%</th><th>Stale</th></tr></thead>
         <tbody>{''.join(
-            f'<tr data-project="{html.escape(e.get("project",""))}" data-stale="{"1" if e.get("stale") else "0"}" data-components="{html.escape("|".join(e.get("components", [])))}" style="{"color:var(--red)" if e.get("stale") else ""}">'
+            f'<tr data-project="{html.escape(e.get("project",""))}" data-stale="{"1" if e.get("stale") else "0"}" data-date="{html.escape(str(e.get("created_date") or "")[:10])}" data-components="{html.escape("|".join(e.get("components", [])))}" style="{"color:var(--red)" if e.get("stale") else ""}">'
             f'<td>{html.escape(e.get("project",""))}</td><td>{link_key(e.get("key",""))}</td>'
             f'<td>{html.escape((e.get("summary",""))[:50])}</td><td>{e.get("age_days",0)}</td>'
             f'<td>{e.get("total_children",0)}</td><td>{e.get("done_children",0)}</td>'
@@ -911,7 +911,7 @@ def main():
     }})();
 
     function keyToComparableDate(k) {{
-      const wMatch = k.match(/^(\d{{4}})-W(\d{{2}})$/);
+      const wMatch = k.match(/^(\\d{{4}})-W(\\d{{2}})$/);
       if (wMatch) {{
         const year = +wMatch[1], week = +wMatch[2];
         const jan4 = new Date(year, 0, 4);
@@ -920,7 +920,7 @@ def main():
         mon.setDate(jan4.getDate() - dow + 1 + (week - 1) * 7);
         return mon.toISOString().slice(0, 10);
       }}
-      if (/^\d{{4}}-\d{{2}}$/.test(k)) return k + '-01';
+      if (/^\\d{{4}}-\\d{{2}}$/.test(k)) return k + '-01';
       return k;
     }}
 
@@ -1091,7 +1091,12 @@ def main():
         scoped = _mergeSource(metricsList, buildMeta(false)) || normalizeMetrics({{}}, buildMeta(false));
       }}
 
-      const epicRows = filterEpicsForScope(effectiveProjects, selectedComponents);
+      let epicRows = filterEpicsForScope(effectiveProjects, selectedComponents);
+      epicRows = epicRows.filter(epic => {{
+        const ds = String(epic.created_date || '').slice(0, 10);
+        if (!ds) return true;
+        return isDateInRange(ds);
+      }});
       const sprintRows = (DATA.sprint_metrics || []).filter(s => {{
         const projectOk = !hasProjects || effectiveProjects.includes(s.project);
         const sprintComponents = Object.keys(s.component_breakdown || {{}});
@@ -2912,8 +2917,6 @@ def main():
 
     document.getElementById('auditFilterSeverity')?.addEventListener('change', renderAuditFlagsDOM);
     document.getElementById('auditFilterCategory')?.addEventListener('change', renderAuditFlagsDOM);
-
-    applyEpicTableFilters();
 
     // ---------- Evidence Export (Phase 4b) ----------
     function exportEvidence() {{
