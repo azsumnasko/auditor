@@ -385,7 +385,19 @@ def main():
 
                 set_job_progress(conn, job_id, ProgressLabel.SCORECARD)
                 import generate_scorecard
-                generate_scorecard.main()
+
+                scorecard_mode = generate_scorecard.main()
+                if scorecard_mode == "placeholder":
+                    from analytics_utils import read_json, write_json
+
+                    pw = read_json("pipeline_warnings", output_dir)
+                    wl = list(pw.get("warnings", [])) if isinstance(pw, dict) else []
+                    wl.append(
+                        "generate_scorecard: placeholder scorecard.html written (scorecard.json missing). "
+                        "Ensure merge_evidence produced unified_evidence.json and score_engine wrote scorecard.json; "
+                        "deploy all HTML from OUTPUT_DIR."
+                    )
+                    write_json({"warnings": wl}, "pipeline_warnings", output_dir)
 
                 set_job_progress(conn, job_id, ProgressLabel.REPORT)
                 import generate_report

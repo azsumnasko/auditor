@@ -350,7 +350,18 @@ def main():
     .audit-flag.orange {{ border-left-color: var(--orange); }}
     .audit-flag.yellow {{ border-left-color: #e3b341; }}
     .audit-flag .flag-title {{ font-weight: 600; margin-bottom: 0.25rem; }}
+    .audit-flag .flag-cat {{ font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.2rem; }}
     .audit-flag .flag-detail {{ color: var(--muted); font-size: 0.8125rem; }}
+    .audit-toolbar {{ display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-bottom: 0.75rem; font-size: 0.8rem; }}
+    .audit-toolbar label {{ color: var(--muted); }}
+    .audit-toolbar select {{ background: var(--card); border: 1px solid #30363d; color: var(--text); padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.8rem; }}
+    .audit-data-health {{ font-size: 0.8rem; color: var(--muted); margin-bottom: 0.75rem; padding: 0.5rem 0.75rem; background: rgba(110,118,129,0.12); border-radius: 6px; border: 1px solid #30363d; }}
+    .audit-gaming-strip {{ font-size: 0.85rem; margin-bottom: 1rem; padding: 0.75rem 1rem; background: var(--card); border-radius: 8px; border: 1px solid #30363d; }}
+    .audit-gaming-strip a {{ color: var(--accent); }}
+    .audit-help {{ margin-bottom: 1rem; font-size: 0.8125rem; }}
+    .audit-help summary {{ cursor: pointer; color: var(--accent); }}
+    .epic-table-tools {{ display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1rem; margin-bottom: 0.5rem; font-size: 0.8rem; }}
+    .epic-table-tools label {{ color: var(--muted); }}
     .gaming-score {{ display: flex; align-items: center; gap: 1.5rem; padding: 1rem; background: var(--card); border-radius: 8px; border: 1px solid #30363d; margin-bottom: 2rem; }}
     .gaming-gauge {{ font-size: 2.5rem; font-weight: 800; min-width: 80px; text-align: center; }}
     .gaming-label {{ font-size: 0.85rem; color: var(--muted); }}
@@ -710,17 +721,30 @@ def main():
   <div class="tab-panel" id="panel-audit">
   <section>
     <h2>Potential Issues (Audit Flags)</h2>
-    <p class="summary-desc">Automated checks for data quality, process health, and potential gaming.</p>
+    <p class="summary-desc">Automated checks for data quality, process health, and potential gaming. Deploy <code>scorecard.html</code> next to this dashboard for the full-page scorecard.</p>
+    <details class="audit-help"><summary>How these flags work</summary>
+      <p style="margin:0.5rem 0 0;color:var(--muted);line-height:1.45"><strong>Workflow</strong> &mdash; statuses, flow efficiency, descriptions. <strong>Throughput</strong> &mdash; lead/cycle time, resolutions, bulk closure. <strong>Sprint</strong> &mdash; sprint hygiene and estimates. <strong>People</strong> &mdash; assignment and load. <strong>Release</strong> &mdash; versions and cadence. <strong>Other</strong> &mdash; bugs, traceability, epics. <strong>Git/CI/CD</strong> &mdash; when Git/CI/Octopus data is present. Thresholds are fixed heuristics; tune process, not the dashboard.</p>
+    </details>
+    <div id="auditGamingStrip" class="audit-gaming-strip" style="display:none"></div>
+    <div id="auditDataHealth" class="audit-data-health" style="display:none"></div>
+    <div class="audit-toolbar">
+      <label>Severity <select id="auditFilterSeverity" aria-label="Filter by severity"><option value="all">All</option><option value="red">Red</option><option value="orange">Orange</option><option value="yellow">Yellow</option></select></label>
+      <label>Category <select id="auditFilterCategory" aria-label="Filter by category"><option value="all">All</option></select></label>
+    </div>
     <div id="auditFlags" class="audit-flags"></div>
   </section>
   <section>
     <h2>Epic health (open epics)</h2>
     <p class="summary-desc" id="epicHealthSummary">Open: {data.get('open_epics_count', 0)} | Stale (>6mo, <20% done): <strong style="color:var(--red)">{data.get('stale_epics_count', 0)}</strong> | Avg completion: {data.get('avg_epic_completion_pct', 0)}%</p>
+    <div class="epic-table-tools">
+      <label><input type="checkbox" id="epicStaleOnly" /> Stale only</label>
+      <button type="button" class="time-btn" id="epicShowAllBtn" style="display:none">Show all rows</button>
+    </div>
     <div class="table-wrap">
       <table id="tableEpics">
         <thead><tr><th data-sort="project">Project</th><th data-sort="key">Key</th><th>Summary</th><th data-sort="age_days">Age (d)</th><th data-sort="total_children">Children</th><th data-sort="done_children">Done</th><th data-sort="completion_pct">%</th><th>Stale</th></tr></thead>
         <tbody>{''.join(
-            f'<tr data-project="{html.escape(e.get("project",""))}" data-components="{html.escape("|".join(e.get("components", [])))}" style="{"color:var(--red)" if e.get("stale") else ""}">'
+            f'<tr data-project="{html.escape(e.get("project",""))}" data-stale="{"1" if e.get("stale") else "0"}" data-components="{html.escape("|".join(e.get("components", [])))}" style="{"color:var(--red)" if e.get("stale") else ""}">'
             f'<td>{html.escape(e.get("project",""))}</td><td>{link_key(e.get("key",""))}</td>'
             f'<td>{html.escape((e.get("summary",""))[:50])}</td><td>{e.get("age_days",0)}</td>'
             f'<td>{e.get("total_children",0)}</td><td>{e.get("done_children",0)}</td>'
@@ -808,7 +832,7 @@ def main():
 
   <!-- ===== SCORECARD TAB ===== -->
   <div class="tab-panel" id="panel-scorecardtab">
-    <section><h2>Engineering Maturity Scorecard</h2><p class="summary-desc">5-domain maturity assessment. <a href="scorecard.html" target="_blank" style="color:var(--accent)">Open full scorecard &rarr;</a></p></section>
+    <section><h2>Engineering Maturity Scorecard</h2><p class="summary-desc">5-domain maturity assessment. <a href="scorecard.html" target="_blank" style="color:var(--accent)">Open full scorecard &rarr;</a> (generate_scorecard writes this file next to the dashboard; publish both to the same path.)</p></section>
     <div class="cards" id="scorecardCards"></div>
     <section><h2>Radar</h2><div class="chart-wrap" style="max-width:420px;margin:0 auto"><canvas id="chartScoreRadar"></canvas></div></section>
     <section><h2>Signal Details</h2><div id="scorecardSignals"></div></section>
@@ -1460,25 +1484,78 @@ def main():
     }});
 
     // ---------- Audit Flags (expanded) ----------
+    const AUDIT_CAT_LABELS = {{ workflow: 'Workflow', throughput: 'Throughput', sprint: 'Sprint', people: 'People', release: 'Release', other: 'Other', git_cicd: 'Git/CI/CD' }};
+    function renderAuditCategoryOptions() {{
+      const sel = document.getElementById('auditFilterCategory');
+      if (!sel) return;
+      const cats = new Set((window._auditFlagsAll || []).map(f => f.category).filter(Boolean));
+      const order = ['workflow','throughput','sprint','people','release','other','git_cicd'];
+      const cur = sel.value;
+      sel.innerHTML = '<option value="all">All</option>' + order.filter(c => cats.has(c)).map(c => `<option value="${{c}}">${{AUDIT_CAT_LABELS[c]||c}}</option>`).join('');
+      if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+    }}
+    function renderAuditDataHealth() {{
+      const el = document.getElementById('auditDataHealth');
+      if (!el) return;
+      const missing = [];
+      if (!GIT_DATA || !Object.keys(GIT_DATA).length) missing.push('Git');
+      if (!CICD_DATA || !Object.keys(CICD_DATA).length) missing.push('CI/CD');
+      if (!OCTOPUS_DATA || !Object.keys(OCTOPUS_DATA).length) missing.push('Octopus');
+      if (!missing.length) {{ el.style.display = 'none'; el.textContent = ''; return; }}
+      el.style.display = 'block';
+      el.textContent = 'Note: ' + missing.join(', ') + ' data not loaded — audit flags from those sources are skipped.';
+    }}
+    function renderAuditFlagsDOM() {{
+      const container = document.getElementById('auditFlags');
+      if (!container) return;
+      const sevF = document.getElementById('auditFilterSeverity')?.value || 'all';
+      const catF = document.getElementById('auditFilterCategory')?.value || 'all';
+      let list = [...(window._auditFlagsAll || [])];
+      if (sevF !== 'all') list = list.filter(f => f.severity === sevF);
+      if (catF !== 'all') list = list.filter(f => f.category === catF);
+      if (list.length === 0) {{
+        container.innerHTML = '<div class="audit-flag" style="border-left-color:var(--green)"><div class="flag-title" style="color:var(--green)">No flags match filters</div><div class="flag-detail">Try All severities and All categories.</div></div>';
+        window._auditFlags = [];
+        return;
+      }}
+      const order = {{ red: 0, orange: 1, yellow: 2 }};
+      list.sort((a, b) => (order[a.severity] ?? 9) - (order[b.severity] ?? 9));
+      const L = AUDIT_CAT_LABELS;
+      container.innerHTML = list.map(f =>
+        `<div class="audit-flag ${{f.severity}}"><div class="flag-cat">${{L[f.category]||f.category||''}}</div><div class="flag-title">${{f.title}}</div><div class="flag-detail">${{f.detail}}</div></div>`
+      ).join('');
+      window._auditFlags = list;
+    }}
+    function renderAuditGamingStrip() {{
+      const strip = document.getElementById('auditGamingStrip');
+      if (!strip) return;
+      const gs = window._gamingScore;
+      const drivers = window._gamingScoreDrivers || [];
+      if (gs == null) {{ strip.style.display = 'none'; return; }}
+      strip.style.display = 'block';
+      const c = gs >= 60 ? 'var(--red)' : gs >= 40 ? 'var(--orange)' : gs >= 20 ? '#e3b341' : 'var(--green)';
+      const ul = drivers.length ? '<ul style="margin:0.35rem 0 0 1.1rem;padding:0;line-height:1.4">' + drivers.slice(0,3).map(d => `<li>${{d}}</li>`).join('') + '</ul>' : '';
+      strip.innerHTML = `<strong style="color:${{c}}">Gaming score: ${{gs}}</strong>/100 <span style="color:var(--muted)">(larger = more manipulation signals)</span>. Top drivers: ${{ul}}<div style="margin-top:0.35rem">See the gauge on the <a href="#overview">Overview</a> tab.</div>`;
+    }}
     function computeAuditFlags() {{
       const D = getEffectiveData();
       const flags = [];
-      const sev = (s, title, detail) => flags.push({{ severity: s, title, detail }});
+      const sev = (s, cat, title, detail) => flags.push({{ severity: s, category: cat, title, detail }});
       const bp = D.by_project || {{}};
 
       const ltd = D.lead_time_distribution || {{}};
       const ltTotal = ltd.total || 0;
       const instantPct = ltTotal ? Math.round((ltd.under_1h || 0) / ltTotal * 100) : 0;
       if (instantPct > 30)
-        sev('red', `${{instantPct}}% of resolved issues have lead time < 1 hour (retroactive logging likely)`,
+        sev('red', 'throughput', `${{instantPct}}% of resolved issues have lead time < 1 hour (retroactive logging likely)`,
           `${{ltd.under_1h}} of ${{ltTotal}} issues created and resolved within 1 hour.`);
       else if (instantPct > 15)
-        sev('orange', `${{instantPct}}% of resolved issues have lead time < 1 hour`,
+        sev('orange', 'throughput', `${{instantPct}}% of resolved issues have lead time < 1 hour`,
           `${{ltd.under_1h}} of ${{ltTotal}} issues. Consider whether tickets are being logged after work is done.`);
 
       const ct = D.cycle_time_days || {{}};
       if (ct.p50_days != null && ct.p50_days < 0.01 && ct.avg_days != null && ct.avg_days > 1)
-        sev('red', `Cycle time median is ${{(ct.p50_days * 24 * 60).toFixed(0)}} min vs average ${{ct.avg_days.toFixed(1)}} days`,
+        sev('red', 'workflow', `Cycle time median is ${{(ct.p50_days * 24 * 60).toFixed(0)}} min vs average ${{ct.avg_days.toFixed(1)}} days`,
           'Near-zero median with high average confirms most issues skip the normal workflow.');
 
       const sprints = D.sprint_metrics || [];
@@ -1487,33 +1564,33 @@ def main():
       for (const [proj, pSprints] of Object.entries(byProj)) {{
         const perfect = pSprints.filter(s => s.total_issues > 0 && s.throughput_issues === s.total_issues);
         if (perfect.length >= 3)
-          sev('red', `${{proj}}: ${{perfect.length}}/${{pSprints.length}} sprints with 100% completion`,
+          sev('red', 'sprint', `${{proj}}: ${{perfect.length}}/${{pSprints.length}} sprints with 100% completion`,
             'Every issue marked done. Unfinished work is likely removed before sprint close.');
       }}
 
       for (const [proj, pSprints] of Object.entries(byProj)) {{
         const highScope = pSprints.filter(s => s.total_issues > 0 && s.added_after_sprint_start != null && s.added_after_sprint_start / s.total_issues > 0.5);
         if (highScope.length > 0)
-          sev('orange', `${{proj}}: ${{highScope.length}} sprint(s) with > 50% issues added after start`,
+          sev('orange', 'sprint', `${{proj}}: ${{highScope.length}} sprint(s) with > 50% issues added after start`,
             highScope.map(s => `${{s.sprint_name}}: ${{s.added_after_sprint_start}}/${{s.total_issues}}`).join('; '));
       }}
 
       const emptySprints = sprints.filter(s => s.total_issues === 0);
       if (emptySprints.length > 0)
-        sev('orange', `${{emptySprints.length}} empty sprint(s) (0 issues)`,
+        sev('orange', 'sprint', `${{emptySprints.length}} empty sprint(s) (0 issues)`,
           emptySprints.map(s => `${{s.project}} \u2013 ${{s.sprint_name}}`).join(', '));
 
       for (const [proj, pSprints] of Object.entries(byProj)) {{
         const totalDone = pSprints.reduce((a, s) => a + s.throughput_issues, 0);
         const totalIssues = pSprints.reduce((a, s) => a + s.total_issues, 0);
         if (pSprints.length >= 2 && totalIssues > 5 && totalDone / totalIssues < 0.15)
-          sev('orange', `${{proj}}: Only ${{totalDone}}/${{totalIssues}} done across ${{pSprints.length}} sprints (${{Math.round(totalDone/totalIssues*100)}}%)`,
+          sev('orange', 'sprint', `${{proj}}: Only ${{totalDone}}/${{totalIssues}} done across ${{pSprints.length}} sprints (${{Math.round(totalDone/totalIssues*100)}}%)`,
             'Very little is being completed.');
       }}
 
       const noSp = Object.entries(byProj).filter(([, sp]) => sp.every(s => s.committed === 0 || s.committed === null));
       if (noSp.length > 0)
-        sev('yellow', `${{noSp.length}} project(s) do not use story points: ${{noSp.map(x => x[0]).join(', ')}}`,
+        sev('yellow', 'sprint', `${{noSp.length}} project(s) do not use story points: ${{noSp.map(x => x[0]).join(', ')}}`,
           'Velocity is issue-count only. Throughput numbers cannot distinguish a 5-min task from a 2-week feature.');
 
       const graveyards = [];
@@ -1525,27 +1602,27 @@ def main():
           graveyards.push(`${{proj}} (${{backlog}}/${{total}})`);
       }}
       if (graveyards.length > 0)
-        sev('orange', `${{graveyards.length}} project(s) with > 85% open in Backlog`,
+        sev('orange', 'workflow', `${{graveyards.length}} project(s) with > 85% open in Backlog`,
           graveyards.join('; ') + '. These backlogs are graveyards.');
 
       const blockedCount = D.blocked_count || 0;
       const openCount = D.open_count != null ? D.open_count : (D.wip_count || 1);
       const blockedPct = Math.round(blockedCount / openCount * 1000) / 10;
       if (blockedPct < 1 && openCount > 50)
-        sev('yellow', `Only ${{blockedCount}} blocked issues (${{blockedPct}}% of ${{openCount}} open)`,
+        sev('yellow', 'workflow', `Only ${{blockedCount}} blocked issues (${{blockedPct}}% of ${{openCount}} open)`,
           'In orgs with cross-team dependencies, 5\\u201315% blocked is normal. Very low rates usually mean blockers are not tracked.');
 
       const oldBugs = (D.oldest_open_bugs || []).filter(b => b.age_days > 365);
       if (oldBugs.length >= 5)
-        sev('red', `${{oldBugs.length}} open bugs older than 1 year`,
+        sev('red', 'other', `${{oldBugs.length}} open bugs older than 1 year`,
           `Oldest: ${{oldBugs.slice(0,5).map(b => linkKey(b.key)+' ('+Math.round(b.age_days)+'d)').join(', ')}}.`);
       else if (oldBugs.length > 0)
-        sev('orange', `${{oldBugs.length}} open bug(s) older than 1 year`,
+        sev('orange', 'other', `${{oldBugs.length}} open bug(s) older than 1 year`,
           oldBugs.map(b => linkKey(b.key)+' ('+Math.round(b.age_days)+'d)').join(', '));
 
       const bugAge = D.open_bugs_age_days || {{}};
       if (bugAge.p50_days != null && bugAge.p50_days > 180)
-        sev('orange', `Median open bug age is ${{Math.round(bugAge.p50_days)}} days`,
+        sev('orange', 'other', `Median open bug age is ${{Math.round(bugAge.p50_days)}} days`,
           'Bugs have a median age over 6 months.');
 
       for (const [proj, pm] of Object.entries(bp)) {{
@@ -1553,10 +1630,10 @@ def main():
         const pTotal = pLtd.total || 0;
         const pInstPct = pTotal >= 10 ? Math.round((pLtd.under_1h||0) / pTotal * 100) : 0;
         if (pInstPct > 50)
-          sev('red', `${{proj}}: ${{pInstPct}}% of resolved issues < 1 hour (${{pLtd.under_1h}}/${{pTotal}})`,
+          sev('red', 'throughput', `${{proj}}: ${{pInstPct}}% of resolved issues < 1 hour (${{pLtd.under_1h}}/${{pTotal}})`,
             'Majority of work is logged retroactively.');
         else if (pInstPct > 30 && pTotal >= 20)
-          sev('orange', `${{proj}}: ${{pInstPct}}% of resolved issues < 1 hour (${{pLtd.under_1h}}/${{pTotal}})`,
+          sev('orange', 'throughput', `${{proj}}: ${{pInstPct}}% of resolved issues < 1 hour (${{pLtd.under_1h}}/${{pTotal}})`,
             'Significant retroactive ticket logging.');
       }}
 
@@ -1565,166 +1642,166 @@ def main():
       const rbNonDone = (rb["Won't Do"]||0) + (rb["Duplicate"]||0) + (rb["Cannot Reproduce"]||0) + (rb["Incomplete"]||0) + (rb["Won't Fix"]||0);
       const rbPct = rbTotal ? Math.round(rbNonDone / rbTotal * 100) : 0;
       if (rbPct > 40)
-        sev('red', `${{rbPct}}% of resolved issues are Won't Do/Duplicate/etc (${{rbNonDone}}/${{rbTotal}})`,
+        sev('red', 'throughput', `${{rbPct}}% of resolved issues are Won't Do/Duplicate/etc (${{rbNonDone}}/${{rbTotal}})`,
           'Throughput numbers are heavily inflated by administrative closures.');
       else if (rbPct > 25)
-        sev('orange', `${{rbPct}}% of resolved issues are Won't Do/Duplicate/etc`,
+        sev('orange', 'throughput', `${{rbPct}}% of resolved issues are Won't Do/Duplicate/etc`,
           'Consider separating real work throughput from administrative closures.');
 
       const dit = D.done_issuetype || {{}};
       const ditTotal = Object.values(dit).reduce((a,v) => a+v, 0);
       const taskPct = ditTotal ? Math.round((dit['Task']||0) / ditTotal * 100) : 0;
       if (taskPct > 80)
-        sev('yellow', `${{taskPct}}% of done issues are Tasks (not Stories/Epics)`,
+        sev('yellow', 'throughput', `${{taskPct}}% of done issues are Tasks (not Stories/Epics)`,
           'No feature-level planning visible. Throughput is granular task-count only.');
 
       const pri = D.wip_priority || {{}};
       const priTotal = Object.values(pri).reduce((a,v) => a+v, 0);
       const priMax = Math.max(...Object.values(pri), 0);
       if (priTotal > 20 && priMax / priTotal > 0.9)
-        sev('yellow', `${{Math.round(priMax/priTotal*100)}}% of WIP has the same priority`,
+        sev('yellow', 'workflow', `${{Math.round(priMax/priTotal*100)}}% of WIP has the same priority`,
           'Priority field is not being used for triage.');
 
       const unassigned = D.unassigned_open_count != null ? D.unassigned_open_count : (D.unassigned_wip_count || 0);
       const unaPct = openCount ? Math.round(unassigned / openCount * 100) : 0;
       if (unaPct > 50)
-        sev('orange', `${{unaPct}}% of open is unassigned (${{unassigned}}/${{openCount}})`,
+        sev('orange', 'people', `${{unaPct}}% of open is unassigned (${{unassigned}}/${{openCount}})`,
           'Majority of open issues have no owner.');
       else if (unaPct > 30 && openCount > 30)
-        sev('yellow', `${{unaPct}}% of open is unassigned (${{unassigned}}/${{openCount}})`,
+        sev('yellow', 'people', `${{unaPct}}% of open is unassigned (${{unassigned}}/${{openCount}})`,
           'Significant portion of open has no assignee.');
 
       const dow = D.resolution_by_weekday || {{}};
       const dowTotal = Object.values(dow).reduce((a,v) => a+v, 0);
       for (const [day, count] of Object.entries(dow)) {{
         if (dowTotal > 20 && count / dowTotal > 0.35)
-          sev('orange', `${{Math.round(count/dowTotal*100)}}% of resolutions happen on ${{day}} (${{count}}/${{dowTotal}})`,
+          sev('orange', 'throughput', `${{Math.round(count/dowTotal*100)}}% of resolutions happen on ${{day}} (${{count}}/${{dowTotal}})`,
             'Resolution activity is concentrated on a single day, suggesting batch closure.');
       }}
 
       const vcv = D.velocity_cv_by_project || {{}};
       for (const [proj, cv] of Object.entries(vcv)) {{
         if (cv !== null && cv < 0.10 && (byProj[proj]||[]).length >= 4)
-          sev('orange', `${{proj}}: Velocity CV is ${{(cv*100).toFixed(1)}}% (suspiciously stable)`,
+          sev('orange', 'sprint', `${{proj}}: Velocity CV is ${{(cv*100).toFixed(1)}}% (suspiciously stable)`,
             'Real teams fluctuate 20-40%. Very low variance suggests sprint scope is being managed to hit targets.');
         else if (cv !== null && cv > 0.60)
-          sev('yellow', `${{proj}}: Velocity CV is ${{(cv*100).toFixed(1)}}% (highly unstable)`,
+          sev('yellow', 'sprint', `${{proj}}: Velocity CV is ${{(cv*100).toFixed(1)}}% (highly unstable)`,
             'Suggests poor planning or significant scope churn.');
       }}
 
       const gini = D.workload_gini;
       if (gini != null && gini > 0.7)
-        sev('orange', `Workload Gini coefficient is ${{gini}} (heavily concentrated)`,
+        sev('orange', 'people', `Workload Gini coefficient is ${{gini}} (heavily concentrated)`,
           'Work is disproportionately done by a few people.');
 
       const bulk = D.bulk_closure_days || [];
       const bigBulk = bulk.filter(d => d.count > 40);
       const medBulk = bulk.filter(d => d.count > 20);
       if (bigBulk.length > 0)
-        sev('red', `${{bigBulk.length}} day(s) with > 40 issues resolved`,
+        sev('red', 'throughput', `${{bigBulk.length}} day(s) with > 40 issues resolved`,
           bigBulk.map(d => `${{d.date}}: ${{d.count}}`).join(', '));
       else if (medBulk.length > 0)
-        sev('orange', `${{medBulk.length}} day(s) with > 20 issues resolved`,
+        sev('orange', 'throughput', `${{medBulk.length}} day(s) with > 20 issues resolved`,
           medBulk.slice(0,5).map(d => `${{d.date}}: ${{d.count}}`).join(', '));
 
       const spa = D.status_path_analysis || {{}};
       if (spa.skip_pct > 30 && spa.total >= 20)
-        sev('red', `${{spa.skip_pct}}% of resolved issues skip active work statuses (${{spa.skip_count}}/${{spa.total}})`,
+        sev('red', 'workflow', `${{spa.skip_pct}}% of resolved issues skip active work statuses (${{spa.skip_count}}/${{spa.total}})`,
           'Issues go directly to Done without ever entering In Progress/Dev/Review.');
       else if (spa.skip_pct > 15 && spa.total >= 20)
-        sev('orange', `${{spa.skip_pct}}% of resolved issues skip active work statuses`,
+        sev('orange', 'workflow', `${{spa.skip_pct}}% of resolved issues skip active work statuses`,
           'Consider whether workflow statuses reflect reality.');
 
       const tis = D.time_in_status || {{}};
       const ipTime = tis['In Progress'] || tis['In Dev'] || tis['Doing'];
       if (ipTime && ipTime.median_hours != null && ipTime.median_hours < 0.1 && ipTime.count > 10)
-        sev('red', `Median time in "${{Object.keys(tis).find(k => /progress|dev|doing/i.test(k)) || 'In Progress'}}" is ${{(ipTime.median_hours * 60).toFixed(0)}} minutes`,
+        sev('red', 'workflow', `Median time in "${{Object.keys(tis).find(k => /progress|dev|doing/i.test(k)) || 'In Progress'}}" is ${{(ipTime.median_hours * 60).toFixed(0)}} minutes`,
           'Statuses are being set retroactively, not during actual work.');
 
       const ca = D.closer_analysis || {{}};
       if (ca.closer_not_assignee_pct > 60 && ca.total_analyzed > 20)
-        sev('orange', `${{ca.closer_not_assignee_pct}}% of issues are closed by someone other than the assignee`,
+        sev('orange', 'workflow', `${{ca.closer_not_assignee_pct}}% of issues are closed by someone other than the assignee`,
           'Issues are predominantly closed by a different person than who worked on them.');
       const topCloser = (ca.top_closers || [])[0];
       if (topCloser && ca.total_analyzed > 20 && topCloser.count / ca.total_analyzed > 0.4)
-        sev('orange', `${{topCloser.name}} closes ${{Math.round(topCloser.count/ca.total_analyzed*100)}}% of all issues (${{topCloser.count}}/${{ca.total_analyzed}})`,
+        sev('orange', 'workflow', `${{topCloser.name}} closes ${{Math.round(topCloser.count/ca.total_analyzed*100)}}% of all issues (${{topCloser.count}}/${{ca.total_analyzed}})`,
           'Single person closing majority of issues suggests centralized batch processing.');
 
       const ra = D.reopen_analysis || {{}};
       if (ra.reopened_pct > 15 && ra.total > 20)
-        sev('orange', `${{ra.reopened_pct}}% of issues were reopened (${{ra.reopened_count}}/${{ra.total}})`,
+        sev('orange', 'other', `${{ra.reopened_pct}}% of issues were reopened (${{ra.reopened_count}}/${{ra.total}})`,
           'High reopen rate suggests premature closure or quality issues.');
 
       const fe = D.flow_efficiency || {{}};
       if (fe.efficiency_pct != null && fe.efficiency_pct < 10 && (fe.active_hours + fe.wait_hours) > 100)
-        sev('orange', `Flow efficiency is only ${{fe.efficiency_pct}}%`,
+        sev('orange', 'workflow', `Flow efficiency is only ${{fe.efficiency_pct}}%`,
           `Issues spend only ${{fe.efficiency_pct}}% of their time in active work statuses.`);
 
       for (const [proj, pSprints] of Object.entries(byProj)) {{
         const highEnd = pSprints.filter(s => s.resolved_last_24h_pct != null && s.resolved_last_24h_pct > 60 && s.throughput_issues > 5);
         if (highEnd.length > 0)
-          sev('red', `${{proj}}: ${{highEnd.length}} sprint(s) with > 60% issues resolved in final 24h`,
+          sev('red', 'sprint', `${{proj}}: ${{highEnd.length}} sprint(s) with > 60% issues resolved in final 24h`,
             highEnd.map(s => `${{s.sprint_name}}: ${{s.resolved_last_24h_pct}}%`).join('; '));
       }}
 
       const edp = D.empty_description_done_pct;
       if (edp != null && edp > 40)
-        sev('orange', `${{edp}}% of done issues have no description`,
+        sev('orange', 'workflow', `${{edp}}% of done issues have no description`,
           'Issues are closed without descriptions, suggesting retroactive logging.');
 
       const eobDonePct = D.empty_or_bad_pct_done ?? 0;
       const eobDoneCount = D.empty_or_bad_count_done ?? 0;
       if (eobDonePct > 40 && eobDoneCount > 10)
-        sev('orange', `${{eobDoneCount}} done issues (${{eobDonePct}}%) have empty or bad structure`,
+        sev('orange', 'workflow', `${{eobDoneCount}} done issues (${{eobDonePct}}%) have empty or bad structure`,
           'Tickets closed with no/empty description or bad structure. Track improvement over time.');
       const eobWip = D.empty_or_bad_count_wip ?? 0;
       if (eobWip > 100)
-        sev('yellow', `${{eobWip}} WIP issues have empty or bad structure`,
+        sev('yellow', 'workflow', `${{eobWip}} WIP issues have empty or bad structure`,
           'Many open tickets lack description or have bad structure. Consider cleanup.');
 
       const zcp = D.zero_comment_done_pct;
       if (zcp != null && zcp > 60)
-        sev('yellow', `${{zcp}}% of done issues have zero comments`,
+        sev('yellow', 'workflow', `${{zcp}}% of done issues have zero comments`,
           'Most resolved issues have no discussion or review trail.');
 
       const orp = D.orphan_done_pct;
       if (orp != null && orp > 70)
-        sev('yellow', `${{orp}}% of done issues have no issue links`,
+        sev('yellow', 'other', `${{orp}}% of done issues have no issue links`,
           'Issues are not linked to other work, making traceability impossible.');
 
       // Phase 4b: Sprint scope padding (added and immediately done)
       for (const [proj, pSprints] of Object.entries(byProj)) {{
         const paddedSprints = pSprints.filter(s => s.added_and_done_count != null && s.total_issues > 5 && s.added_and_done_count / s.total_issues > 0.2);
         if (paddedSprints.length > 0)
-          sev('red', `${{proj}}: ${{paddedSprints.length}} sprint(s) with > 20% issues added AND done (scope padding)`,
+          sev('red', 'sprint', `${{proj}}: ${{paddedSprints.length}} sprint(s) with > 20% issues added AND done (scope padding)`,
             paddedSprints.map(s => `${{s.sprint_name}}: ${{s.added_and_done_count}}/${{s.total_issues}}`).join('; '));
       }}
 
       // Phase 4c: Assignee change near resolution
       const acnr = D.assignee_change_near_resolution || {{}};
       if (acnr.changed_pct > 15 && acnr.total > 20)
-        sev('orange', `${{acnr.changed_pct}}% of issues had assignee changed in last 24h before resolution (${{acnr.changed_count}}/${{acnr.total}})`,
+        sev('orange', 'workflow', `${{acnr.changed_pct}}% of issues had assignee changed in last 24h before resolution (${{acnr.changed_count}}/${{acnr.total}})`,
           'Potential credit reassignment or completion sniping.');
 
       // Phase 4d: Post-resolution worklogs
       const wla = D.worklog_analysis || {{}};
       if (wla.post_resolution_worklog_pct > 20 && wla.total_done > 10)
-        sev('orange', `${{wla.post_resolution_worklog_pct}}% of done issues have worklogs after resolution (${{wla.post_resolution_worklog_count}}/${{wla.total_done}})`,
+        sev('orange', 'workflow', `${{wla.post_resolution_worklog_pct}}% of done issues have worklogs after resolution (${{wla.post_resolution_worklog_count}}/${{wla.total_done}})`,
           'Time is being logged retroactively after issue closure.');
       if (wla.zero_worklog_pct > 80 && wla.total_done > 20)
-        sev('yellow', `${{wla.zero_worklog_pct}}% of done issues have zero worklogs`,
+        sev('yellow', 'workflow', `${{wla.zero_worklog_pct}}% of done issues have zero worklogs`,
           'No time tracking for the vast majority of completed work.');
 
       // Phase 4e: Post-resolution comments
       const ctm = D.comment_timing || {{}};
       if (ctm.post_resolution_comment_pct > 30 && ctm.total_issues > 20)
-        sev('orange', `${{ctm.post_resolution_comment_pct}}% of done issues have comments added after resolution`,
+        sev('orange', 'workflow', `${{ctm.post_resolution_comment_pct}}% of done issues have comments added after resolution`,
           'High rate of post-resolution documentation suggests retroactive activity.');
 
       // Phase 4a: Story point inflation
       const spt = D.sp_trend || {{}};
       if (spt.inflation_detected)
-        sev('orange', 'Story point inflation detected (avg SP/issue rose > 30% over period)',
+        sev('orange', 'sprint', 'Story point inflation detected (avg SP/issue rose > 30% over period)',
           'Teams may be inflating estimates to meet velocity targets.');
 
       // Phase 5a: Backlog growth (created > resolved for 4+ weeks)
@@ -1734,20 +1811,20 @@ def main():
       let consGrowth = 0;
       for (const w of trendWeeks) {{ if ((cbw[w]||0) > (tbw[w]||0)) consGrowth++; else consGrowth = 0; }}
       if (consGrowth >= 4)
-        sev('orange', `Backlog growing: created > resolved for ${{consGrowth}} consecutive weeks`,
+        sev('orange', 'workflow', `Backlog growing: created > resolved for ${{consGrowth}} consecutive weeks`,
           'The team is not keeping up with incoming work.');
 
       // Phase 6a: WIP overload per person
       const wipAss = D.wip_assignees || {{}};
       const overloaded = Object.entries(wipAss).filter(([k,v]) => k !== '(unassigned)' && v > 20);
       if (overloaded.length > 0)
-        sev('orange', `${{overloaded.length}} person(s) with > 20 WIP issues`,
+        sev('orange', 'people', `${{overloaded.length}} person(s) with > 20 WIP issues`,
           overloaded.slice(0,5).map(([n,c]) => `${{n}}: ${{c}}`).join(', '));
 
       // Phase 6d: Stale epics
       const staleEpics = D.stale_epics_count || 0;
       if (staleEpics > 3)
-        sev('orange', `${{staleEpics}} stale epics (>6 months old, <20% complete)`,
+        sev('orange', 'other', `${{staleEpics}} stale epics (>6 months old, <20% complete)`,
           'Long-running epics with little progress suggest abandoned or poorly managed initiatives.');
 
       // Phase 6d2: Release-related flags
@@ -1766,11 +1843,11 @@ def main():
         const now = new Date();
         const daysSince = Math.floor((now - relDate) / (24 * 60 * 60 * 1000));
         if (daysSince > 90)
-          sev('orange', 'No release in the last 90 days',
+          sev('orange', 'release', 'No release in the last 90 days',
             'Consider shipping a version or archiving unreleased versions.');
       }}
       if (unreleased > 10)
-        sev('yellow', `Many unreleased versions (${{unreleased}})`,
+        sev('yellow', 'release', `Many unreleased versions (${{unreleased}})`,
           'Review and either release or archive.');
       const rpm = D.releases_per_month || {{}};
       const monthKeys = Object.keys(rpm).sort();
@@ -1778,35 +1855,35 @@ def main():
         const last3 = monthKeys.slice(-3).reduce((s, k) => s + (rpm[k] || 0), 0);
         const prev3 = monthKeys.slice(-6, -3).reduce((s, k) => s + (rpm[k] || 0), 0);
         if (prev3 > 0 && last3 < prev3 * 0.5)
-          sev('yellow', 'Release cadence has slowed (last 3 months vs previous 3)',
+          sev('yellow', 'release', 'Release cadence has slowed (last 3 months vs previous 3)',
             'Consider keeping a steady release cadence or communicating a change in strategy.');
       }}
 
       // Phase 6e: SP vs worklog correlation
       if (wla.sp_worklog_correlation != null && wla.sp_worklog_correlation < 0.3 && wla.sp_worklog_pairs_count >= 10)
-        sev('yellow', `Story points vs worklog correlation is only ${{wla.sp_worklog_correlation}} (weak)`,
+        sev('yellow', 'sprint', `Story points vs worklog correlation is only ${{wla.sp_worklog_correlation}} (weak)`,
           'Story point estimates do not correlate with actual effort. Points may be arbitrary.');
 
       // Git / CI-CD / Octopus audit flags
       if (GIT_DATA && Object.keys(GIT_DATA).length) {{
         const bf = (GIT_DATA.contributors||{{}}).min_bus_factor;
         if (bf != null && bf <= 1)
-          sev('red', 'Bus factor = 1 in at least one repo',
+          sev('red', 'git_cicd', 'Bus factor = 1 in at least one repo',
             'A single contributor covers 80%+ of commits. Key-person risk is high.');
         const drift = (GIT_DATA.branch_drift||{{}}).total_missing_across_repos || 0;
         if (drift > 50)
-          sev('red', `Branch drift: ${{drift}} commits behind across repos`,
+          sev('red', 'git_cicd', `Branch drift: ${{drift}} commits behind across repos`,
             'Large branch drift indicates significant release lag or incomplete merge processes.');
         else if (drift > 10)
-          sev('orange', `Branch drift: ${{drift}} commits behind across repos`,
+          sev('orange', 'git_cicd', `Branch drift: ${{drift}} commits behind across repos`,
             'Moderate branch drift — consider reconciling branches.');
         const weekend = (GIT_DATA.work_patterns||{{}}).weekend_commit_pct || 0;
         if (weekend > 15)
-          sev('orange', `Weekend commits: ${{weekend.toFixed(0)}}%`,
+          sev('orange', 'git_cicd', `Weekend commits: ${{weekend.toFixed(0)}}%`,
             'Potential burnout signal. Review workload distribution.');
         const noReview = (GIT_DATA.review_turnaround||{{}}).pct_no_review || 0;
         if (noReview > 40)
-          sev('orange', `${{noReview.toFixed(0)}}% of PRs merged without review`,
+          sev('orange', 'git_cicd', `${{noReview.toFixed(0)}}% of PRs merged without review`,
             'High rate of unreviewed PRs increases quality risk.');
       }}
       if (OCTOPUS_DATA && Object.keys(OCTOPUS_DATA).length) {{
@@ -1814,42 +1891,43 @@ def main():
         const reposBehind = pending.total_pending_repos || 0;
         const commitsBehind = pending.total_pending_commits || 0;
         if (reposBehind > 5)
-          sev('red', `${{reposBehind}} repos behind on deployment (${{commitsBehind}} pending commits)`,
+          sev('red', 'git_cicd', `${{reposBehind}} repos behind on deployment (${{commitsBehind}} pending commits)`,
             'Many repos have unreleased changes. Deployment lag increases risk.');
         else if (reposBehind > 2)
-          sev('orange', `${{reposBehind}} repos behind on deployment (${{commitsBehind}} pending commits)`,
+          sev('orange', 'git_cicd', `${{reposBehind}} repos behind on deployment (${{commitsBehind}} pending commits)`,
             'Some repos have pending changes waiting to be deployed.');
       }}
       if (CICD_DATA && Object.keys(CICD_DATA).length) {{
         const cfr = (CICD_DATA.change_failure_rate||{{}}).cfr_pct || 0;
         if (cfr > 15)
-          sev('red', `Change failure rate: ${{cfr}}%`,
+          sev('red', 'git_cicd', `Change failure rate: ${{cfr}}%`,
             'More than 15% of deployments fail. Investigate CI pipeline and test coverage.');
         else if (cfr > 10)
-          sev('orange', `Change failure rate: ${{cfr}}%`,
+          sev('orange', 'git_cicd', `Change failure rate: ${{cfr}}%`,
             'Moderate failure rate. Review test automation and deployment process.');
         const buildRate = (CICD_DATA.builds||{{}}).success_rate;
         if (buildRate != null && buildRate < 80)
-          sev('orange', `Build success rate: ${{buildRate}}%`,
+          sev('orange', 'git_cicd', `Build success rate: ${{buildRate}}%`,
             'Low build success rate slows delivery. Investigate flaky tests and build issues.');
       }}
+
+      const order = {{ red: 0, orange: 1, yellow: 2 }};
+      flags.sort((a, b) => (order[a.severity] ?? 9) - (order[b.severity] ?? 9));
+      window._auditFlagsAll = flags;
 
       const container = document.getElementById('auditFlags');
       if (!container) return;
       if (flags.length === 0) {{
         container.innerHTML = '<div class="audit-flag" style="border-left-color:var(--green)"><div class="flag-title" style="color:var(--green)">No significant issues detected</div></div>';
         window._auditFlags = [];
+        renderAuditCategoryOptions();
+        renderAuditDataHealth();
         return;
       }}
-      const order = {{ red: 0, orange: 1, yellow: 2 }};
-      flags.sort((a, b) => (order[a.severity] ?? 9) - (order[b.severity] ?? 9));
-      container.innerHTML = flags.map(f =>
-        `<div class="audit-flag ${{f.severity}}"><div class="flag-title">${{f.title}}</div><div class="flag-detail">${{f.detail}}</div></div>`
-      ).join('');
-
-      window._auditFlags = flags;
+      renderAuditCategoryOptions();
+      renderAuditDataHealth();
+      renderAuditFlagsDOM();
     }}
-    computeAuditFlags();
 
     // ---------- Gaming Score (Phase 4a) ----------
     function computeGamingScore() {{
@@ -1859,43 +1937,52 @@ def main():
       const container = document.getElementById('gamingScoreContainer');
       if (!container) return;
 
-      function projectScore(pk) {{
-        let score = 0;
+      function projectScoreParts(pk) {{
         const pm = bp[pk] || {{}};
+        const parts = [];
         const ltd = pm.lead_time_distribution || {{}};
         const ltTotal = ltd.total || 0;
         const instPct = ltTotal >= 5 ? (ltd.under_1h||0) / ltTotal * 100 : 0;
-        score += Math.min(instPct / 50 * 20, 20);
+        parts.push({{ key: 'instant', label: 'Instant lead time', pts: Math.min(instPct / 50 * 20, 20) }});
         const spa = pm.status_path_analysis || {{}};
-        score += Math.min((spa.skip_pct||0) / 50 * 20, 20);
+        parts.push({{ key: 'skip', label: 'Status skip', pts: Math.min((spa.skip_pct||0) / 50 * 20, 20) }});
         const sprints = (D.sprint_metrics||[]).filter(s => s.project === pk);
+        let sprintPts = 0;
         if (sprints.length > 0) {{
           const perfectPct = sprints.filter(s => s.total_issues > 0 && s.throughput_issues === s.total_issues).length / sprints.length * 100;
-          score += Math.min(perfectPct / 100 * 15, 15);
+          sprintPts = Math.min(perfectPct / 100 * 15, 15);
         }}
+        parts.push({{ key: 'sprint', label: 'Perfect sprints', pts: sprintPts }});
         const bulk = pm.bulk_closure_days || [];
-        score += Math.min(bulk.length * 2.5, 10);
+        parts.push({{ key: 'bulk', label: 'Bulk closure days', pts: Math.min(bulk.length * 2.5, 10) }});
         const ca = pm.closer_analysis || {{}};
-        score += Math.min((ca.closer_not_assignee_pct||0) / 80 * 10, 10);
-        score += Math.min((pm.empty_description_done_pct||0) / 60 * 10, 10);
-        score += Math.min((pm.zero_comment_done_pct||0) / 80 * 5, 5);
+        parts.push({{ key: 'closer', label: 'Closer mismatch', pts: Math.min((ca.closer_not_assignee_pct||0) / 80 * 10, 10) }});
+        parts.push({{ key: 'empty', label: 'Empty descriptions', pts: Math.min((pm.empty_description_done_pct||0) / 60 * 10, 10) }});
+        parts.push({{ key: 'nocomm', label: 'Zero comments', pts: Math.min((pm.zero_comment_done_pct||0) / 80 * 5, 5) }});
         const openCount = (pm.open_count != null ? pm.open_count : pm.wip_count) || 1;
         const unaPct = ((pm.unassigned_open_count != null ? pm.unassigned_open_count : pm.unassigned_wip_count)||0) / openCount * 100;
-        score += Math.min(unaPct / 60 * 5, 5);
+        parts.push({{ key: 'unass', label: 'Unassigned WIP', pts: Math.min(unaPct / 60 * 5, 5) }});
         const blkPct = (pm.blocked_count||0) / openCount * 100;
-        if (openCount > 20 && blkPct < 2) score += 5;
-        else if (openCount > 20 && blkPct < 5) score += 2;
-        // Phase 4 new signals
+        let blkPts = 0;
+        if (openCount > 20 && blkPct < 2) blkPts = 5;
+        else if (openCount > 20 && blkPct < 5) blkPts = 2;
+        parts.push({{ key: 'blocked', label: 'Low blocked rate', pts: blkPts }});
         const acnr = pm.assignee_change_near_resolution || {{}};
-        score += Math.min((acnr.changed_pct||0) / 30 * 5, 5);
+        parts.push({{ key: 'acnr', label: 'Assignee change near done', pts: Math.min((acnr.changed_pct||0) / 30 * 5, 5) }});
         const ctm = pm.comment_timing || {{}};
-        score += Math.min((ctm.post_resolution_comment_pct||0) / 50 * 5, 5);
+        parts.push({{ key: 'postc', label: 'Post-resolution comments', pts: Math.min((ctm.post_resolution_comment_pct||0) / 50 * 5, 5) }});
         const wla = pm.worklog_analysis || {{}};
-        score += Math.min((wla.post_resolution_worklog_pct||0) / 40 * 5, 5);
-        return Math.round(Math.min(score, 100));
+        parts.push({{ key: 'postw', label: 'Post-resolution worklogs', pts: Math.min((wla.post_resolution_worklog_pct||0) / 40 * 5, 5) }});
+        const raw = parts.reduce((a, p) => a + p.pts, 0);
+        return {{ parts, total: Math.round(Math.min(raw, 100)) }};
+      }}
+      function projectScore(pk) {{
+        return projectScoreParts(pk).total;
       }}
 
-      const globalScore = Math.round(projects.reduce((a, pk) => a + projectScore(pk), 0) / Math.max(projects.length, 1));
+      const globalScore = projects.length
+        ? Math.round(projects.reduce((a, pk) => a + projectScore(pk), 0) / projects.length)
+        : 0;
       const color = globalScore >= 60 ? 'var(--red)' : globalScore >= 40 ? 'var(--orange)' : globalScore >= 20 ? '#e3b341' : 'var(--green)';
       const label = globalScore >= 60 ? 'Systemic Gaming' : globalScore >= 40 ? 'Significant Manipulation Signals' : globalScore >= 20 ? 'Concerning' : 'Healthy';
 
@@ -1908,8 +1995,24 @@ def main():
       container.innerHTML = `<div><div class="gaming-gauge" style="color:${{color}}">${{globalScore}}</div><div class="gaming-label">Gaming Score (0\u2013100)</div></div><div><div class="gaming-detail" style="color:${{color}};font-weight:700;font-size:1.1rem">${{label}}</div><div class="gaming-detail" style="margin-top:0.5rem">Per project: ${{perProj}}</div></div>`;
       window._gamingScore = globalScore;
       window._projectScores = Object.fromEntries(projects.map(pk => [pk, projectScore(pk)]));
+      const agg = {{}};
+      projects.forEach(pk => {{
+        projectScoreParts(pk).parts.forEach(p => {{
+          if (!agg[p.key]) agg[p.key] = {{ label: p.label, pts: 0 }};
+          agg[p.key].pts += p.pts;
+        }});
+      }});
+      const nProj = Math.max(projects.length, 1);
+      window._gamingScoreDrivers = Object.values(agg)
+        .map(x => ({{ label: x.label, avg: x.pts / nProj }}))
+        .sort((a, b) => b.avg - a.avg)
+        .filter(x => x.avg >= 0.5)
+        .slice(0, 3)
+        .map(x => `${{x.label}} (~${{x.avg.toFixed(1)}} pts)`);
+      renderAuditGamingStrip();
     }}
     computeGamingScore();
+    computeAuditFlags();
 
     // ---------- Filters & Interactivity ----------
     function getSelectedProjects() {{
@@ -2625,6 +2728,7 @@ def main():
         const t = document.getElementById(tableId);
         if (t && t.tBodies[0]) t.tBodies[0].querySelectorAll('tr').forEach(show);
       }});
+      if (typeof applyEpicTableFilters === 'function') applyEpicTableFilters();
       const filtered = (DATA.sprint_metrics || []).filter(s => {{
         const projectOk = effectiveProj === null || effectiveProj.includes(s.project);
         const sprintComponents = Object.keys(s.component_breakdown || {{}});
@@ -2639,8 +2743,8 @@ def main():
       chartAddedLate.update();
 
       setCardsAndChartsFromMetrics(scoped, compSel, effectiveProj);
-      computeAuditFlags();
       computeGamingScore();
+      computeAuditFlags();
       document.getElementById('filterBugs')?.dispatchEvent(new Event('input'));
       document.getElementById('filterSprints')?.dispatchEvent(new Event('input'));
       if (typeof refreshGitTab === 'function') refreshGitTab();
@@ -2782,9 +2886,38 @@ def main():
     setupSort('tableReleases');
     setupSort('tableEmptyBad');
 
+    const EPIC_ROW_CAP = 80;
+    window._epicShowAllRows = false;
+    function applyEpicTableFilters() {{
+      const tbody = document.querySelector('#tableEpics tbody');
+      if (!tbody) return;
+      const staleOnly = document.getElementById('epicStaleOnly')?.checked;
+      const btn = document.getElementById('epicShowAllBtn');
+      const all = Array.from(tbody.querySelectorAll('tr')).filter(r => r.cells.length > 1);
+      all.forEach(r => {{
+        if (r.style.display === 'none') return;
+        if (staleOnly && r.dataset.stale !== '1') r.style.display = 'none';
+      }});
+      const visible = all.filter(r => r.style.display !== 'none');
+      const total = visible.length;
+      if (!staleOnly && !window._epicShowAllRows && total > EPIC_ROW_CAP) {{
+        visible.forEach((r, i) => {{ if (i >= EPIC_ROW_CAP) r.style.display = 'none'; }});
+        if (btn) {{ btn.style.display = ''; btn.textContent = `Show all ${{total}} rows`; }}
+      }} else if (btn) {{
+        btn.style.display = 'none';
+      }}
+    }}
+    document.getElementById('epicStaleOnly')?.addEventListener('change', () => {{ window._epicShowAllRows = false; applyProjectFilter(); }});
+    document.getElementById('epicShowAllBtn')?.addEventListener('click', () => {{ window._epicShowAllRows = true; applyProjectFilter(); }});
+
+    document.getElementById('auditFilterSeverity')?.addEventListener('change', renderAuditFlagsDOM);
+    document.getElementById('auditFilterCategory')?.addEventListener('change', renderAuditFlagsDOM);
+
+    applyEpicTableFilters();
+
     // ---------- Evidence Export (Phase 4b) ----------
     function exportEvidence() {{
-      const flags = window._auditFlags || [];
+      const flags = window._auditFlagsAll || window._auditFlags || [];
       const gs = window._gamingScore || 0;
       const ps = window._projectScores || {{}};
       const d = window._currentScopeData || getEffectiveData();
@@ -2831,7 +2964,8 @@ def main():
       md += '\\n## Audit Flags\\n\\n';
       const sevEmoji = {{ red: '[RED]', orange: '[ORANGE]', yellow: '[YELLOW]' }};
       for (const f of flags) {{
-        md += `### ${{sevEmoji[f.severity] || ''}} ${{f.title}}\\n\\n${{f.detail}}\\n\\n`;
+        const cat = f.category ? ` [${{f.category}}]` : '';
+        md += `### ${{sevEmoji[f.severity] || ''}}${{cat}} ${{f.title}}\\n\\n${{f.detail}}\\n\\n`;
       }}
       md += '\\n## Resolution Breakdown\\n\\n';
       md += '| Type | Count |\\n|------|-------|\\n';

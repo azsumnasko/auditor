@@ -235,26 +235,62 @@ new Chart(document.getElementById('radar'), {{
     return html
 
 
+def generate_placeholder_html() -> str:
+    """Single-page message when scorecard.json is missing (avoids 404 on static hosts)."""
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Scorecard unavailable</title>
+  <style>
+    body {{ font-family: ui-sans-serif, system-ui, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 2rem; line-height: 1.5; }}
+    .box {{ max-width: 40rem; margin: 4rem auto; padding: 1.5rem 1.75rem; background: #161b22; border: 1px solid #30363d; border-radius: 8px; }}
+    h1 {{ font-size: 1.25rem; margin: 0 0 0.75rem; color: #f0f6fc; }}
+    p {{ margin: 0.65rem 0; color: #8b949e; font-size: 0.9rem; }}
+    code {{ background: #21262d; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.85em; }}
+    a {{ color: #58a6ff; }}
+    .ts {{ font-size: 0.75rem; color: #6e7681; margin-top: 1rem; }}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Engineering Maturity Scorecard</h1>
+    <p><strong>scorecard.json</strong> was not found when generating this page. The full scorecard requires merged evidence and a successful scoring run.</p>
+    <p>Run <code>merge_evidence</code> (produces <code>unified_evidence.json</code>), then <code>score_engine</code> (writes <code>scorecard.json</code>), then regenerate. Deploy the whole <code>OUTPUT_DIR</code> including <code>scorecard.html</code> alongside the main dashboard.</p>
+    <p>Open the main <a href="jira_dashboard.html">Jira analytics dashboard</a> if it is hosted in the same folder.</p>
+    <p class="ts">Placeholder generated: {ts}</p>
+  </div>
+</body>
+</html>"""
+
+
 # ---------------------------------------------------------------------------
 # main()
 # ---------------------------------------------------------------------------
 
 def main():
+    """Write scorecard.html. Returns 'full' if scorecard.json was used, 'placeholder' otherwise."""
     load_env()
     output_dir = os.environ.get("OUTPUT_DIR") or os.path.dirname(__file__) or "."
 
+    path = os.path.join(output_dir, "scorecard.html")
     scorecard = read_json("scorecard", output_dir)
     if not scorecard:
-        print("[generate_scorecard] scorecard.json not found, skipping.")
-        return
+        print("[generate_scorecard] scorecard.json not found; writing placeholder scorecard.html.")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(generate_placeholder_html())
+        print(f"[generate_scorecard] Wrote {path} (placeholder)")
+        return "placeholder"
 
     evidence = read_json("unified_evidence", output_dir)
 
     html = generate_html(scorecard, evidence)
-    path = os.path.join(output_dir, "scorecard.html")
     with open(path, "w", encoding="utf-8") as f:
         f.write(html)
     print(f"[generate_scorecard] Wrote {path}")
+    return "full"
 
 
 if __name__ == "__main__":
