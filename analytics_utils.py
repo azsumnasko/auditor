@@ -65,6 +65,20 @@ def summarize_time_metrics(values):
     }
 
 
+def summarize_hours_metrics(values):
+    """Return {count, avg_hours, p50/p85/p95_hours} for a list of numeric hour values."""
+    values = [v for v in values if v is not None and v >= 0]
+    if not values:
+        return {}
+    return {
+        "count": len(values),
+        "avg_hours": round(sum(values) / len(values), 2),
+        "p50_hours": round(percentile(values, 50), 2),
+        "p85_hours": round(percentile(values, 85), 2),
+        "p95_hours": round(percentile(values, 95), 2),
+    }
+
+
 def gini_coefficient(counts):
     """Gini coefficient (0 = perfectly equal, 1 = one person does everything)."""
     if not counts or len(counts) < 2:

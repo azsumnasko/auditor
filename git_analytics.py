@@ -1,9 +1,13 @@
 """
 git_analytics.py -- Git/GitHub/GitLab analytics collector.
 
-Collects PR cycle time, size, review turnaround, merge frequency, contributor
-analysis (bus factor, Gini), work-pattern analysis, coupling, hotspots, reverts,
-ownership, branch drift, pending changes, commit counting, and tag mapping.
+Collects PR cycle time, optional PR cycle breakdown (coding / review / merge phases;
+GitHub only), size, review turnaround, merge frequency, contributor analysis
+(bus factor, Gini), work-pattern analysis, coupling, hotspots, reverts, ownership,
+branch drift, pending changes, commit counting, and tag mapping.
+
+Env: GIT_PR_BREAKDOWN_ENABLED (default 1), GIT_PR_DETAIL_MAX (0 = all merged PRs),
+GIT_FETCH_WORKERS (default 6).
 
 Outputs ``git_analytics_latest.json`` (+ timestamped copy).
 """
@@ -26,6 +30,7 @@ from analytics_utils import (
     iso_week,
     percentile,
     summarize_time_metrics,
+    summarize_hours_metrics,
     gini_coefficient,
     velocity_cv,
     extract_jira_keys,
@@ -132,6 +137,14 @@ class GitHubClient:
 
     def get_pull_files(self, owner, repo, number):
         return list(self._paginate(f"/repos/{owner}/{repo}/pulls/{number}/files"))
+
+    def list_pull_commits(self, owner, repo, number):
+        """Commits on the PR branch (for earliest-commit / cycle breakdown)."""
+        return list(self._paginate(f"/repos/{owner}/{repo}/pulls/{number}/commits"))
+
+    def list_issue_timeline(self, owner, repo, issue_number):
+        """Issue/PR timeline events (review_requested, ready_for_review, etc.)."""
+        return list(self._paginate(f"/repos/{owner}/{repo}/issues/{issue_number}/timeline"))
 
     # ---- Commits ----
     def get_commits(self, owner, repo, since=None, until=None, sha=None, per_page=100):
@@ -304,6 +317,11 @@ def pr_size_metrics(pulls):
     }
 
 
+def _pr_detail_key(pr) -> str:
+    repo = pr.get("_repo") or ""
+    return f"{repo}:{pr.get('number')}"
+
+
 def review_turnaround_metrics(pulls, reviews_map):
     """Time-to-first-review and self-merge statistics."""
     values = []
@@ -316,8 +334,7 @@ def review_turnaround_metrics(pulls, reviews_map):
         if not pr.get("merged_at"):
             continue
         total += 1
-        pr_number = pr["number"]
-        reviews = reviews_map.get(pr_number, [])
+        reviews = reviews_map.get(_pr_detail_key(pr), [])
         created = parse_dt(pr["created_at"])
         pr_author = (pr.get("user") or {}).get("login", "")
 
@@ -382,6 +399,160 @@ def merge_frequency_metrics(pulls):
             "avg_merges_per_week": avg,
             "trend": trend,
         }
+    }
+
+
+PR_CYCLE_BREAKDOWN_META = {
+    "time_in_progress_hours": (
+        "From min(PR opened, earliest commit on the PR) to the first review_requested timeline event "
+        "or first non-author submitted review (whichever is earlier). If neither exists, coding spans until merge."
+    ),
+    "time_in_review_hours": (
+        "From end of progress phase to the latest APPROVED review before merge. If no approval, end is merge (phase may equal wait until merge)."
+    ),
+    "time_to_merge_hours": "From final approval (or merge if none) to merged_at.",
+}
+
+
+def compute_phase_hours_for_pr(pr, commits, timeline, reviews):
+    """
+    Sequential phases: coding -> review/approval -> merge.
+    Returns dict with hours and flags, or None if merged_at/created_at missing.
+    """
+    merged = parse_dt(pr.get("merged_at"))
+    created = parse_dt(pr.get("created_at"))
+    if not merged or not created:
+        return None
+
+    earliest = None
+    for c in commits or []:
+        cobj = c.get("commit") or {}
+        for key in ("author", "committer"):
+            part = cobj.get(key) or {}
+            d = parse_dt(part.get("date"))
+            if d and (earliest is None or d < earliest):
+                earliest = d
+    work_start = min(created, earliest) if earliest else created
+
+    req_ts = None
+    for ev in timeline or []:
+        evname = ev.get("event") or ""
+        if evname in ("review_requested", "ready_for_review"):
+            t = parse_dt(ev.get("created_at"))
+            if t and (req_ts is None or t < req_ts):
+                req_ts = t
+
+    pr_author = (pr.get("user") or {}).get("login", "")
+    first_submit = None
+    for r in reviews or []:
+        if r.get("user", {}).get("login") == pr_author:
+            continue
+        t = parse_dt(r.get("submitted_at"))
+        if t and (first_submit is None or t < first_submit):
+            first_submit = t
+
+    candidates = [x for x in (req_ts, first_submit) if x is not None]
+    if candidates:
+        phase_end_coding = min(candidates)
+    else:
+        phase_end_coding = merged
+
+    approval_ts = None
+    for r in reviews or []:
+        if r.get("state") != "APPROVED":
+            continue
+        t = parse_dt(r.get("submitted_at"))
+        if not t or t > merged:
+            continue
+        if approval_ts is None or t > approval_ts:
+            approval_ts = t
+    no_approval = approval_ts is None
+    approval_or_merge = approval_ts if approval_ts is not None else merged
+
+    tip = max(0.0, (phase_end_coding - work_start).total_seconds() / 3600.0)
+    tir = max(0.0, (approval_or_merge - phase_end_coding).total_seconds() / 3600.0)
+    ttm = max(0.0, (merged - approval_or_merge).total_seconds() / 3600.0)
+
+    return {
+        "time_in_progress_hours": tip,
+        "time_in_review_hours": tir,
+        "time_to_merge_hours": ttm,
+        "no_approval": no_approval,
+    }
+
+
+def pr_cycle_breakdown_metrics(merged_pulls, commits_map, timeline_map, reviews_map):
+    """
+    commits_map / timeline_map keyed by _pr_detail_key(pr).
+    """
+    prog, rev, mrg = [], [], []
+    by_week = defaultdict(lambda: {"prog": [], "rev": [], "mrg": []})
+    by_repo = defaultdict(lambda: {"prog": [], "rev": [], "mrg": []})
+    excluded = {"missing_dates": 0}
+    no_approval_count = 0
+
+    for pr in merged_pulls:
+        key = _pr_detail_key(pr)
+        cm = commits_map.get(key)
+        tm = timeline_map.get(key)
+        rv = reviews_map.get(key, [])
+        row = compute_phase_hours_for_pr(pr, cm or [], tm or [], rv)
+        if row is None:
+            excluded["missing_dates"] += 1
+            continue
+        if row.get("no_approval"):
+            no_approval_count += 1
+        p, r_, m_ = row["time_in_progress_hours"], row["time_in_review_hours"], row["time_to_merge_hours"]
+        prog.append(p)
+        rev.append(r_)
+        mrg.append(m_)
+        merged = parse_dt(pr.get("merged_at"))
+        if merged:
+            wk = iso_week(merged)
+            by_week[wk]["prog"].append(p)
+            by_week[wk]["rev"].append(r_)
+            by_week[wk]["mrg"].append(m_)
+        repo = pr.get("_repo") or "unknown"
+        by_repo[repo]["prog"].append(p)
+        by_repo[repo]["rev"].append(r_)
+        by_repo[repo]["mrg"].append(m_)
+
+    def _avg_week(week_data):
+        out = {}
+        for wk in sorted(week_data.keys()):
+            bucket = week_data[wk]
+            n = len(bucket["prog"])
+            if n == 0:
+                continue
+            out[wk] = {
+                "avg_progress_hours": round(sum(bucket["prog"]) / n, 2),
+                "avg_review_hours": round(sum(bucket["rev"]) / n, 2),
+                "avg_merge_hours": round(sum(bucket["mrg"]) / n, 2),
+                "pr_count": n,
+            }
+        return out
+
+    by_repo_out = {}
+    for repo, bucket in by_repo.items():
+        if not bucket["prog"]:
+            continue
+        by_repo_out[repo] = {
+            "time_in_progress_hours": summarize_hours_metrics(bucket["prog"]),
+            "time_in_review_hours": summarize_hours_metrics(bucket["rev"]),
+            "time_to_merge_hours": summarize_hours_metrics(bucket["mrg"]),
+        }
+
+    return {
+        "pr_cycle_breakdown": {
+            "time_in_progress_hours": summarize_hours_metrics(prog),
+            "time_in_review_hours": summarize_hours_metrics(rev),
+            "time_to_merge_hours": summarize_hours_metrics(mrg),
+            "no_approval_count": no_approval_count,
+            "excluded": excluded,
+        },
+        "pr_cycle_breakdown_meta": PR_CYCLE_BREAKDOWN_META,
+        "pr_cycle_breakdown_by_week": _avg_week(by_week),
+        "pr_cycle_breakdown_by_repo": by_repo_out,
     }
 
 
@@ -793,6 +964,52 @@ def commit_count_by_repo(client, owner, repos_config, since, until):
     return {"by_repo": results, "total": total}
 
 
+def _github_fetch_pr_detail_bundle(client, org, repo, pr, fetch_breakdown: bool):
+    """
+    Fetch reviews, optional commits+timeline for breakdown, files, and size fields.
+    Returns: key, reviews, commits, timeline, files, detail_updates, error_message
+    """
+    key = f"{repo}:{pr['number']}"
+    num = pr["number"]
+    err = None
+    detail_updates = {}
+    try:
+        detail = client.get_pull(org, repo, num)
+        if detail:
+            for k in ("additions", "deletions", "changed_files"):
+                if k in detail:
+                    detail_updates[k] = detail[k]
+    except Exception as exc:
+        err = str(exc)
+        log.debug("get_pull failed %s: %s", key, exc)
+
+    reviews = []
+    try:
+        reviews = client.get_pull_reviews(org, repo, num)
+    except Exception as exc:
+        log.debug("get_pull_reviews failed %s: %s", key, exc)
+
+    files = []
+    try:
+        files = client.get_pull_files(org, repo, num)
+    except Exception as exc:
+        log.debug("get_pull_files failed %s: %s", key, exc)
+
+    commits = []
+    timeline = []
+    if fetch_breakdown:
+        try:
+            commits = client.list_pull_commits(org, repo, num)
+        except Exception as exc:
+            log.debug("list_pull_commits failed %s: %s", key, exc)
+        try:
+            timeline = client.list_issue_timeline(org, repo, num)
+        except Exception as exc:
+            log.debug("list_issue_timeline failed %s: %s", key, exc)
+
+    return key, reviews, commits, timeline, files, detail_updates, err
+
+
 # ---------------------------------------------------------------------------
 # main()
 # ---------------------------------------------------------------------------
@@ -841,9 +1058,15 @@ def main():
 
     print(f"[git_analytics] Analyzing {len(repo_names)} repos in {org}, lookback={lookback}d")
 
+    breakdown_enabled = os.environ.get("GIT_PR_BREAKDOWN_ENABLED", "1").lower() not in ("0", "false", "no")
+    detail_max_raw = os.environ.get("GIT_PR_DETAIL_MAX", "0")
+    fetch_workers = max(1, int(os.environ.get("GIT_FETCH_WORKERS", "6")))
+
     all_pulls = []
     all_commits = []
     reviews_map = {}
+    commits_map = {}
+    timeline_map = {}
     pulls_files_map = []
     tag_maps = {}
     branch_drift = {}
@@ -866,26 +1089,32 @@ def main():
                     pr["_repo"] = repo
 
                 merged_prs = [p for p in pulls if p.get("merged_at")]
-                for pr in merged_prs[:50]:
-                    try:
-                        detail = client.get_pull(org, repo, pr["number"])
-                        if detail:
-                            detail["_repo"] = repo
-                            pr.update({k: detail[k] for k in ("additions", "deletions", "changed_files") if k in detail})
-                    except Exception:
-                        pass
+                try:
+                    dm = int(detail_max_raw) if str(detail_max_raw).strip() else 0
+                except ValueError:
+                    dm = 0
+                if dm <= 0:
+                    dm = len(merged_prs)
+                merged_for_detail = merged_prs[:dm]
+                pr_by_key = {_pr_detail_key(p): p for p in merged_for_detail}
 
-                    try:
-                        reviews = client.get_pull_reviews(org, repo, pr["number"])
-                        reviews_map[pr["number"]] = reviews
-                    except Exception:
-                        pass
-
-                    try:
-                        files = client.get_pull_files(org, repo, pr["number"])
-                        pulls_files_map.append(files)
-                    except Exception:
-                        pass
+                if merged_for_detail:
+                    with ThreadPoolExecutor(max_workers=fetch_workers) as pool:
+                        futs = [
+                            pool.submit(_github_fetch_pr_detail_bundle, client, org, repo, pr, breakdown_enabled)
+                            for pr in merged_for_detail
+                        ]
+                        for fut in as_completed(futs):
+                            key, reviews, commits, timeline, files, detail_updates, _err = fut.result()
+                            reviews_map[key] = reviews
+                            if breakdown_enabled:
+                                commits_map[key] = commits
+                                timeline_map[key] = timeline
+                            if files:
+                                pulls_files_map.append(files)
+                            pr_obj = pr_by_key.get(key)
+                            if pr_obj and detail_updates:
+                                pr_obj.update(detail_updates)
 
                 all_pulls.extend(pulls)
             else:
@@ -954,6 +1183,21 @@ def main():
     results.update(pr_size_metrics(all_pulls))
     results.update(review_turnaround_metrics(all_pulls, reviews_map))
     results.update(merge_frequency_metrics(all_pulls))
+
+    if provider == "github" and breakdown_enabled:
+        results.update(pr_cycle_breakdown_metrics(merged_pulls, commits_map, timeline_map, reviews_map))
+    elif provider == "gitlab":
+        results["pr_cycle_breakdown"] = None
+        results["pr_cycle_breakdown_meta"] = None
+        results["pr_cycle_breakdown_by_week"] = {}
+        results["pr_cycle_breakdown_by_repo"] = {}
+        results["pr_cycle_breakdown_skip_reason"] = "gitlab_not_supported"
+    else:
+        results["pr_cycle_breakdown"] = None
+        results["pr_cycle_breakdown_meta"] = None
+        results["pr_cycle_breakdown_by_week"] = {}
+        results["pr_cycle_breakdown_by_repo"] = {}
+        results["pr_cycle_breakdown_skip_reason"] = "disabled_via_env"
     results.update(contributor_analysis(all_commits, all_pulls))
     results.update(work_pattern_analysis(all_commits))
     results.update(coupling_analysis(pulls_files_map))
@@ -971,6 +1215,23 @@ def main():
             by_repo[repo].update(pr_cycle_time_metrics(repo_pulls))
             by_repo[repo].update(pr_size_metrics(repo_pulls))
             by_repo[repo].update(merge_frequency_metrics(repo_pulls))
+            by_repo[repo].update(review_turnaround_metrics(repo_pulls, reviews_map))
+            repo_merged = [p for p in repo_pulls if p.get("merged_at")]
+            if provider == "github" and breakdown_enabled and repo_merged:
+
+                def _prefixed(m):
+                    prefix = f"{repo}:"
+                    return {k: v for k, v in m.items() if k.startswith(prefix)}
+
+                sub = pr_cycle_breakdown_metrics(
+                    repo_merged,
+                    _prefixed(commits_map),
+                    _prefixed(timeline_map),
+                    _prefixed(reviews_map),
+                )
+                by_repo[repo]["pr_cycle_breakdown"] = sub["pr_cycle_breakdown"]
+                by_repo[repo]["pr_cycle_breakdown_meta"] = sub.get("pr_cycle_breakdown_meta")
+                by_repo[repo]["pr_cycle_breakdown_by_week"] = sub["pr_cycle_breakdown_by_week"]
             by_repo[repo].update(revert_analysis(repo_commits))
         if repo_commits:
             by_repo[repo].update(churn_instability_metrics(repo_commits))

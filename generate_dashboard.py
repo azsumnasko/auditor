@@ -766,8 +766,17 @@ def main():
 
   <!-- ===== GIT TAB ===== -->
   <div class="tab-panel" id="panel-gitmetrics">
-    <section><h2>Git Analytics</h2><p class="summary-desc">Metrics from Git/GitHub: PR cycle time, review turnaround, merge frequency, contributor analysis.</p></section>
+    <section><h2>Git Analytics</h2>
+      <p class="summary-desc">Repository-scoped metrics from Git/GitHub. <strong>Jira</strong> project/component/team filters apply to Jira tabs only. Use the <strong>repository</strong> checkboxes below and the global <strong>time range</strong> (top) to scope PR and merge charts.</p>
+    </section>
+    <div class="project-filter" id="gitRepoFilterBar"></div>
+    <p class="meta" id="gitBreakdownNote" style="display:none"></p>
     <div class="cards" id="gitCards"></div>
+    <section><h2>PR cycle breakdown (median hours)</h2>
+      <p class="summary-desc" id="gitBreakdownDesc">Coding &rarr; review/approval &rarr; merge (see <code>pr_cycle_breakdown_meta</code> in JSON when present).</p>
+      <div class="cards" id="gitBreakdownCards"></div>
+      <div class="chart-wrap" style="max-width:900px;height:280px"><canvas id="chartPrCycleBreakdown"></canvas></div>
+    </section>
     <div class="grid2">
       <section><h2>PR Cycle Time by Week</h2><div class="chart-wrap"><canvas id="chartPrCycle"></canvas></div></section>
       <section><h2>Merge Frequency by Week</h2><div class="chart-wrap"><canvas id="chartMergeFreq"></canvas></div></section>
@@ -2634,6 +2643,8 @@ def main():
       computeGamingScore();
       document.getElementById('filterBugs')?.dispatchEvent(new Event('input'));
       document.getElementById('filterSprints')?.dispatchEvent(new Event('input'));
+      if (typeof refreshGitTab === 'function') refreshGitTab();
+      if (typeof refreshCicdCharts === 'function') refreshCicdCharts();
     }}
 
     const projectAll = document.getElementById('projectAll');
@@ -2836,6 +2847,441 @@ def main():
       URL.revokeObjectURL(url);
     }}
 
+    window._gitCharts = {{}};
+    window._cicdCharts = {{}};
+
+    function _mkExtraCard(label, value, color) {{
+      return `<div class="card"><div class="value" style="color:${{color||'var(--accent)'}}">${{value ?? 'N/A'}}</div><div class="label">${{label}}</div></div>`;
+    }}
+
+    function mergeWeekAvgMaps(maps) {{
+      if (!maps || !maps.length) return {{}};
+      const keys = new Set();
+      maps.forEach(m => Object.keys(m||{{}}).forEach(k => keys.add(k)));
+      const out = {{}};
+      for (const k of [...keys].sort()) {{
+        const vals = maps.map(m => m[k]).filter(v => v != null && !Number.isNaN(+v));
+        if (!vals.length) continue;
+        out[k] = Math.round((vals.reduce((a,b) => a + Number(b), 0) / vals.length) * 100) / 100;
+      }}
+      return out;
+    }}
+
+    function mergeWeekSumMaps(maps) {{
+      if (!maps || !maps.length) return {{}};
+      const keys = new Set();
+      maps.forEach(m => Object.keys(m||{{}}).forEach(k => keys.add(k)));
+      const out = {{}};
+      for (const k of [...keys].sort()) {{
+        out[k] = maps.reduce((s, m) => s + (m[k] || 0), 0);
+      }}
+      return out;
+    }}
+
+    function mergeBreakdownByWeekMaps(maps) {{
+      if (!maps || !maps.length) return {{}};
+      const keys = new Set();
+      maps.forEach(m => Object.keys(m||{{}}).forEach(k => keys.add(k)));
+      const out = {{}};
+      for (const w of [...keys].sort()) {{
+        const rows = maps.map(m => m[w]).filter(Boolean);
+        if (!rows.length) continue;
+        const n = rows.length;
+        out[w] = {{
+          avg_progress_hours: Math.round((rows.reduce((s, x) => s + (x.avg_progress_hours || 0), 0) / n) * 100) / 100,
+          avg_review_hours: Math.round((rows.reduce((s, x) => s + (x.avg_review_hours || 0), 0) / n) * 100) / 100,
+          avg_merge_hours: Math.round((rows.reduce((s, x) => s + (x.avg_merge_hours || 0), 0) / n) * 100) / 100,
+          pr_count: rows.reduce((s, x) => s + (x.pr_count || 0), 0),
+        }};
+      }}
+      return out;
+    }}
+
+    function mergeGitByRepos(gitRoot, selectedRepos) {{
+      if (!gitRoot || !selectedRepos || !selectedRepos.length) return gitRoot;
+      const analyzed = gitRoot.repos_analyzed || [];
+      if (selectedRepos.length >= analyzed.length) return gitRoot;
+      const byR = gitRoot.by_repo || {{}};
+      const repos = selectedRepos.filter(r => byR[r]);
+      if (!repos.length) return gitRoot;
+      const out = JSON.parse(JSON.stringify(gitRoot));
+      let mc = 0;
+      for (const r of repos) {{
+        const c = (byR[r].pr_cycle_time || {{}}).count;
+        if (c) mc += c;
+      }}
+      out.pr_merged_count = mc;
+      const wavg = (field) => {{
+        let num = 0, den = 0;
+        for (const r of repos) {{
+          const pc = byR[r].pr_cycle_time || {{}};
+          const c = pc.count || 0;
+          if (c && pc[field] != null) {{ num += pc[field] * c; den += c; }}
+        }}
+        return den ? Math.round((num / den) * 100) / 100 : 0;
+      }};
+      out.pr_cycle_time = {{
+        count: mc,
+        avg_days: wavg('avg_days'),
+        p50_days: wavg('p50_days'),
+        p85_days: wavg('p85_days'),
+        p95_days: wavg('p95_days'),
+      }};
+      out.pr_cycle_time_by_week = mergeWeekAvgMaps(repos.map(r => byR[r].pr_cycle_time_by_week || {{}}));
+      const mergesByWeek = mergeWeekSumMaps(repos.map(r => ((byR[r].merge_frequency || {{}}).merges_by_week || {{}})));
+      const wkKeys = Object.keys(mergesByWeek);
+      const totalMerges = Object.values(mergesByWeek).reduce((a, b) => a + b, 0);
+      out.merge_frequency = Object.assign({{}}, out.merge_frequency || {{}}, {{
+        merges_by_week: mergesByWeek,
+        avg_merges_per_week: wkKeys.length ? Math.round((totalMerges / wkKeys.length) * 10) / 10 : 0,
+      }});
+      const rtw = (field) => {{
+        let num = 0, den = 0;
+        for (const r of repos) {{
+          const rv = byR[r].review_turnaround || {{}};
+          const c = rv.count || 0;
+          if (c && rv[field] != null) {{ num += rv[field] * c; den += c; }}
+        }}
+        return den ? Math.round((num / den) * 10) / 10 : 0;
+      }};
+      let rtc = 0;
+      for (const r of repos) rtc += (byR[r].review_turnaround || {{}}).count || 0;
+      let pnrNum = 0, pnrDen = 0;
+      for (const r of repos) {{
+        const rv = byR[r].review_turnaround || {{}};
+        const t = rv.count || 0;
+        if (t && rv.pct_no_review != null) {{ pnrNum += rv.pct_no_review * t; pnrDen += t; }}
+      }}
+      let psmNum = 0, psmDen = 0;
+      for (const r of repos) {{
+        const rv = byR[r].review_turnaround || {{}};
+        const t = rv.count || 0;
+        if (t && rv.pct_self_merged != null) {{ psmNum += rv.pct_self_merged * t; psmDen += t; }}
+      }}
+      out.review_turnaround = {{
+        count: rtc,
+        avg_hours: rtw('avg_hours'),
+        p50_hours: rtw('p50_hours'),
+        p85_hours: rtw('p85_hours'),
+        pct_no_review: pnrDen ? Math.round((pnrNum / pnrDen) * 10) / 10 : 0,
+        pct_self_merged: psmDen ? Math.round((psmNum / psmDen) * 10) / 10 : 0,
+      }};
+      out.review_turnaround_by_week = mergeWeekAvgMaps(repos.map(r => byR[r].review_turnaround_by_week || {{}}));
+      const dist = {{ xs: 0, small: 0, medium: 0, large: 0, xl: 0 }};
+      for (const r of repos) {{
+        const d = (byR[r].pr_size || {{}}).distribution || {{}};
+        for (const k of Object.keys(dist)) dist[k] += d[k] || 0;
+      }}
+      out.pr_size = Object.assign({{}}, out.pr_size || {{}}, {{ distribution: dist }});
+      const wbd = (phase, field) => {{
+        let num = 0, den = 0;
+        for (const r of repos) {{
+          const pb = ((byR[r].pr_cycle_breakdown || {{}})[phase]) || {{}};
+          const c = pb.count || 0;
+          if (c && pb[field] != null) {{ num += pb[field] * c; den += c; }}
+        }}
+        return den ? Math.round((num / den) * 100) / 100 : 0;
+      }};
+      let phaseCount = 0;
+      for (const r of repos) {{
+        const c = ((byR[r].pr_cycle_breakdown || {{}}).time_in_progress_hours || {{}}).count;
+        if (c) {{ phaseCount = c; break; }}
+      }}
+      out.pr_cycle_breakdown = {{
+        time_in_progress_hours: {{
+          count: phaseCount,
+          avg_hours: wbd('time_in_progress_hours', 'avg_hours'),
+          p50_hours: wbd('time_in_progress_hours', 'p50_hours'),
+          p85_hours: wbd('time_in_progress_hours', 'p85_hours'),
+          p95_hours: wbd('time_in_progress_hours', 'p95_hours'),
+        }},
+        time_in_review_hours: {{
+          count: phaseCount,
+          avg_hours: wbd('time_in_review_hours', 'avg_hours'),
+          p50_hours: wbd('time_in_review_hours', 'p50_hours'),
+          p85_hours: wbd('time_in_review_hours', 'p85_hours'),
+          p95_hours: wbd('time_in_review_hours', 'p95_hours'),
+        }},
+        time_to_merge_hours: {{
+          count: phaseCount,
+          avg_hours: wbd('time_to_merge_hours', 'avg_hours'),
+          p50_hours: wbd('time_to_merge_hours', 'p50_hours'),
+          p85_hours: wbd('time_to_merge_hours', 'p85_hours'),
+          p95_hours: wbd('time_to_merge_hours', 'p95_hours'),
+        }},
+        no_approval_count: repos.reduce((s, r) => s + ((byR[r].pr_cycle_breakdown || {{}}).no_approval_count || 0), 0),
+        excluded: {{ missing_dates: 0 }},
+      }};
+      out.pr_cycle_breakdown_by_week = mergeBreakdownByWeekMaps(repos.map(r => byR[r].pr_cycle_breakdown_by_week || {{}}));
+      const bfAll = (gitRoot.contributors || {{}}).bus_factor_by_repo || {{}};
+      const bfSel = {{}};
+      for (const r of repos) if (bfAll[r] != null) bfSel[r] = bfAll[r];
+      out.contributors = Object.assign({{}}, out.contributors || {{}}, {{
+        bus_factor_by_repo: bfSel,
+        min_bus_factor: Object.values(bfSel).length ? Math.min(...Object.values(bfSel)) : (out.contributors || {{}}).min_bus_factor,
+      }});
+      const driftAll = (gitRoot.branch_drift || {{}}).by_repo || {{}};
+      const driftSel = {{}};
+      for (const r of repos) if (driftAll[r]) driftSel[r] = driftAll[r];
+      out.branch_drift = Object.assign({{}}, out.branch_drift || {{}}, {{ by_repo: driftSel }});
+      return out;
+    }}
+
+    function getSelectedGitRepos() {{
+      const analyzed = (GIT_DATA && GIT_DATA.repos_analyzed) || [];
+      if (!analyzed.length) return null;
+      const all = document.getElementById('gitRepoAll');
+      if (all && all.checked) return null;
+      const cbs = document.querySelectorAll('.git-repo-cb:checked');
+      const s = Array.from(cbs).map(cb => cb.value);
+      return s.length ? s : null;
+    }}
+
+    function buildEffectiveGitData() {{
+      if (!GIT_DATA || !Object.keys(GIT_DATA).length) return null;
+      const sel = getSelectedGitRepos();
+      if (sel === null) return GIT_DATA;
+      return mergeGitByRepos(GIT_DATA, sel);
+    }}
+
+    function renderGitRepoFilterBar() {{
+      const bar = document.getElementById('gitRepoFilterBar');
+      if (!bar || !GIT_DATA || !GIT_DATA.repos_analyzed || !GIT_DATA.repos_analyzed.length) {{
+        if (bar) bar.innerHTML = '';
+        return;
+      }}
+      let saved = [];
+      try {{ saved = JSON.parse(localStorage.getItem('git_repo_filter') || '[]'); }} catch (e) {{ saved = []; }}
+      const repos = GIT_DATA.repos_analyzed;
+      const allOn = !saved.length || saved.length >= repos.length;
+      let html = '<span class="pf-label">Git repos:</span><label><input type="checkbox" id="gitRepoAll" ' + (allOn ? 'checked' : '') + ' /> All</label>';
+      repos.forEach(r => {{
+        const chk = allOn || saved.includes(r) ? ' checked' : '';
+        const esc = String(r).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+        html += '<label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" class="git-repo-cb" value="' + esc + '"' + chk + ' /> ' + esc + '</label>';
+      }});
+      bar.innerHTML = html;
+      const ra = document.getElementById('gitRepoAll');
+      if (ra) ra.addEventListener('change', function() {{
+        if (this.checked) document.querySelectorAll('.git-repo-cb').forEach(cb => {{ cb.checked = false; }});
+        try {{ localStorage.setItem('git_repo_filter', JSON.stringify([])); }} catch (e) {{}}
+        refreshGitTab();
+      }});
+      document.querySelectorAll('.git-repo-cb').forEach(cb => {{
+        cb.addEventListener('change', function() {{
+          if (document.getElementById('gitRepoAll')?.checked) document.getElementById('gitRepoAll').checked = false;
+          const sel = Array.from(document.querySelectorAll('.git-repo-cb:checked')).map(x => x.value);
+          try {{ localStorage.setItem('git_repo_filter', JSON.stringify(sel)); }} catch (e) {{}}
+          refreshGitTab();
+        }});
+      }});
+    }}
+
+    function initGitCharts() {{
+      const y0 = {{ scales: {{ y: {{ beginAtZero: true }} }} }};
+      const hbar = {{ indexAxis: 'y', scales: Object.assign({{}}, _hbarScales, {{ x: {{ beginAtZero: true }} }}) }};
+      const G = window._gitCharts;
+      if (document.getElementById('chartPrCycle')) {{
+        G.prCycle = new Chart(document.getElementById('chartPrCycle'), {{
+          type: 'line',
+          data: {{ labels: [], datasets: [{{ label: 'PR Cycle (days)', data: [], borderColor: '#58a6ff', fill: false }}] }},
+          options: y0,
+        }});
+      }}
+      if (document.getElementById('chartMergeFreq')) {{
+        G.mergeFreq = new Chart(document.getElementById('chartMergeFreq'), {{
+          type: 'bar',
+          data: {{ labels: [], datasets: [{{ label: 'Merges', data: [], backgroundColor: '#238636' }}] }},
+          options: y0,
+        }});
+      }}
+      if (document.getElementById('chartPrSize')) {{
+        G.prSize = new Chart(document.getElementById('chartPrSize'), {{
+          type: 'doughnut',
+          data: {{ labels: [], datasets: [{{ data: [], backgroundColor: ['#27ae60','#2ecc71','#f1c40f','#e67e22','#e74c3c'] }}] }},
+        }});
+      }}
+      if (document.getElementById('chartReviewTurnaround')) {{
+        G.reviewTurn = new Chart(document.getElementById('chartReviewTurnaround'), {{
+          type: 'line',
+          data: {{ labels: [], datasets: [{{ label: 'Review (hours)', data: [], borderColor: '#e67e22', fill: false }}] }},
+          options: y0,
+        }});
+      }}
+      if (document.getElementById('chartBusFactor')) {{
+        G.busFactor = new Chart(document.getElementById('chartBusFactor'), {{
+          type: 'bar',
+          data: {{ labels: [], datasets: [{{ label: 'Bus Factor', data: [], backgroundColor: [] }}] }},
+          options: hbar,
+        }});
+      }}
+      if (document.getElementById('chartPrCycleBreakdown')) {{
+        G.prBreakdown = new Chart(document.getElementById('chartPrCycleBreakdown'), {{
+          type: 'bar',
+          data: {{
+            labels: [],
+            datasets: [
+              {{ label: 'Coding (progress)', data: [], backgroundColor: 'rgba(88,166,255,0.75)' }},
+              {{ label: 'Review / approval', data: [], backgroundColor: 'rgba(210,153,34,0.75)' }},
+              {{ label: 'To merge', data: [], backgroundColor: 'rgba(46,160,67,0.75)' }},
+            ],
+          }},
+          options: {{ scales: {{ x: {{ stacked: true }}, y: {{ stacked: true, beginAtZero: true }} }} }},
+        }});
+      }}
+    }}
+
+    function refreshGitTab() {{
+      const g = buildEffectiveGitData();
+      const G = window._gitCharts;
+      const note = document.getElementById('gitBreakdownNote');
+      const bdDesc = document.getElementById('gitBreakdownDesc');
+      if (!g || !Object.keys(g).length) return;
+      const gc = document.getElementById('gitCards');
+      if (gc) {{
+        const prc = g.pr_cycle_time || {{}};
+        const rev = g.review_turnaround || {{}};
+        const mf = g.merge_frequency || {{}};
+        const contrib = g.contributors || {{}};
+        gc.innerHTML =
+          _mkExtraCard('PRs Merged', g.pr_merged_count) +
+          _mkExtraCard('PR Cycle p50', (prc.p50_days || 0).toFixed(1) + 'd') +
+          _mkExtraCard('Review p50', (rev.p50_hours || 0).toFixed(1) + 'h') +
+          _mkExtraCard('Merges/wk', mf.avg_merges_per_week) +
+          _mkExtraCard('Min Bus Factor', contrib.min_bus_factor, contrib.min_bus_factor <= 1 ? '#e74c3c' : '#2ecc71') +
+          _mkExtraCard('Contributors', contrib.total_contributors);
+      }}
+      const gbc = document.getElementById('gitBreakdownCards');
+      const pcb = g.pr_cycle_breakdown;
+      const skip = g.pr_cycle_breakdown_skip_reason;
+      if (note) {{
+        note.style.display = skip ? 'block' : 'none';
+        note.textContent = skip === 'gitlab_not_supported' ? 'PR cycle breakdown is not available for GitLab in this version.' : (skip === 'disabled_via_env' ? 'PR cycle breakdown was disabled (GIT_PR_BREAKDOWN_ENABLED).' : '');
+      }}
+      if (bdDesc) bdDesc.style.display = skip ? 'none' : 'block';
+      if (gbc) {{
+        if (!pcb || skip) {{
+          gbc.innerHTML = skip ? _mkExtraCard('Breakdown', 'N/A') : '';
+        }} else {{
+          const p = pcb.time_in_progress_hours || {{}};
+          const r = pcb.time_in_review_hours || {{}};
+          const m = pcb.time_to_merge_hours || {{}};
+          gbc.innerHTML =
+            _mkExtraCard('Coding p50 (h)', (p.p50_hours ?? 0).toFixed(1)) +
+            _mkExtraCard('Review p50 (h)', (r.p50_hours ?? 0).toFixed(1)) +
+            _mkExtraCard('Merge p50 (h)', (m.p50_hours ?? 0).toFixed(1));
+        }}
+      }}
+      const prcW = g.pr_cycle_time_by_week || {{}};
+      const prcKeys = Object.keys(prcW).sort();
+      const prcFv = filterWeekKeys(prcKeys, prcKeys.map(k => prcW[k]));
+      if (G.prCycle) {{
+        G.prCycle.data.labels = prcFv.keys;
+        G.prCycle.data.datasets[0].data = prcFv.values;
+        G.prCycle.update();
+      }}
+      const mfW = (g.merge_frequency || {{}}).merges_by_week || {{}};
+      const mfKeys = Object.keys(mfW).sort();
+      const mfFv = filterWeekKeys(mfKeys, mfKeys.map(k => mfW[k]));
+      if (G.mergeFreq) {{
+        G.mergeFreq.data.labels = mfFv.keys;
+        G.mergeFreq.data.datasets[0].data = mfFv.values;
+        G.mergeFreq.update();
+      }}
+      const prSize = (g.pr_size || {{}}).distribution || {{}};
+      if (G.prSize && Object.keys(prSize).length) {{
+        G.prSize.data.labels = Object.keys(prSize);
+        G.prSize.data.datasets[0].data = Object.values(prSize);
+        G.prSize.update();
+      }}
+      const revW = g.review_turnaround_by_week || {{}};
+      const rvKeys = Object.keys(revW).sort();
+      const rvFv = filterWeekKeys(rvKeys, rvKeys.map(k => revW[k]));
+      if (G.reviewTurn) {{
+        G.reviewTurn.data.labels = rvFv.keys;
+        G.reviewTurn.data.datasets[0].data = rvFv.values;
+        G.reviewTurn.update();
+      }}
+      const bf = (g.contributors || {{}}).bus_factor_by_repo || {{}};
+      if (G.busFactor && Object.keys(bf).length) {{
+        const repos = Object.keys(bf);
+        const vals = Object.values(bf);
+        const colors = vals.map(v => (v <= 1 ? '#e74c3c' : v === 2 ? '#f1c40f' : '#2ecc71'));
+        G.busFactor.data.labels = repos;
+        G.busFactor.data.datasets[0].data = vals;
+        G.busFactor.data.datasets[0].backgroundColor = colors;
+        G.busFactor.update();
+      }}
+      const drift = (g.branch_drift || {{}}).by_repo || {{}};
+      const el = document.getElementById('branchDriftTable');
+      if (el && Object.keys(drift).length) {{
+        let html = '<table class="table-wrap"><thead><tr><th>Repo</th><th>Base</th><th>Target</th><th>Missing</th></tr></thead><tbody>';
+        for (const [r, d] of Object.entries(drift)) {{
+          html += `<tr><td>${{r}}</td><td>${{d.base || ''}}</td><td>${{d.target || ''}}</td><td style="color:${{d.total_missing > 10 ? 'var(--red)' : 'inherit'}}">${{d.total_missing || 0}}</td></tr>`;
+        }}
+        html += '</tbody></table>';
+        el.innerHTML = html;
+      }} else if (el) el.innerHTML = '';
+      const bdW = g.pr_cycle_breakdown_by_week || {{}};
+      if (G.prBreakdown && !skip && Object.keys(bdW).length) {{
+        const wks = Object.keys(bdW).sort();
+        const fk = filterWeekKeys(wks, wks.map(() => 0));
+        const labels = fk.keys;
+        const prog = labels.map(w => bdW[w]?.avg_progress_hours || 0);
+        const revB = labels.map(w => bdW[w]?.avg_review_hours || 0);
+        const mrg = labels.map(w => bdW[w]?.avg_merge_hours || 0);
+        G.prBreakdown.data.labels = labels;
+        G.prBreakdown.data.datasets[0].data = prog;
+        G.prBreakdown.data.datasets[1].data = revB;
+        G.prBreakdown.data.datasets[2].data = mrg;
+        G.prBreakdown.update();
+      }} else if (G.prBreakdown) {{
+        G.prBreakdown.data.labels = [];
+        G.prBreakdown.data.datasets.forEach(ds => {{ ds.data = []; }});
+        G.prBreakdown.update();
+      }}
+    }}
+
+    function initCicdCharts() {{
+      const y0 = {{ scales: {{ y: {{ beginAtZero: true }} }} }};
+      const C = window._cicdCharts;
+      if (document.getElementById('chartBuildTime')) {{
+        C.buildTime = new Chart(document.getElementById('chartBuildTime'), {{
+          type: 'line',
+          data: {{ labels: [], datasets: [{{ label: 'Build Time (min)', data: [], borderColor: '#58a6ff', fill: false }}] }},
+          options: y0,
+        }});
+      }}
+      if (document.getElementById('chartDeployFreq')) {{
+        C.deployFreq = new Chart(document.getElementById('chartDeployFreq'), {{
+          type: 'bar',
+          data: {{ labels: [], datasets: [{{ label: 'Deploys', data: [], backgroundColor: '#238636' }}] }},
+          options: y0,
+        }});
+      }}
+    }}
+
+    function refreshCicdCharts() {{
+      if (!CICD_DATA || !Object.keys(CICD_DATA).length) return;
+      const C = window._cicdCharts;
+      const btW = (CICD_DATA.builds || {{}}).build_time_trend_by_week || {{}};
+      const btKeys = Object.keys(btW).sort();
+      const btFv = filterWeekKeys(btKeys, btKeys.map(k => btW[k]));
+      if (C.buildTime) {{
+        C.buildTime.data.labels = btFv.keys;
+        C.buildTime.data.datasets[0].data = btFv.values;
+        C.buildTime.update();
+      }}
+      const dfW = (CICD_DATA.deployments || {{}}).deploy_frequency_per_week || {{}};
+      const dfKeys = Object.keys(dfW).sort();
+      const dfFv = filterWeekKeys(dfKeys, dfKeys.map(k => dfW[k]));
+      if (C.deployFreq) {{
+        C.deployFreq.data.labels = dfFv.keys;
+        C.deployFreq.data.datasets[0].data = dfFv.values;
+        C.deployFreq.update();
+      }}
+    }}
+
     // ========== NEW TABS: Git / CI-CD / DORA / Scorecard ==========
     (function populateExtraTabs() {{
       const colorMap = {{ 1:'#e74c3c', 2:'#e67e22', 3:'#f1c40f', 4:'#2ecc71', 5:'#27ae60' }};
@@ -2843,61 +3289,13 @@ def main():
         return `<div class="card"><div class="value" style="color:${{color||'var(--accent)'}}">${{value ?? 'N/A'}}</div><div class="label">${{label}}</div></div>`;
       }}
 
+      renderGitRepoFilterBar();
+      initGitCharts();
+      initCicdCharts();
+
       // --- Git tab ---
       if (GIT_DATA && Object.keys(GIT_DATA).length) {{
-        const gc = document.getElementById('gitCards');
-        if (gc) {{
-          const prc = GIT_DATA.pr_cycle_time || {{}};
-          const rev = GIT_DATA.review_turnaround || {{}};
-          const mf = GIT_DATA.merge_frequency || {{}};
-          const contrib = GIT_DATA.contributors || {{}};
-          gc.innerHTML =
-            mkCard('PRs Merged', GIT_DATA.pr_merged_count) +
-            mkCard('PR Cycle p50', (prc.p50_days||0).toFixed(1) + 'd') +
-            mkCard('Review p50', (rev.p50_hours||0).toFixed(1) + 'h') +
-            mkCard('Merges/wk', mf.avg_merges_per_week) +
-            mkCard('Min Bus Factor', contrib.min_bus_factor, contrib.min_bus_factor<=1?'#e74c3c':'#2ecc71') +
-            mkCard('Contributors', contrib.total_contributors);
-        }}
-        // PR Cycle chart
-        const prcW = GIT_DATA.pr_cycle_time_by_week || {{}};
-        if (Object.keys(prcW).length && document.getElementById('chartPrCycle')) {{
-          new Chart(document.getElementById('chartPrCycle'), {{ type:'line', data:{{ labels:Object.keys(prcW), datasets:[{{ label:'PR Cycle (days)', data:Object.values(prcW), borderColor:'#58a6ff', fill:false }}] }}, options:{{ scales:{{ y:{{ beginAtZero:true }} }} }} }});
-        }}
-        // Merge freq chart
-        const mfW = (GIT_DATA.merge_frequency||{{}}).merges_by_week || {{}};
-        if (Object.keys(mfW).length && document.getElementById('chartMergeFreq')) {{
-          new Chart(document.getElementById('chartMergeFreq'), {{ type:'bar', data:{{ labels:Object.keys(mfW), datasets:[{{ label:'Merges', data:Object.values(mfW), backgroundColor:'#238636' }}] }}, options:{{ scales:{{ y:{{ beginAtZero:true }} }} }} }});
-        }}
-        // PR Size chart
-        const prSize = (GIT_DATA.pr_size||{{}}).distribution || {{}};
-        if (Object.keys(prSize).length && document.getElementById('chartPrSize')) {{
-          new Chart(document.getElementById('chartPrSize'), {{ type:'doughnut', data:{{ labels:Object.keys(prSize), datasets:[{{ data:Object.values(prSize), backgroundColor:['#27ae60','#2ecc71','#f1c40f','#e67e22','#e74c3c'] }}] }} }});
-        }}
-        // Review turnaround chart
-        const revW = GIT_DATA.review_turnaround_by_week || {{}};
-        if (Object.keys(revW).length && document.getElementById('chartReviewTurnaround')) {{
-          new Chart(document.getElementById('chartReviewTurnaround'), {{ type:'line', data:{{ labels:Object.keys(revW), datasets:[{{ label:'Review (hours)', data:Object.values(revW), borderColor:'#e67e22', fill:false }}] }}, options:{{ scales:{{ y:{{ beginAtZero:true }} }} }} }});
-        }}
-        // Bus factor chart
-        const bf = (GIT_DATA.contributors||{{}}).bus_factor_by_repo || {{}};
-        if (Object.keys(bf).length && document.getElementById('chartBusFactor')) {{
-          const repos = Object.keys(bf);
-          const vals = Object.values(bf);
-          const colors = vals.map(v => v<=1?'#e74c3c':v===2?'#f1c40f':'#2ecc71');
-          new Chart(document.getElementById('chartBusFactor'), {{ type:'bar', data:{{ labels:repos, datasets:[{{ label:'Bus Factor', data:vals, backgroundColor:colors }}] }}, options:{{ indexAxis:'y', scales: Object.assign({{}}, _hbarScales, {{ x:{{ beginAtZero:true }} }}) }} }});
-        }}
-        // Branch drift table
-        const drift = (GIT_DATA.branch_drift||{{}}).by_repo || {{}};
-        if (Object.keys(drift).length) {{
-          let html = '<table class="table-wrap"><thead><tr><th>Repo</th><th>Base</th><th>Target</th><th>Missing</th></tr></thead><tbody>';
-          for (const [r,d] of Object.entries(drift)) {{
-            html += `<tr><td>${{r}}</td><td>${{d.base||''}}</td><td>${{d.target||''}}</td><td style="color:${{d.total_missing>10?'var(--red)':'inherit'}}">${{d.total_missing||0}}</td></tr>`;
-          }}
-          html += '</tbody></table>';
-          const el = document.getElementById('branchDriftTable');
-          if (el) el.innerHTML = html;
-        }}
+        refreshGitTab();
       }}
 
       // --- CI/CD tab ---
@@ -2916,14 +3314,7 @@ def main():
             mkCard('MTTR p50', (m.p50_mttr_hours!=null?(m.p50_mttr_hours).toFixed(1)+'h':'N/A')) +
             mkCard('CFR', (cfr.cfr_pct||0)+'%', cfr.cfr_pct>15?'#e74c3c':'#2ecc71');
         }}
-        const btW = (CICD_DATA.builds||{{}}).build_time_trend_by_week || {{}};
-        if (Object.keys(btW).length && document.getElementById('chartBuildTime')) {{
-          new Chart(document.getElementById('chartBuildTime'), {{ type:'line', data:{{ labels:Object.keys(btW), datasets:[{{ label:'Build Time (min)', data:Object.values(btW), borderColor:'#58a6ff', fill:false }}] }}, options:{{ scales:{{ y:{{ beginAtZero:true }} }} }} }});
-        }}
-        const dfW = (CICD_DATA.deployments||{{}}).deploy_frequency_per_week || {{}};
-        if (Object.keys(dfW).length && document.getElementById('chartDeployFreq')) {{
-          new Chart(document.getElementById('chartDeployFreq'), {{ type:'bar', data:{{ labels:Object.keys(dfW), datasets:[{{ label:'Deploys', data:Object.values(dfW), backgroundColor:'#238636' }}] }}, options:{{ scales:{{ y:{{ beginAtZero:true }} }} }} }});
-        }}
+        refreshCicdCharts();
       }}
 
       // --- DORA tab (initial render; re-rendered on filter change via updateDORA) ---
