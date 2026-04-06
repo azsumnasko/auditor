@@ -326,6 +326,7 @@ def review_turnaround_metrics(pulls, reviews_map):
     """Time-to-first-review and self-merge statistics."""
     values = []
     by_week = defaultdict(list)
+    by_merge_week = defaultdict(list)  # keyed by iso_week(merged_at) for time-filter alignment
     no_review = 0
     self_merged = 0
     total = 0
@@ -358,6 +359,9 @@ def review_turnaround_metrics(pulls, reviews_map):
         hours = (first_review_dt - created).total_seconds() / 3600
         values.append(hours)
         by_week[iso_week(first_review_dt)].append(hours)
+        merged_dt = parse_dt(pr["merged_at"])
+        if merged_dt:
+            by_merge_week[iso_week(merged_dt)].append(hours)
 
     return {
         "review_turnaround": {
@@ -369,6 +373,12 @@ def review_turnaround_metrics(pulls, reviews_map):
             "pct_self_merged": round(self_merged / max(total, 1) * 100, 1),
         },
         "review_turnaround_by_week": {w: round(sum(v) / len(v), 1) for w, v in sorted(by_week.items())},
+        # Keyed by merge week so the dashboard can align review stats to a date-range filter.
+        # Each entry: { avg_hours: float, n: int }
+        "review_turnaround_by_merge_week": {
+            w: {"avg_hours": round(sum(v) / len(v), 1), "n": len(v)}
+            for w, v in sorted(by_merge_week.items())
+        },
     }
 
 

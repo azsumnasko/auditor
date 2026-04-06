@@ -474,6 +474,7 @@
     <div class="project-filter" id="gitRepoFilterBar"></div>
     <p class="meta" id="gitBreakdownNote" style="display:none"></p>
     <div class="cards" id="gitCards"></div>
+    <p class="meta" id="gitContribNote" style="display:none">Contributors and Min Bus Factor reflect the full data lookback period, not the active time filter.</p>
     <section><h2>PR cycle breakdown (median hours)</h2>
       <p class="summary-desc" id="gitBreakdownDesc">Coding &rarr; review/approval &rarr; merge (see <code>pr_cycle_breakdown_meta</code> in JSON when present).</p>
       <div class="cards" id="gitBreakdownCards"></div>
@@ -553,7 +554,7 @@
     // Time range filter state
     window._timeRange = { from: null, to: null };
     (function() {
-      const btns = document.querySelectorAll('.time-btn');
+      const btns = document.querySelectorAll('.time-btn[data-range]');
       const fromEl = document.getElementById('timeFrom');
       const toEl = document.getElementById('timeTo');
       function setRange(fromDate, toDate) {
@@ -2712,6 +2713,23 @@
       return out;
     }
 
+    function mergeWeekReviewMaps(maps) {
+      // Each map: { week: { avg_hours, n } }. Merge across repos using weighted average of avg_hours, summing n.
+      if (!maps || !maps.length) return {};
+      const keys = new Set();
+      maps.forEach(m => Object.keys(m || {}).forEach(k => keys.add(k)));
+      const out = {};
+      for (const k of [...keys].sort()) {
+        let num = 0, den = 0;
+        for (const m of maps) {
+          const e = m && m[k];
+          if (e && e.n > 0) { num += e.avg_hours * e.n; den += e.n; }
+        }
+        if (den > 0) out[k] = { avg_hours: Math.round((num / den) * 10) / 10, n: den };
+      }
+      return out;
+    }
+
     function mergeGitByRepos(gitRoot, selectedRepos) {
       if (!gitRoot || !selectedRepos || !selectedRepos.length) return gitRoot;
       const analyzed = gitRoot.repos_analyzed || [];
@@ -2782,6 +2800,7 @@
         pct_self_merged: psmDen ? Math.round((psmNum / psmDen) * 10) / 10 : 0,
       };
       out.review_turnaround_by_week = mergeWeekAvgMaps(repos.map(r => byR[r].review_turnaround_by_week || {}));
+      out.review_turnaround_by_merge_week = mergeWeekReviewMaps(repos.map(r => byR[r].review_turnaround_by_merge_week || {}));
       const dist = { xs: 0, small: 0, medium: 0, large: 0, xl: 0 };
       for (const r of repos) {
         const d = (byR[r].pr_size || {}).distribution || {};
@@ -2855,8 +2874,75 @@
     function buildEffectiveGitData() {
       if (!GIT_DATA || !Object.keys(GIT_DATA).length) return null;
       const sel = getSelectedGitRepos();
-      if (sel === null) return GIT_DATA;
-      return mergeGitByRepos(GIT_DATA, sel);
+      const base = sel === null ? GIT_DATA : mergeGitByRepos(GIT_DATA, sel);
+      return applyGitTimeScope(base, window._timeRange);
+    }
+
+    function applyGitTimeScope(gitRoot, tr) {
+      // Recomputes Git KPI cards to align with the active date filter.
+      // When no filter is set, returns gitRoot unchanged (preserving p50/p85 from the JSON).
+      if (!tr.from && !tr.to) return gitRoot;
+
+      const mergesW = (gitRoot.merge_frequency || {}).merges_by_week || {};
+      const cycleW = gitRoot.pr_cycle_time_by_week || {};
+      const revMW = gitRoot.review_turnaround_by_merge_week || {};
+      const bkW = gitRoot.pr_cycle_breakdown_by_week || {};
+      const allWeeks = new Set([
+        ...Object.keys(mergesW), ...Object.keys(cycleW),
+        ...Object.keys(revMW), ...Object.keys(bkW),
+      ]);
+
+      let totalMerges = 0, wkCount = 0;
+      let cycleNum = 0, cycleDen = 0;
+      let revNum = 0, revDen = 0;
+      let bkProg = 0, bkRev = 0, bkMrg = 0, bkDen = 0;
+
+      for (const w of allWeeks) {
+        const d = keyToComparableDate(w);
+        if (tr.from && d < tr.from) continue;
+        if (tr.to && d > tr.to) continue;
+        const n = mergesW[w] || 0;
+        if (n > 0) {
+          totalMerges += n;
+          // count weeks with at least one merge (denominator for merges/wk)
+          wkCount++;
+          if (cycleW[w] != null) { cycleNum += cycleW[w] * n; cycleDen += n; }
+        }
+        const rv = revMW[w];
+        if (rv && rv.n > 0) { revNum += rv.avg_hours * rv.n; revDen += rv.n; }
+        const bk = bkW[w];
+        if (bk && bk.pr_count > 0) {
+          const c = bk.pr_count;
+          bkProg += (bk.avg_progress_hours || 0) * c;
+          bkRev += (bk.avg_review_hours || 0) * c;
+          bkMrg += (bk.avg_merge_hours || 0) * c;
+          bkDen += c;
+        }
+      }
+
+      const out = JSON.parse(JSON.stringify(gitRoot));
+      out.pr_merged_count = totalMerges;
+      out.pr_cycle_time = Object.assign({}, out.pr_cycle_time || {}, {
+        avg_days: cycleDen ? Math.round((cycleNum / cycleDen) * 100) / 100 : 0,
+        _filtered_mean: true,
+      });
+      out.merge_frequency = Object.assign({}, out.merge_frequency || {}, {
+        avg_merges_per_week: wkCount ? Math.round((totalMerges / wkCount) * 10) / 10 : 0,
+      });
+      const revMean = revDen ? Math.round((revNum / revDen) * 10) / 10 : null;
+      out.review_turnaround = Object.assign({}, out.review_turnaround || {}, {
+        avg_hours: revMean !== null ? revMean : (out.review_turnaround || {}).avg_hours,
+        _filtered_mean: revMean !== null,
+      });
+      if (!out.pr_cycle_breakdown_skip_reason && bkDen > 0) {
+        const pm = (num) => Math.round((num / bkDen) * 100) / 100;
+        out.pr_cycle_breakdown = Object.assign({}, out.pr_cycle_breakdown || {}, {
+          time_in_progress_hours: Object.assign({}, (out.pr_cycle_breakdown || {}).time_in_progress_hours || {}, { avg_hours: pm(bkProg), _filtered_mean: true }),
+          time_in_review_hours: Object.assign({}, (out.pr_cycle_breakdown || {}).time_in_review_hours || {}, { avg_hours: pm(bkRev), _filtered_mean: true }),
+          time_to_merge_hours: Object.assign({}, (out.pr_cycle_breakdown || {}).time_to_merge_hours || {}, { avg_hours: pm(bkMrg), _filtered_mean: true }),
+        });
+      }
+      return out;
     }
 
     function renderGitRepoFilterBar() {
@@ -2958,13 +3044,20 @@
         const rev = g.review_turnaround || {};
         const mf = g.merge_frequency || {};
         const contrib = g.contributors || {};
+        const filtered = !!(window._timeRange.from || window._timeRange.to);
+        const cycleLabel = (filtered && prc._filtered_mean) ? 'PR Cycle mean' : 'PR Cycle p50';
+        const cycleVal = (filtered && prc._filtered_mean) ? prc.avg_days : prc.p50_days;
+        const revLabel = (filtered && rev._filtered_mean) ? 'Review mean' : 'Review p50';
+        const revVal = (filtered && rev._filtered_mean) ? rev.avg_hours : rev.p50_hours;
         gc.innerHTML =
           _mkExtraCard('PRs Merged', g.pr_merged_count) +
-          _mkExtraCard('PR Cycle p50', (prc.p50_days || 0).toFixed(1) + 'd') +
-          _mkExtraCard('Review p50', (rev.p50_hours || 0).toFixed(1) + 'h') +
+          _mkExtraCard(cycleLabel, (cycleVal || 0).toFixed(1) + 'd') +
+          _mkExtraCard(revLabel, (revVal || 0).toFixed(1) + 'h') +
           _mkExtraCard('Merges/wk', mf.avg_merges_per_week) +
           _mkExtraCard('Min Bus Factor', contrib.min_bus_factor, contrib.min_bus_factor <= 1 ? '#e74c3c' : '#2ecc71') +
           _mkExtraCard('Contributors', contrib.total_contributors);
+        const gcNote = document.getElementById('gitContribNote');
+        if (gcNote) gcNote.style.display = filtered ? '' : 'none';
       }
       const gbc = document.getElementById('gitBreakdownCards');
       const pcb = g.pr_cycle_breakdown;
@@ -2981,10 +3074,17 @@
           const p = pcb.time_in_progress_hours || {};
           const r = pcb.time_in_review_hours || {};
           const m = pcb.time_to_merge_hours || {};
+          const bkFiltered = !!(p._filtered_mean || r._filtered_mean || m._filtered_mean);
+          const bkCodingLabel = bkFiltered ? 'Coding mean (h)' : 'Coding p50 (h)';
+          const bkRevLabel = bkFiltered ? 'Review mean (h)' : 'Review p50 (h)';
+          const bkMrgLabel = bkFiltered ? 'Merge mean (h)' : 'Merge p50 (h)';
+          const bkCodingVal = bkFiltered ? p.avg_hours : p.p50_hours;
+          const bkRevVal = bkFiltered ? r.avg_hours : r.p50_hours;
+          const bkMrgVal = bkFiltered ? m.avg_hours : m.p50_hours;
           gbc.innerHTML =
-            _mkExtraCard('Coding p50 (h)', (p.p50_hours ?? 0).toFixed(1)) +
-            _mkExtraCard('Review p50 (h)', (r.p50_hours ?? 0).toFixed(1)) +
-            _mkExtraCard('Merge p50 (h)', (m.p50_hours ?? 0).toFixed(1));
+            _mkExtraCard(bkCodingLabel, (bkCodingVal ?? 0).toFixed(1)) +
+            _mkExtraCard(bkRevLabel, (bkRevVal ?? 0).toFixed(1)) +
+            _mkExtraCard(bkMrgLabel, (bkMrgVal ?? 0).toFixed(1));
         }
       }
       const prcW = g.pr_cycle_time_by_week || {};
