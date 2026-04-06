@@ -846,7 +846,8 @@ def _flow_efficiency(time_in_status_data):
     active_total = 0
     wait_total = 0
     for status, data in time_in_status_data.items():
-        hours = data.get("avg_hours", 0) * data.get("count", 0)
+        # Keys may exist with null (e.g. merged JSON); .get("avg_hours", 0) would still return None.
+        hours = (data.get("avg_hours") or 0) * (data.get("count") or 0)
         if _is_active_status(status):
             active_total += hours
         else:
