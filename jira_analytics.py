@@ -2111,15 +2111,17 @@ def main():
 
     if sprint_metrics:
         _added_pcts = [
-            round(m["added_after_sprint_start"] / m["total_issues"] * 100, 1)
-            if m["total_issues"] else 0.0
+            round((m["added_after_sprint_start"] or 0) / m["total_issues"] * 100, 1)
+            if m["total_issues"]
+            else 0.0
             for m in sprint_metrics
         ]
         results["sprint_aggregate"] = {
             "avg_added_after_start_pct": round(sum(_added_pcts) / len(_added_pcts), 1),
             "avg_commitment_ratio_pct": round(
-                sum(round(m["commitment_done_ratio"] * 100, 1) for m in sprint_metrics)
-                / len(sprint_metrics), 1
+                sum(round((m["commitment_done_ratio"] or 0) * 100, 1) for m in sprint_metrics)
+                / len(sprint_metrics),
+                1,
             ),
         }
     else:
