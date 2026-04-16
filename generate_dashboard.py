@@ -2960,7 +2960,7 @@ def main():
       }}
       wip.forEach(r => rows.push([r.key,  'WIP',  r.project, r.type, r.summary, r.status, r.assignee_display_name, r.team || ''].map(csvCell)));
       done.forEach(r => rows.push([r.key, 'Done', r.project, r.type, r.summary, r.status, r.assignee_display_name, r.team || ''].map(csvCell)));
-      const csv = rows.map(r => r.join(',')).join('\r\n');
+      const csv = rows.map(r => r.join(',')).join('\\r\\n');
       const ts = (d.run_iso_ts || new Date().toISOString()).replace(/:/g, '-').slice(0,19);
       const blob = new Blob([csv], {{ type: 'text/csv' }});
       const url = URL.createObjectURL(blob);
