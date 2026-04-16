@@ -39,6 +39,38 @@ def _safe_js(obj):
     """JSON-encode and escape sequences that would break a <script> block."""
     return json.dumps(obj, ensure_ascii=False).replace("</", "<\\/")
 
+
+def _load_scan_history(max_scans=10):
+    """Return list of {ts, label, wip, done} dicts from timestamped jira_analytics_*.json files."""
+    import glob as _glob
+    out_dir = _output_dir()
+    pattern = os.path.join(out_dir, "jira_analytics_*.json")
+    candidates = []
+    for p in _glob.glob(pattern):
+        basename = os.path.basename(p)
+        if basename == "jira_analytics_latest.json":
+            continue
+        # filename: jira_analytics_2025-01-15T10-30-00.json
+        ts_part = basename[len("jira_analytics_"):-len(".json")]
+        candidates.append((ts_part, p))
+    candidates.sort(key=lambda x: x[0], reverse=True)
+    result = []
+    for ts_part, path in candidates[:max_scans]:
+        try:
+            with open(path, encoding="utf-8") as f:
+                snap = json.load(f)
+            run_ts = snap.get("run_iso_ts") or ts_part
+            label = run_ts[:19].replace("T", " ") if len(run_ts) >= 19 else ts_part
+            result.append({
+                "ts": run_ts,
+                "label": label,
+                "wip": snap.get("empty_or_bad_list_wip") or [],
+                "done": snap.get("empty_or_bad_list_done") or [],
+            })
+        except Exception:
+            continue
+    return result
+
 def main():
     data = load_data(sys.argv[1] if len(sys.argv) > 1 else None)
     data_js = _safe_js(data)
@@ -52,6 +84,10 @@ def main():
     scorecard_data_js = _safe_js(scorecard_data or {})
     evidence_data = _try_load("unified_evidence")
     evidence_data_js = _safe_js((evidence_data or {}).get("dora", {}))
+
+    # Load scan history for Empty/Bad comparison (up to 10 most-recent timestamped snapshots)
+    scan_history = _load_scan_history()
+    scan_history_js = _safe_js(scan_history)
     pipeline_warnings = (evidence_data or {}).get("pipeline_warnings") or []
     if pipeline_warnings:
         pw_items = "".join(f"<li>{html.escape(str(w))}</li>" for w in pipeline_warnings)
@@ -368,6 +404,14 @@ def main():
     .gaming-detail {{ font-size: 0.85rem; }}
     .export-btn {{ background: var(--accent); color: #0f1419; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; }}
     .export-btn:hover {{ opacity: 0.85; }}
+    .empty-bad-toolbar {{ display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin-bottom: 0.5rem; }}
+    .empty-bad-toolbar select {{ background: var(--card); border: 1px solid #30363d; color: var(--text); padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.8rem; max-width: 260px; }}
+    .eb-compare-summary {{ font-size: 0.82rem; margin-bottom: 0.5rem; padding: 0.45rem 0.75rem; background: rgba(88,166,255,0.08); border: 1px solid rgba(88,166,255,0.25); border-radius: 6px; color: var(--text); display: none; }}
+    .eb-compare-summary .eb-new {{ color: #3fb950; font-weight: 600; }}
+    .eb-compare-summary .eb-resolved {{ color: #f85149; font-weight: 600; }}
+    tr.eb-row-new td {{ background: rgba(63,185,80,0.1); }}
+    tr.eb-row-resolved {{ opacity: 0.6; }}
+    tr.eb-row-resolved td {{ text-decoration: line-through; color: var(--muted); background: rgba(248,81,73,0.08); }}
     .time-btn {{ background: none; border: 1px solid transparent; color: var(--muted); padding: 0.3rem 0.7rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; }}
     .time-btn:hover {{ color: var(--text); background: rgba(88,166,255,0.1); }}
     .time-btn.active {{ background: var(--accent); color: #0f1419; border-color: var(--accent); }}
@@ -637,7 +681,16 @@ def main():
       <span>Open: <strong>{empty_bad_count_wip}</strong> ({empty_bad_pct_wip}%)</span>
       <span>Done: <strong>{empty_bad_count_done}</strong> ({empty_bad_pct_done}%)</span>
     </div>
-    <div class="filter"><input type="text" id="filterEmptyBad" placeholder="Filter by key, project, assignee, type\u2026" /></div>
+    <div class="empty-bad-toolbar">
+      <input type="text" id="filterEmptyBad" placeholder="Filter by key, project, assignee, type\u2026" style="flex:1;min-width:180px;max-width:340px;background:var(--bg);border:1px solid #30363d;color:var(--text);padding:0.35rem 0.6rem;border-radius:6px;font-size:0.85rem;" />
+      <button class="export-btn" onclick="exportEmptyBadCSV()" style="font-size:0.8rem;padding:0.35rem 0.75rem;">Export CSV</button>
+      <label style="font-size:0.8rem;color:var(--muted);white-space:nowrap;">Compare vs:</label>
+      <select id="emptyBadCompareSelect" onchange="compareEmptyBad(this.value)" style="font-size:0.8rem;background:var(--card);border:1px solid #30363d;color:var(--text);padding:0.3rem 0.6rem;border-radius:6px;max-width:240px;">
+        <option value="">-- select a previous scan --</option>
+      </select>
+      <button id="emptyBadClearBtn" onclick="clearEmptyBadCompare()" style="display:none;background:none;border:1px solid #30363d;color:var(--muted);padding:0.3rem 0.6rem;border-radius:6px;cursor:pointer;font-size:0.8rem;">Clear</button>
+    </div>
+    <div class="eb-compare-summary" id="ebCompareSummary"></div>
     <div class="table-wrap">
       <table id="tableEmptyBad">
         <thead><tr><th data-sort="key">Key</th><th data-sort="scope">Scope</th><th data-sort="project">Project</th><th data-sort="type">Type</th><th>Summary</th><th data-sort="status">Status</th><th data-sort="assignee">Assignee</th></tr></thead>
@@ -846,6 +899,7 @@ def main():
     const OCTOPUS_DATA = {octopus_data_js};
     const SCORECARD_DATA = {scorecard_data_js};
     const DORA_DATA = {evidence_data_js};
+    const SCAN_HISTORY = {scan_history_js};
     const JIRA_BASE = (DATA.jira_base_url || '').replace(/\\/+$/, '');
     function linkKey(key) {{
       if (!key) return '';
@@ -2891,6 +2945,101 @@ def main():
     setupSort('tableEpics');
     setupSort('tableReleases');
     setupSort('tableEmptyBad');
+
+    // ---------- Empty or bad structure: CSV export ----------
+    function exportEmptyBadCSV() {{
+      const d = window._currentScopeData || getEffectiveData();
+      const wip = d.empty_or_bad_list_wip || [];
+      const done = d.empty_or_bad_list_done || [];
+      const rows = [['Key','Scope','Project','Type','Summary','Status','Assignee']];
+      function csvCell(v) {{
+        const s = String(v == null ? '' : v).replace(/"/g, '""');
+        return /[",\n\r]/.test(s) ? '"' + s + '"' : s;
+      }}
+      wip.forEach(r => rows.push([r.key,  'WIP',  r.project, r.type, r.summary, r.status, r.assignee_display_name].map(csvCell)));
+      done.forEach(r => rows.push([r.key, 'Done', r.project, r.type, r.summary, r.status, r.assignee_display_name].map(csvCell)));
+      const csv = rows.map(r => r.join(',')).join('\r\n');
+      const ts = (d.run_iso_ts || new Date().toISOString()).replace(/:/g, '-').slice(0,19);
+      const blob = new Blob([csv], {{ type: 'text/csv' }});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'empty_or_bad_' + ts + '.csv'; a.click();
+      URL.revokeObjectURL(url);
+    }}
+
+    // ---------- Empty or bad structure: compare with previous scan ----------
+    (function() {{
+      const sel = document.getElementById('emptyBadCompareSelect');
+      if (!sel) return;
+      SCAN_HISTORY.forEach(function(snap, i) {{
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = snap.label;
+        sel.appendChild(opt);
+      }});
+    }})();
+
+    function compareEmptyBad(idxStr) {{
+      const clearBtn = document.getElementById('emptyBadClearBtn');
+      const summary = document.getElementById('ebCompareSummary');
+      const tbody = document.querySelector('#tableEmptyBad tbody');
+      // Remove any previously-appended resolved rows
+      tbody.querySelectorAll('tr.eb-row-resolved').forEach(r => r.remove());
+      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('eb-row-new'));
+      if (summary) {{ summary.style.display = 'none'; summary.innerHTML = ''; }}
+      if (!idxStr || idxStr === '') {{
+        if (clearBtn) clearBtn.style.display = 'none';
+        return;
+      }}
+      const snap = SCAN_HISTORY[parseInt(idxStr, 10)];
+      if (!snap) return;
+
+      const d = window._currentScopeData || getEffectiveData();
+      const curAll = (d.empty_or_bad_list_wip || []).concat(d.empty_or_bad_list_done || []);
+      const oldAll = (snap.wip || []).concat(snap.done || []);
+      const oldKeys = new Set(oldAll.map(r => r.key));
+      const curKeys = new Set(curAll.map(r => r.key));
+
+      let addedCount = 0, resolvedCount = 0, unchangedCount = 0;
+
+      // Highlight new rows (in current but not in old)
+      tbody.querySelectorAll('tr').forEach(function(tr) {{
+        const keyCell = tr.querySelector('td:first-child');
+        if (!keyCell) return;
+        const key = keyCell.textContent.trim();
+        if (!oldKeys.has(key)) {{ tr.classList.add('eb-row-new'); addedCount++; }}
+        else {{ unchangedCount++; }}
+      }});
+
+      // Append resolved rows (in old but not in current)
+      const resolved = oldAll.filter(r => !curKeys.has(r.key));
+      resolvedCount = resolved.length;
+      resolved.forEach(function(r) {{
+        const tr = document.createElement('tr');
+        tr.className = 'eb-row-resolved';
+        const scope = snap.wip.some(x => x.key === r.key) ? 'WIP' : 'Done';
+        const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        tr.innerHTML = '<td>' + esc(r.key) + '</td><td>' + scope + '</td><td>' + esc(r.project) + '</td>' +
+          '<td>' + esc(r.type) + '</td><td>' + esc((r.summary||'').slice(0,60)) + '</td>' +
+          '<td>' + esc(r.status) + '</td><td>' + esc(r.assignee_display_name) + '</td>';
+        tbody.appendChild(tr);
+      }});
+
+      if (summary) {{
+        summary.style.display = '';
+        summary.innerHTML = 'vs <strong>' + snap.label + '</strong> &nbsp;&mdash;&nbsp; ' +
+          '<span class="eb-new">+' + addedCount + ' new</span> &nbsp; ' +
+          '<span class="eb-resolved">&minus;' + resolvedCount + ' resolved</span> &nbsp; ' +
+          unchangedCount + ' unchanged';
+      }}
+      if (clearBtn) clearBtn.style.display = '';
+    }}
+
+    function clearEmptyBadCompare() {{
+      const sel = document.getElementById('emptyBadCompareSelect');
+      if (sel) sel.value = '';
+      compareEmptyBad('');
+    }}
 
     const EPIC_ROW_CAP = 80;
     window._epicShowAllRows = false;
