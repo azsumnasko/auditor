@@ -684,8 +684,8 @@ def main():
     <h2>Empty or bad structure</h2>
     <p class="summary-desc">Tickets with no/empty description (or, if configured, bad summary / no labels / no component). Counts and breakdowns by team, assignee, component, and label.</p>
     <div class="summary-stats">
-      <span>Open: <strong>{empty_bad_count_wip}</strong> ({empty_bad_pct_wip}%)</span>
-      <span>Done: <strong>{empty_bad_count_done}</strong> ({empty_bad_pct_done}%)</span>
+      <span>Open: <strong id="ebCountWip">{empty_bad_count_wip}</strong> (<span id="ebPctWip">{empty_bad_pct_wip}</span>%)</span>
+      <span>Done: <strong id="ebCountDone">{empty_bad_count_done}</strong> (<span id="ebPctDone">{empty_bad_pct_done}</span>%)</span>
     </div>
     <div class="empty-bad-toolbar">
       <input type="text" id="filterEmptyBad" placeholder="Filter by key, project, assignee, type, team, author\u2026" style="flex:1;min-width:180px;max-width:340px;background:var(--bg);border:1px solid #30363d;color:var(--text);padding:0.35rem 0.6rem;border-radius:6px;font-size:0.85rem;" />
@@ -3000,6 +3000,24 @@ def main():
           const text = Array.from(tr.cells).map(c => c.textContent).join(' ').toLowerCase();
           tr.style.display = (projectOk && componentOk && teamOk && dateOk && typeOk && statusOk && text.includes(q)) ? '' : 'none';
         }});
+
+        // Recount visible WIP / Done rows and update section header
+        let visWip = 0, visDone = 0;
+        tbody.querySelectorAll('tr').forEach(tr => {{
+          if (tr.style.display === 'none' || tr.cells.length < 2) return;
+          if (tr.dataset.scope === 'WIP') visWip++; else visDone++;
+        }});
+        const d = window._currentScopeData || DATA;
+        const denomWip = (d.open_count != null ? d.open_count : d.wip_count) || 0;
+        const denomDone = Object.values(d.resolution_breakdown || {{}}).reduce((a,v) => a+v, 0) || 0;
+        const elWipC = document.getElementById('ebCountWip');
+        const elDoneC = document.getElementById('ebCountDone');
+        const elWipP = document.getElementById('ebPctWip');
+        const elDoneP = document.getElementById('ebPctDone');
+        if (elWipC) elWipC.textContent = visWip;
+        if (elDoneC) elDoneC.textContent = visDone;
+        if (elWipP) elWipP.textContent = denomWip ? (visWip / denomWip * 100).toFixed(1) : '0';
+        if (elDoneP) elDoneP.textContent = denomDone ? (visDone / denomDone * 100).toFixed(1) : '0';
       }}
 
       const ebTextInput = document.getElementById('filterEmptyBad');

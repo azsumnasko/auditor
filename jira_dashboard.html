@@ -327,8 +327,8 @@
     <h2>Empty or bad structure</h2>
     <p class="summary-desc">Tickets with no/empty description (or, if configured, bad summary / no labels / no component). Counts and breakdowns by team, assignee, component, and label.</p>
     <div class="summary-stats">
-      <span>Open: <strong>232</strong> (20.7%)</span>
-      <span>Done: <strong>238</strong> (16.6%)</span>
+      <span>Open: <strong id="ebCountWip">232</strong> (<span id="ebPctWip">20.7</span>%)</span>
+      <span>Done: <strong id="ebCountDone">238</strong> (<span id="ebPctDone">16.6</span>%)</span>
     </div>
     <div class="empty-bad-toolbar">
       <input type="text" id="filterEmptyBad" placeholder="Filter by key, project, assignee, type, team, creator…" style="flex:1;min-width:180px;max-width:340px;background:var(--bg);border:1px solid #30363d;color:var(--text);padding:0.35rem 0.6rem;border-radius:6px;font-size:0.85rem;" />
@@ -2449,6 +2449,7 @@
       computeAuditFlags();
       document.getElementById('filterBugs')?.dispatchEvent(new Event('input'));
       document.getElementById('filterSprints')?.dispatchEvent(new Event('input'));
+      recountEmptyBad();
       if (typeof refreshGitTab === 'function') refreshGitTab();
       if (typeof refreshCicdCharts === 'function') refreshCicdCharts();
     }
@@ -2530,6 +2531,28 @@
       return phases;
     }
 
+    function recountEmptyBad() {
+      const table = document.getElementById('tableEmptyBad');
+      if (!table) return;
+      const tbody = table.querySelector('tbody');
+      let visWip = 0, visDone = 0;
+      tbody.querySelectorAll('tr').forEach(tr => {
+        if (tr.style.display === 'none' || tr.cells.length < 2) return;
+        if (tr.dataset.scope === 'WIP') visWip++; else visDone++;
+      });
+      const d = window._currentScopeData || DATA;
+      const denomWip = (d.open_count != null ? d.open_count : d.wip_count) || 0;
+      const denomDone = Object.values(d.resolution_breakdown || {}).reduce((a,v) => a+v, 0) || 0;
+      const elWipC = document.getElementById('ebCountWip');
+      const elDoneC = document.getElementById('ebCountDone');
+      const elWipP = document.getElementById('ebPctWip');
+      const elDoneP = document.getElementById('ebPctDone');
+      if (elWipC) elWipC.textContent = visWip;
+      if (elDoneC) elDoneC.textContent = visDone;
+      if (elWipP) elWipP.textContent = denomWip ? (visWip / denomWip * 100).toFixed(1) : '0';
+      if (elDoneP) elDoneP.textContent = denomDone ? (visDone / denomDone * 100).toFixed(1) : '0';
+    }
+
     function setupFilter(inputId, tableId) {
       const input = document.getElementById(inputId);
       const table = document.getElementById(tableId);
@@ -2552,6 +2575,7 @@
           const text = Array.from(tr.cells).map(c => c.textContent).join(' ').toLowerCase();
           tr.style.display = (projectOk && componentOk && teamOk && dateOk && text.includes(q)) ? '' : 'none';
         });
+        if (tableId === 'tableEmptyBad') recountEmptyBad();
       });
     }
 
