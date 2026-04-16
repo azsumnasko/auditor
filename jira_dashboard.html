@@ -2596,8 +2596,7 @@
       const rows = [['Key','Scope','Project','Type','Summary','Status','Assignee','Team']];
       function csvCell(v) {
         const s = String(v == null ? '' : v).replace(/"/g, '""');
-        return /[",
-]/.test(s) ? '"' + s + '"' : s;
+        return /[",\n\r]/.test(s) ? '"' + s + '"' : s;
       }
       wip.forEach(r => rows.push([r.key,  'WIP',  r.project, r.type, r.summary, r.status, r.assignee_display_name, r.team || ''].map(csvCell)));
       done.forEach(r => rows.push([r.key, 'Done', r.project, r.type, r.summary, r.status, r.assignee_display_name, r.team || ''].map(csvCell)));
