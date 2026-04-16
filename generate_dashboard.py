@@ -229,7 +229,8 @@ def main():
             f'<td>{link_key(row.get("key", ""))}</td><td>WIP</td><td>{html.escape(row.get("project", ""))}</td>'
             f'<td>{html.escape(row.get("type", ""))}</td>'
             f'<td>{html.escape((row.get("summary") or "")[:60])}</td><td>{html.escape(row.get("status", ""))}</td>'
-            f'<td>{html.escape(row.get("assignee_display_name", ""))}</td></tr>'
+            f'<td>{html.escape(row.get("assignee_display_name", ""))}</td>'
+            f'<td>{html.escape(row.get("team", ""))}</td></tr>'
         )
     for row in empty_bad_list_done:
         empty_or_bad_rows.append(
@@ -237,9 +238,10 @@ def main():
             f'<td>{link_key(row.get("key", ""))}</td><td>Done</td><td>{html.escape(row.get("project", ""))}</td>'
             f'<td>{html.escape(row.get("type", ""))}</td>'
             f'<td>{html.escape((row.get("summary") or "")[:60])}</td><td>{html.escape(row.get("status", ""))}</td>'
-            f'<td>{html.escape(row.get("assignee_display_name", ""))}</td></tr>'
+            f'<td>{html.escape(row.get("assignee_display_name", ""))}</td>'
+            f'<td>{html.escape(row.get("team", ""))}</td></tr>'
         )
-    empty_or_bad_rows_str = "".join(empty_or_bad_rows) if empty_or_bad_rows else "<tr><td colspan=\"7\">None</td></tr>"
+    empty_or_bad_rows_str = "".join(empty_or_bad_rows) if empty_or_bad_rows else "<tr><td colspan=\"8\">None</td></tr>"
     top_teams_wip = data.get("empty_or_bad_top_teams_wip") or {}
     top_teams_done = data.get("empty_or_bad_top_teams_done") or {}
     top_assignees_wip = data.get("empty_or_bad_top_assignees_wip") or {}
@@ -682,7 +684,7 @@ def main():
       <span>Done: <strong>{empty_bad_count_done}</strong> ({empty_bad_pct_done}%)</span>
     </div>
     <div class="empty-bad-toolbar">
-      <input type="text" id="filterEmptyBad" placeholder="Filter by key, project, assignee, type\u2026" style="flex:1;min-width:180px;max-width:340px;background:var(--bg);border:1px solid #30363d;color:var(--text);padding:0.35rem 0.6rem;border-radius:6px;font-size:0.85rem;" />
+      <input type="text" id="filterEmptyBad" placeholder="Filter by key, project, assignee, type, team\u2026" style="flex:1;min-width:180px;max-width:340px;background:var(--bg);border:1px solid #30363d;color:var(--text);padding:0.35rem 0.6rem;border-radius:6px;font-size:0.85rem;" />
       <button class="export-btn" onclick="exportEmptyBadCSV()" style="font-size:0.8rem;padding:0.35rem 0.75rem;">Export CSV</button>
       <label style="font-size:0.8rem;color:var(--muted);white-space:nowrap;">Compare vs:</label>
       <select id="emptyBadCompareSelect" onchange="compareEmptyBad(this.value)" style="font-size:0.8rem;background:var(--card);border:1px solid #30363d;color:var(--text);padding:0.3rem 0.6rem;border-radius:6px;max-width:240px;">
@@ -693,7 +695,7 @@ def main():
     <div class="eb-compare-summary" id="ebCompareSummary"></div>
     <div class="table-wrap">
       <table id="tableEmptyBad">
-        <thead><tr><th data-sort="key">Key</th><th data-sort="scope">Scope</th><th data-sort="project">Project</th><th data-sort="type">Type</th><th>Summary</th><th data-sort="status">Status</th><th data-sort="assignee">Assignee</th></tr></thead>
+        <thead><tr><th data-sort="key">Key</th><th data-sort="scope">Scope</th><th data-sort="project">Project</th><th data-sort="type">Type</th><th>Summary</th><th data-sort="status">Status</th><th data-sort="assignee">Assignee</th><th data-sort="team">Team</th></tr></thead>
         <tbody>{empty_or_bad_rows_str}</tbody>
       </table>
     </div>
@@ -2951,13 +2953,13 @@ def main():
       const d = window._currentScopeData || getEffectiveData();
       const wip = d.empty_or_bad_list_wip || [];
       const done = d.empty_or_bad_list_done || [];
-      const rows = [['Key','Scope','Project','Type','Summary','Status','Assignee']];
+      const rows = [['Key','Scope','Project','Type','Summary','Status','Assignee','Team']];
       function csvCell(v) {{
         const s = String(v == null ? '' : v).replace(/"/g, '""');
         return /[",\n\r]/.test(s) ? '"' + s + '"' : s;
       }}
-      wip.forEach(r => rows.push([r.key,  'WIP',  r.project, r.type, r.summary, r.status, r.assignee_display_name].map(csvCell)));
-      done.forEach(r => rows.push([r.key, 'Done', r.project, r.type, r.summary, r.status, r.assignee_display_name].map(csvCell)));
+      wip.forEach(r => rows.push([r.key,  'WIP',  r.project, r.type, r.summary, r.status, r.assignee_display_name, r.team || ''].map(csvCell)));
+      done.forEach(r => rows.push([r.key, 'Done', r.project, r.type, r.summary, r.status, r.assignee_display_name, r.team || ''].map(csvCell)));
       const csv = rows.map(r => r.join(',')).join('\r\n');
       const ts = (d.run_iso_ts || new Date().toISOString()).replace(/:/g, '-').slice(0,19);
       const blob = new Blob([csv], {{ type: 'text/csv' }});
@@ -3021,7 +3023,8 @@ def main():
         const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
         tr.innerHTML = '<td>' + esc(r.key) + '</td><td>' + scope + '</td><td>' + esc(r.project) + '</td>' +
           '<td>' + esc(r.type) + '</td><td>' + esc((r.summary||'').slice(0,60)) + '</td>' +
-          '<td>' + esc(r.status) + '</td><td>' + esc(r.assignee_display_name) + '</td>';
+          '<td>' + esc(r.status) + '</td><td>' + esc(r.assignee_display_name) + '</td>' +
+          '<td>' + esc(r.team || '') + '</td>';
         tbody.appendChild(tr);
       }});
 
