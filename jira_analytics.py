@@ -998,7 +998,7 @@ def _get_issue_team(issue, team_field_id):
 
 
 def _empty_or_bad_list_details(issues, summary_max_len=60, team_field_id=None):
-    """Return list of dicts: key, project, type (issuetype), summary (truncated), status, assignee_display_name, team, creator_display_name, created."""
+    """Return list of dicts: key, project, type (issuetype), summary (truncated), status, assignee_display_name, team, author_display_name, created."""
     rows = []
     for it in issues:
         fields = it.get("fields") or {}
@@ -1012,8 +1012,8 @@ def _empty_or_bad_list_details(issues, summary_max_len=60, team_field_id=None):
         status_name = st.get("name") if isinstance(st, dict) else ""
         assignee = fields.get("assignee")
         assignee_name = (assignee.get("displayName") or assignee.get("name") or "(unassigned)") if isinstance(assignee, dict) else "(unassigned)"
-        creator = fields.get("creator")
-        creator_name = (creator.get("displayName") or creator.get("name") or "") if isinstance(creator, dict) else ""
+        reporter = fields.get("reporter")
+        author_name = (reporter.get("displayName") or reporter.get("name") or "") if isinstance(reporter, dict) else ""
         created_raw = fields.get("created") or ""
         created_date = created_raw[:10] if created_raw else ""
         rows.append({
@@ -1024,7 +1024,7 @@ def _empty_or_bad_list_details(issues, summary_max_len=60, team_field_id=None):
             "status": status_name,
             "assignee_display_name": assignee_name,
             "team": _get_issue_team(it, team_field_id),
-            "creator_display_name": creator_name,
+            "author_display_name": author_name,
             "created": created_date,
         })
     return rows
@@ -1492,7 +1492,7 @@ def main():
     # ---------
     base_fields = ["project", "issuetype", "status", "assignee", "priority", "created",
                     "resolutiondate", "resolution", "labels", "summary", "components",
-                    "description", "comment", "issuelinks", "worklog"]
+                    "description", "comment", "issuelinks", "worklog", "reporter"]
     fields_with_team = list(base_fields) + ([TEAM_FIELD_ID] if TEAM_FIELD_ID else [])
     if STORY_POINTS_FIELD:
         fields_with_team.append(STORY_POINTS_FIELD)

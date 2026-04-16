@@ -225,24 +225,24 @@ def main():
     empty_or_bad_rows = []
     for row in empty_bad_list_wip:
         empty_or_bad_rows.append(
-            f'<tr data-scope="WIP" data-project="{html.escape(row.get("project", ""))}" data-team="{html.escape(row.get("team", ""))}" data-date="{html.escape(row.get("created", ""))}">'
+            f'<tr data-scope="WIP" data-project="{html.escape(row.get("project", ""))}" data-team="{html.escape(row.get("team", ""))}" data-date="{html.escape(row.get("created", ""))}" data-type="{html.escape(row.get("type", ""))}" data-status="{html.escape(row.get("status", ""))}">'
             f'<td>{link_key(row.get("key", ""))}</td><td>WIP</td><td>{html.escape(row.get("project", ""))}</td>'
             f'<td>{html.escape(row.get("type", ""))}</td>'
             f'<td>{html.escape((row.get("summary") or "")[:60])}</td><td>{html.escape(row.get("status", ""))}</td>'
             f'<td>{html.escape(row.get("assignee_display_name", ""))}</td>'
             f'<td>{html.escape(row.get("team", ""))}</td>'
-            f'<td>{html.escape(row.get("creator_display_name", ""))}</td>'
+            f'<td>{html.escape(row.get("author_display_name", ""))}</td>'
             f'<td>{html.escape(row.get("created", ""))}</td></tr>'
         )
     for row in empty_bad_list_done:
         empty_or_bad_rows.append(
-            f'<tr data-scope="Done" data-project="{html.escape(row.get("project", ""))}" data-team="{html.escape(row.get("team", ""))}" data-date="{html.escape(row.get("created", ""))}">'
+            f'<tr data-scope="Done" data-project="{html.escape(row.get("project", ""))}" data-team="{html.escape(row.get("team", ""))}" data-date="{html.escape(row.get("created", ""))}" data-type="{html.escape(row.get("type", ""))}" data-status="{html.escape(row.get("status", ""))}">'
             f'<td>{link_key(row.get("key", ""))}</td><td>Done</td><td>{html.escape(row.get("project", ""))}</td>'
             f'<td>{html.escape(row.get("type", ""))}</td>'
             f'<td>{html.escape((row.get("summary") or "")[:60])}</td><td>{html.escape(row.get("status", ""))}</td>'
             f'<td>{html.escape(row.get("assignee_display_name", ""))}</td>'
             f'<td>{html.escape(row.get("team", ""))}</td>'
-            f'<td>{html.escape(row.get("creator_display_name", ""))}</td>'
+            f'<td>{html.escape(row.get("author_display_name", ""))}</td>'
             f'<td>{html.escape(row.get("created", ""))}</td></tr>'
         )
     empty_or_bad_rows_str = "".join(empty_or_bad_rows) if empty_or_bad_rows else "<tr><td colspan=\"10\">None</td></tr>"
@@ -688,7 +688,13 @@ def main():
       <span>Done: <strong>{empty_bad_count_done}</strong> ({empty_bad_pct_done}%)</span>
     </div>
     <div class="empty-bad-toolbar">
-      <input type="text" id="filterEmptyBad" placeholder="Filter by key, project, assignee, type, team, creator\u2026" style="flex:1;min-width:180px;max-width:340px;background:var(--bg);border:1px solid #30363d;color:var(--text);padding:0.35rem 0.6rem;border-radius:6px;font-size:0.85rem;" />
+      <input type="text" id="filterEmptyBad" placeholder="Filter by key, project, assignee, type, team, author\u2026" style="flex:1;min-width:180px;max-width:340px;background:var(--bg);border:1px solid #30363d;color:var(--text);padding:0.35rem 0.6rem;border-radius:6px;font-size:0.85rem;" />
+      <select id="ebFilterType" style="font-size:0.8rem;background:var(--card);border:1px solid #30363d;color:var(--text);padding:0.3rem 0.6rem;border-radius:6px;max-width:160px;">
+        <option value="">All types</option>
+      </select>
+      <select id="ebFilterStatus" style="font-size:0.8rem;background:var(--card);border:1px solid #30363d;color:var(--text);padding:0.3rem 0.6rem;border-radius:6px;max-width:200px;">
+        <option value="">All statuses</option>
+      </select>
       <button class="export-btn" onclick="exportEmptyBadCSV()" style="font-size:0.8rem;padding:0.35rem 0.75rem;">Export CSV</button>
       <label style="font-size:0.8rem;color:var(--muted);white-space:nowrap;">Compare vs:</label>
       <select id="emptyBadCompareSelect" onchange="compareEmptyBad(this.value)" style="font-size:0.8rem;background:var(--card);border:1px solid #30363d;color:var(--text);padding:0.3rem 0.6rem;border-radius:6px;max-width:240px;">
@@ -699,7 +705,7 @@ def main():
     <div class="eb-compare-summary" id="ebCompareSummary"></div>
     <div class="table-wrap">
       <table id="tableEmptyBad">
-        <thead><tr><th data-sort="key">Key</th><th data-sort="scope">Scope</th><th data-sort="project">Project</th><th data-sort="type">Type</th><th>Summary</th><th data-sort="status">Status</th><th data-sort="assignee">Assignee</th><th data-sort="team">Team</th><th data-sort="creator">Creator</th><th data-sort="created">Created</th></tr></thead>
+        <thead><tr><th data-sort="key">Key</th><th data-sort="scope">Scope</th><th data-sort="project">Project</th><th data-sort="type">Type</th><th>Summary</th><th data-sort="status">Status</th><th data-sort="assignee">Assignee</th><th data-sort="team">Team</th><th data-sort="author">Author</th><th data-sort="created">Created</th></tr></thead>
         <tbody>{empty_or_bad_rows_str}</tbody>
       </table>
     </div>
@@ -2790,7 +2796,7 @@ def main():
         const dateOk = isDateInRange(tr.dataset.date || '');
         tr.style.display = (projectOk && componentOk && teamOk && dateOk) ? '' : 'none';
       }};
-      ['tableBlocked', 'tableBugs', 'tableSprints', 'tableKanban', 'tableEpics', 'tableReleases', 'tableEmptyBad'].forEach(tableId => {{
+      ['tableBlocked', 'tableBugs', 'tableSprints', 'tableKanban', 'tableEpics', 'tableReleases'].forEach(tableId => {{
         const t = document.getElementById(tableId);
         if (t && t.tBodies[0]) t.tBodies[0].querySelectorAll('tr').forEach(show);
       }});
@@ -2813,6 +2819,7 @@ def main():
       computeAuditFlags();
       document.getElementById('filterBugs')?.dispatchEvent(new Event('input'));
       document.getElementById('filterSprints')?.dispatchEvent(new Event('input'));
+      if (typeof window._applyEmptyBadFilter === 'function') window._applyEmptyBadFilter();
       if (typeof refreshGitTab === 'function') refreshGitTab();
       if (typeof refreshCicdCharts === 'function') refreshCicdCharts();
     }}
@@ -2945,25 +2952,75 @@ def main():
     setupFilter('filterBugs', 'tableBugs');
     setupFilter('filterSprints', 'tableSprints');
     setupFilter('filterReleases', 'tableReleases');
-    setupFilter('filterEmptyBad', 'tableEmptyBad');
     setupSort('tableBugs');
     setupSort('tableSprints');
     setupSort('tableEpics');
     setupSort('tableReleases');
     setupSort('tableEmptyBad');
 
+    // ---------- Empty or bad structure: local Type/Status filters + text filter ----------
+    (function() {{
+      const allRows = [].concat(
+        (DATA.empty_or_bad_list_wip || []),
+        (DATA.empty_or_bad_list_done || [])
+      );
+      const typeSel = document.getElementById('ebFilterType');
+      const statusSel = document.getElementById('ebFilterStatus');
+      if (typeSel) {{
+        const types = [...new Set(allRows.map(r => r.type || '').filter(Boolean))].sort();
+        types.forEach(t => {{ const o = document.createElement('option'); o.value = t; o.textContent = t; typeSel.appendChild(o); }});
+      }}
+      if (statusSel) {{
+        const statuses = [...new Set(allRows.map(r => r.status || '').filter(Boolean))].sort();
+        statuses.forEach(s => {{ const o = document.createElement('option'); o.value = s; o.textContent = s; statusSel.appendChild(o); }});
+      }}
+
+      function applyEmptyBadFilter() {{
+        const input = document.getElementById('filterEmptyBad');
+        const table = document.getElementById('tableEmptyBad');
+        if (!table) return;
+        const tbody = table.querySelector('tbody');
+        const q = input ? input.value.trim().toLowerCase() : '';
+        const typeVal = typeSel ? typeSel.value : '';
+        const statusVal = statusSel ? statusSel.value : '';
+        const scopeMeta = window._currentScopeMeta || {{}};
+        const proj = scopeMeta.effectiveProjects || null;
+        const compSel = scopeMeta.components || null;
+        const teamSel = scopeMeta.teams || null;
+        tbody.querySelectorAll('tr').forEach(tr => {{
+          if (tr.cells.length < 2) {{ tr.style.display = ''; return; }}
+          const projectOk = proj === null || !tr.dataset.project || proj.includes(tr.dataset.project);
+          const rowComponents = (tr.dataset.components || '').split('|').filter(Boolean);
+          const componentOk = !compSel || !compSel.length || !rowComponents.length || compSel.some(c => rowComponents.includes(c));
+          const rowTeams = (tr.dataset.team || '').split('|').filter(Boolean);
+          const teamOk = !teamSel || !teamSel.length || !rowTeams.length || teamSel.some(t => rowTeams.includes(t));
+          const dateOk = isDateInRange(tr.dataset.date || '');
+          const typeOk = !typeVal || (tr.dataset.type || '') === typeVal;
+          const statusOk = !statusVal || (tr.dataset.status || '') === statusVal;
+          const text = Array.from(tr.cells).map(c => c.textContent).join(' ').toLowerCase();
+          tr.style.display = (projectOk && componentOk && teamOk && dateOk && typeOk && statusOk && text.includes(q)) ? '' : 'none';
+        }});
+      }}
+
+      const ebTextInput = document.getElementById('filterEmptyBad');
+      if (ebTextInput) ebTextInput.addEventListener('input', applyEmptyBadFilter);
+      if (typeSel) typeSel.addEventListener('change', applyEmptyBadFilter);
+      if (statusSel) statusSel.addEventListener('change', applyEmptyBadFilter);
+      window._applyEmptyBadFilter = applyEmptyBadFilter;
+    }})();
+
     // ---------- Empty or bad structure: CSV export ----------
     function exportEmptyBadCSV() {{
       const d = window._currentScopeData || getEffectiveData();
       const wip = d.empty_or_bad_list_wip || [];
       const done = d.empty_or_bad_list_done || [];
-      const rows = [['Key','Scope','Project','Type','Summary','Status','Assignee','Team','Creator','Created']];
+      const rows = [['Key','Scope','Project','Type','Summary','Status','Assignee','Team','Author','Created']];
       function csvCell(v) {{
         const s = String(v == null ? '' : v).replace(/"/g, '""');
         return /[",\\n\\r]/.test(s) ? '"' + s + '"' : s;
       }}
-      wip.forEach(r => rows.push([r.key,  'WIP',  r.project, r.type, r.summary, r.status, r.assignee_display_name, r.team || '', r.creator_display_name || '', r.created || ''].map(csvCell)));
-      done.forEach(r => rows.push([r.key, 'Done', r.project, r.type, r.summary, r.status, r.assignee_display_name, r.team || '', r.creator_display_name || '', r.created || ''].map(csvCell)));
+      wip.forEach(r => rows.push([r.key,  'WIP',  r.project, r.type, r.summary, r.status, r.assignee_display_name, r.team || '', r.author_display_name || '', r.created || ''].map(csvCell)));
+      done.forEach(r => rows.push([r.key, 'Done', r.project, r.type, r.summary, r.status, r.assignee_display_name, r.team || '', r.author_display_name || '', r.created || ''].map(csvCell)));
       const csv = rows.map(r => r.join(',')).join('\\r\\n');
       const ts = (d.run_iso_ts || new Date().toISOString()).replace(/:/g, '-').slice(0,19);
       const blob = new Blob([csv], {{ type: 'text/csv' }});
@@ -3029,7 +3086,7 @@ def main():
           '<td>' + esc(r.type) + '</td><td>' + esc((r.summary||'').slice(0,60)) + '</td>' +
           '<td>' + esc(r.status) + '</td><td>' + esc(r.assignee_display_name) + '</td>' +
           '<td>' + esc(r.team || '') + '</td>' +
-          '<td>' + esc(r.creator_display_name || '') + '</td>' +
+          '<td>' + esc(r.author_display_name || '') + '</td>' +
           '<td>' + esc(r.created || '') + '</td>';
         tbody.appendChild(tr);
       }});
