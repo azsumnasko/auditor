@@ -998,7 +998,7 @@ def _get_issue_team(issue, team_field_id):
 
 
 def _empty_or_bad_list_details(issues, summary_max_len=60, team_field_id=None):
-    """Return list of dicts: key, project, type (issuetype), summary (truncated), status, assignee_display_name, team."""
+    """Return list of dicts: key, project, type (issuetype), summary (truncated), status, assignee_display_name, team, creator_display_name, created."""
     rows = []
     for it in issues:
         fields = it.get("fields") or {}
@@ -1012,6 +1012,10 @@ def _empty_or_bad_list_details(issues, summary_max_len=60, team_field_id=None):
         status_name = st.get("name") if isinstance(st, dict) else ""
         assignee = fields.get("assignee")
         assignee_name = (assignee.get("displayName") or assignee.get("name") or "(unassigned)") if isinstance(assignee, dict) else "(unassigned)"
+        creator = fields.get("creator")
+        creator_name = (creator.get("displayName") or creator.get("name") or "") if isinstance(creator, dict) else ""
+        created_raw = fields.get("created") or ""
+        created_date = created_raw[:10] if created_raw else ""
         rows.append({
             "key": key,
             "project": proj,
@@ -1020,6 +1024,8 @@ def _empty_or_bad_list_details(issues, summary_max_len=60, team_field_id=None):
             "status": status_name,
             "assignee_display_name": assignee_name,
             "team": _get_issue_team(it, team_field_id),
+            "creator_display_name": creator_name,
+            "created": created_date,
         })
     return rows
 
