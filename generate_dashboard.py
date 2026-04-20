@@ -862,13 +862,13 @@ def main():
     <p class="meta" id="gitBreakdownNote" style="display:none"></p>
     <div class="cards" id="gitCards"></div>
     <p class="meta" id="gitContribNote" style="display:none">Contributors and Min Bus Factor reflect the full data lookback period, not the active time filter.</p>
-    <section><h2>PR cycle breakdown (median hours)</h2>
-      <p class="summary-desc" id="gitBreakdownDesc">Coding &rarr; review/approval &rarr; merge (see <code>pr_cycle_breakdown_meta</code> in JSON when present).</p>
+    <section><h2>PR cycle breakdown (p50 / p95, hours)</h2>
+      <p class="summary-desc" id="gitBreakdownDesc">Coding &rarr; review/approval &rarr; merge. Card row: p50 (or weekly mean when a date range filter is on). Second row: p95 when the full lookback applies (see note when filtered).</p>
       <div class="cards" id="gitBreakdownCards"></div>
       <div class="chart-wrap" style="max-width:900px;height:280px"><canvas id="chartPrCycleBreakdown"></canvas></div>
     </section>
     <div class="grid2">
-      <section><h2>PR Cycle Time by Week</h2><div class="chart-wrap"><canvas id="chartPrCycle"></canvas></div></section>
+      <section><h2>PR Cycle Time by Week</h2><p class="summary-desc" style="margin:0 0 0.5rem;font-size:0.9em">Each point is the <strong>mean</strong> open&rarr;merge time (days) for PRs <strong>merged</strong> that ISO week (not p50/p95).</p><div class="chart-wrap"><canvas id="chartPrCycle"></canvas></div></section>
       <section><h2>Merge Frequency by Week</h2><div class="chart-wrap"><canvas id="chartMergeFreq"></canvas></div></section>
     </div>
     <div class="grid2">
@@ -3540,7 +3540,7 @@ def main():
       if (document.getElementById('chartPrCycle')) {{
         G.prCycle = new Chart(document.getElementById('chartPrCycle'), {{
           type: 'line',
-          data: {{ labels: [], datasets: [{{ label: 'PR Cycle (days)', data: [], borderColor: '#58a6ff', fill: false }}] }},
+          data: {{ labels: [], datasets: [{{ label: 'Mean cycle time (d) / merge week', data: [], borderColor: '#58a6ff', fill: false }}] }},
           options: y0,
         }});
       }}
@@ -3602,17 +3602,24 @@ def main():
         const filtered = !!(window._timeRange.from || window._timeRange.to);
         const cycleLabel = (filtered && prc._filtered_mean) ? 'PR Cycle mean' : 'PR Cycle p50';
         const cycleVal = (filtered && prc._filtered_mean) ? prc.avg_days : prc.p50_days;
+        const hidePctiles = !!(filtered && prc._filtered_mean);
         const revLabel = (filtered && rev._filtered_mean) ? 'Review mean' : 'Review p50';
         const revVal = (filtered && rev._filtered_mean) ? rev.avg_hours : rev.p50_hours;
         gc.innerHTML =
           _mkExtraCard('PRs Merged', g.pr_merged_count) +
           _mkExtraCard(cycleLabel, (cycleVal || 0).toFixed(1) + 'd') +
+          (hidePctiles ? '' : _mkExtraCard('PR Cycle p95', (prc.p95_days != null ? prc.p95_days : 0).toFixed(1) + 'd')) +
           _mkExtraCard(revLabel, (revVal || 0).toFixed(1) + 'h') +
           _mkExtraCard('Merges/wk', mf.avg_merges_per_week) +
           _mkExtraCard('Min Bus Factor', contrib.min_bus_factor, contrib.min_bus_factor <= 1 ? '#e74c3c' : '#2ecc71') +
           _mkExtraCard('Contributors', contrib.total_contributors);
         const gcNote = document.getElementById('gitContribNote');
-        if (gcNote) gcNote.style.display = filtered ? '' : 'none';
+        if (gcNote) {{
+          gcNote.style.display = filtered ? '' : 'none';
+          gcNote.textContent = hidePctiles
+            ? 'Contributors and Min Bus Factor reflect the full data lookback, not the active time filter. PR Cycle p95 is hidden while a date range is selected (percentiles are not recomputed for the filter).'
+            : 'Contributors and Min Bus Factor reflect the full data lookback, not the active time filter.';
+        }}
       }}
       const gbc = document.getElementById('gitBreakdownCards');
       const pcb = g.pr_cycle_breakdown;
@@ -3636,10 +3643,15 @@ def main():
           const bkCodingVal = bkFiltered ? p.avg_hours : p.p50_hours;
           const bkRevVal = bkFiltered ? r.avg_hours : r.p50_hours;
           const bkMrgVal = bkFiltered ? m.avg_hours : m.p50_hours;
+          const p95Row = bkFiltered ? '' :
+            _mkExtraCard('Coding p95 (h)', (p.p95_hours != null ? p.p95_hours : 0).toFixed(1)) +
+            _mkExtraCard('Review p95 (h)', (r.p95_hours != null ? r.p95_hours : 0).toFixed(1)) +
+            _mkExtraCard('Merge p95 (h)', (m.p95_hours != null ? m.p95_hours : 0).toFixed(1));
           gbc.innerHTML =
             _mkExtraCard(bkCodingLabel, (bkCodingVal ?? 0).toFixed(1)) +
             _mkExtraCard(bkRevLabel, (bkRevVal ?? 0).toFixed(1)) +
-            _mkExtraCard(bkMrgLabel, (bkMrgVal ?? 0).toFixed(1));
+            _mkExtraCard(bkMrgLabel, (bkMrgVal ?? 0).toFixed(1)) +
+            p95Row;
         }}
       }}
       const prcW = g.pr_cycle_time_by_week || {{}};
